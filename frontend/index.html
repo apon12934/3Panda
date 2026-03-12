@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3 Panda — Food Delivery</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+
+<!-- top nav bar -->
+<nav class="navbar">
+    <a href="index.html" class="brand">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M8 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/>
+            <path d="M12 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+            <line x1="9" y1="10" x2="9" y2="10.01"/>
+            <line x1="15" y1="10" x2="15" y2="10.01"/>
+        </svg>
+        3 Panda
+    </a>
+    <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <!-- js adds extra nav links here depending on user role -->
+        <span id="dynamic-nav"></span>
+        <li><a href="login.html" class="btn-nav" id="nav-auth-btn">Login</a></li>
+    </ul>
+</nav>
+
+<!-- hero area -->
+<section class="hero">
+    <h1>Delicious Food, Delivered Fast</h1>
+    <p>Browse restaurants, pick your favorites, and get them delivered to your door by our 3 Panda riders.</p>
+</section>
+
+<!-- main page content -->
+<div class="container">
+
+    <!-- restaurants list section -->
+    <h2 class="section-title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+        Restaurants
+    </h2>
+    <div class="grid grid-3" id="restaurant-list">
+        <!-- js puts restaurant cards here -->
+        <div class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16.01"/></svg>
+            <p>Loading restaurants...</p>
+        </div>
+    </div>
+
+    <!-- menu items section -->
+    <h2 class="section-title mt-3">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+        Menu
+    </h2>
+    <div class="grid grid-3" id="menu-list">
+        <div class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16.01"/></svg>
+            <p>Select a restaurant or browse all items...</p>
+        </div>
+    </div>
+
+</div>
+
+<!-- floating cart button + cart/map popup -->
+<button class="fab" id="fab-cart" title="Cart & Map">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+    <span class="fab-badge hidden" id="fab-badge">0</span>
+</button>
+
+<div class="popup-overlay hidden" id="cart-popup-overlay"></div>
+<div class="popup-panel hidden" id="cart-popup">
+    <div class="popup-header">
+        <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:.3rem;"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            Cart &amp; Delivery
+        </h2>
+        <button class="popup-close" id="popup-close">&times;</button>
+    </div>
+    <div class="popup-body">
+        <!-- cart part -->
+        <div class="cart-panel">
+            <h3 style="font-size:1.05rem;color:var(--red-dark);margin-bottom:.75rem;">Your Cart</h3>
+            <div id="cart-items">
+                <p class="text-muted" style="font-size:.9rem;">Your cart is empty.</p>
+            </div>
+            <div class="cart-total hidden" id="cart-total-row">
+                <span>Total</span>
+                <span id="cart-total">$0.00</span>
+            </div>
+        </div>
+        <!-- map part -->
+        <div style="margin-top:1rem;">
+            <h3 style="font-size:1.05rem;color:var(--red-dark);margin-bottom:.5rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:.2rem;"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Delivery Location
+            </h3>
+            <p class="text-muted mb-1" style="font-size:.85rem;">Click on the map to drop a pin.</p>
+            <div id="map"></div>
+            <input type="hidden" id="lat" />
+            <input type="hidden" id="lng" />
+        </div>
+        <button class="btn btn-primary mt-2 hidden" id="place-order-btn" style="width:100%;">Place Order</button>
+    </div>
+</div>
+
+<!-- footer area -->
+<footer class="site-footer">
+    <div class="footer-inner">
+        <div class="footer-brand">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/><path d="M12 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="10" x2="9" y2="10.01"/><line x1="15" y1="10" x2="15" y2="10.01"/></svg>
+            <span>3 Panda</span>
+        </div>
+        <div class="footer-links">
+            <a href="index.html">Home</a>
+            <a href="login.html">Login</a>
+            <a href="profile.html">Profile</a>
+        </div>
+        <p class="footer-copy">&copy; 2025 3 Panda Food Delivery. All rights reserved.</p>
+    </div>
+</footer>
+
+<!-- toast messages show here -->
+<div id="toast-container"></div>
+
+<div id="status-msg" class="status-msg container-sm mt-2" style="display:none;"></div>
+
+<!-- leaflet map library script -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
