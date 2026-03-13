@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3 Panda — Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- top nav bar -->
+<nav class="navbar">
+    <a href="index.html" class="brand">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M8 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/>
+            <path d="M12 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+            <line x1="9" y1="10" x2="9" y2="10.01"/>
+            <line x1="15" y1="10" x2="15" y2="10.01"/>
+        </svg>
+        3 Panda
+    </a>
+    <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <span id="dynamic-nav"></span>
+        <li><a href="login.html" class="btn-nav" id="nav-auth-btn">Login</a></li>
+    </ul>
+</nav>
+
+<!-- admin dashboard section -->
+<div class="container">
+    <h2 class="section-title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Admin Dashboard
+    </h2>
+
+    <div id="status-msg" class="status-msg"></div>
+
+    <!-- tab buttons -->
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="tab-users">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.3rem;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Users
+        </button>
+        <button class="tab-btn" data-tab="tab-restaurants">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.3rem;"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+            Restaurants
+        </button>
+        <button class="tab-btn" data-tab="tab-items">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.3rem;"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+            Menu Items
+        </button>
+        <button class="tab-btn" data-tab="tab-orders">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.3rem;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Orders
+        </button>
+    </div>
+
+    <!-- users tab -->
+    <div class="tab-panel active" id="tab-users">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="users-tbody">
+                    <tr><td colspan="5" class="text-center text-muted">Loading users...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- form for editing a user -->
+        <div class="auth-card mt-2 hidden" id="edit-user-card">
+            <h2 style="font-size:1.15rem;">Edit User</h2>
+            <form id="edit-user-form">
+                <input type="hidden" id="edit-user-id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-user-name">Username</label>
+                        <input type="text" id="edit-user-name" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-user-email">Email</label>
+                        <input type="email" id="edit-user-email" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-user-role">Role</label>
+                    <select id="edit-user-role" class="form-control">
+                        <option value="customer">Customer</option>
+                        <option value="delivery">Delivery</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="gap-row">
+                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="cancel-edit-user">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- restaurants tab -->
+    <div class="tab-panel" id="tab-restaurants">
+        <!-- form to add restaurant -->
+        <div class="auth-card mb-2">
+            <h2 style="font-size:1.15rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.3rem;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Restaurant
+            </h2>
+            <form id="add-restaurant-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="rest-name">Restaurant Name</label>
+                    <input type="text" id="rest-name" class="form-control" placeholder="e.g. Panda Wok" required>
+                </div>
+                <div class="form-group">
+                    <label for="rest-banner">Banner Image</label>
+                    <input type="file" id="rest-banner" class="form-control" accept="image/*">
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">Add Restaurant</button>
+            </form>
+        </div>
+
+        <!-- restaurants table -->
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>ID</th><th>Name</th><th>Image</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="restaurants-tbody">
+                    <tr><td colspan="4" class="text-center text-muted">Loading restaurants...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- form for editing restaurant -->
+        <div class="auth-card mt-2 hidden" id="edit-restaurant-card">
+            <h2 style="font-size:1.15rem;">Edit Restaurant</h2>
+            <form id="edit-restaurant-form" enctype="multipart/form-data">
+                <input type="hidden" id="edit-rest-id">
+                <div class="form-group">
+                    <label for="edit-rest-name">Name</label>
+                    <input type="text" id="edit-rest-name" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="edit-rest-banner">Banner Image</label>
+                    <input type="file" id="edit-rest-banner" class="form-control" accept="image/*">
+                </div>
+                <div class="gap-row">
+                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="cancel-edit-rest">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- menu items tab -->
+    <div class="tab-panel" id="tab-items">
+        <!-- form to add menu item -->
+        <div class="auth-card mb-2">
+            <h2 style="font-size:1.15rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.3rem;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Menu Item
+            </h2>
+            <form id="add-item-form" enctype="multipart/form-data">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="item-restaurant">Restaurant</label>
+                        <select id="item-restaurant" class="form-control" required>
+                            <option value="">Select restaurant…</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="item-name">Item Name</label>
+                        <input type="text" id="item-name" class="form-control" placeholder="e.g. Kung Pao Chicken" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="item-price">Price ($)</label>
+                        <input type="number" id="item-price" class="form-control" step="0.01" min="0" placeholder="9.99" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="item-banner">Banner Image</label>
+                        <input type="file" id="item-banner" class="form-control" accept="image/*">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">Add Item</button>
+            </form>
+        </div>
+
+        <!-- menu items table -->
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>ID</th><th>Restaurant</th><th>Name</th><th>Price</th><th>Image</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="items-tbody">
+                    <tr><td colspan="6" class="text-center text-muted">Loading items...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- form for editing menu item -->
+        <div class="auth-card mt-2 hidden" id="edit-item-card">
+            <h2 style="font-size:1.15rem;">Edit Menu Item</h2>
+            <form id="edit-item-form" enctype="multipart/form-data">
+                <input type="hidden" id="edit-item-id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-item-restaurant">Restaurant</label>
+                        <select id="edit-item-restaurant" class="form-control"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-item-name">Name</label>
+                        <input type="text" id="edit-item-name" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-item-price">Price ($)</label>
+                        <input type="number" id="edit-item-price" class="form-control" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-item-banner">Banner Image</label>
+                        <input type="file" id="edit-item-banner" class="form-control" accept="image/*">
+                    </div>
+                </div>
+                <div class="gap-row">
+                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="cancel-edit-item">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- orders tab -->
+    <div class="tab-panel" id="tab-orders">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>ID</th><th>Customer</th><th>Delivery</th><th>Status</th><th>Address</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="orders-tbody">
+                    <tr><td colspan="6" class="text-center text-muted">Loading orders...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- footer area -->
+<footer class="site-footer">
+    <div class="footer-inner">
+        <div class="footer-brand">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/><path d="M12 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="10" x2="9" y2="10.01"/><line x1="15" y1="10" x2="15" y2="10.01"/></svg>
+            <span>3 Panda</span>
+        </div>
+        <div class="footer-links">
+            <a href="index.html">Home</a>
+            <a href="login.html">Login</a>
+            <a href="profile.html">Profile</a>
+        </div>
+        <p class="footer-copy">&copy; 2025 3 Panda Food Delivery. All rights reserved.</p>
+    </div>
+</footer>
+<div id="toast-container"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
