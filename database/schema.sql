@@ -1,3 +1,8 @@
+-- ============================================================
+-- our 3 Panda database schema (SQLite)
+-- made from the ER diagram we drew in class
+-- ============================================================
+
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
