@@ -3,7 +3,7 @@
 -- made from the ER diagram we drew in class
 -- ============================================================
 
-PRAGMA journal_mode = WAL;
+PRAGMA journal_mode = DELETE;
 PRAGMA foreign_keys = ON;
 
 -- ---------------- users table ----------------
