@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3 Panda — Identity Portal</title>
+    <title>3 Panda — Login</title>
     <meta name="description" content="Sign in or create an account to start ordering delicious food with 3 Panda.">
     <link rel="icon" type="image/png" href="images/logo/3panda.png">
     <link rel="stylesheet" href="style.css">
@@ -32,7 +32,7 @@
 
     <!-- login form -->
     <div class="auth-card" id="login-card">
-        <div class="auth-subtitle">Identity Portal</div>
+        <div class="auth-subtitle">Your Account</div>
         <h2>Welcome back to<br>the Pack.</h2>
 
         <div class="auth-tabs">
@@ -43,22 +43,22 @@
         <form id="login-form">
             <div class="form-group floating-group">
                 <input type="email" id="login-email" class="form-control" placeholder=" " required>
-                <label for="login-email">Digital Signature (Email)</label>
+                <label for="login-email">Email</label>
             </div>
             <div class="form-group floating-group">
                 <input type="password" id="login-password" class="form-control" placeholder=" " required>
-                <label for="login-password">Access Key</label>
+                <label for="login-password">Password</label>
             </div>
-            <button type="submit" class="btn btn-primary" style="width:100%;padding:.8rem;">Authenticate →</button>
+            <button type="submit" class="btn btn-primary" style="width:100%;padding:.8rem;">Log In →</button>
         </form>
         <p class="auth-toggle">
-            Lost your credentials? <a href="#">Reset here</a>
+            Forgot your password? <a href="#">Reset here</a>
         </p>
     </div>
 
     <!-- register form -->
     <div class="auth-card hidden" id="register-card">
-        <div class="auth-subtitle">Identity Portal</div>
+        <div class="auth-subtitle">Your Account</div>
         <h2>Join the Pack.</h2>
 
         <div class="auth-tabs">
@@ -69,24 +69,24 @@
         <form id="register-form">
             <div class="form-group floating-group">
                 <input type="text" id="reg-name" class="form-control" placeholder=" " required>
-                <label for="reg-name">Alias (Username)</label>
+                <label for="reg-name">Username</label>
             </div>
             <div class="form-group floating-group">
                 <input type="email" id="reg-email" class="form-control" placeholder=" " required>
-                <label for="reg-email">Digital Signature (Email)</label>
+                <label for="reg-email">Email</label>
             </div>
             <div class="form-group floating-group">
                 <input type="password" id="reg-password" class="form-control" placeholder=" " required>
-                <label for="reg-password">Access Key</label>
+                <label for="reg-password">Password</label>
             </div>
             <div class="form-group floating-group floating-group--select">
                 <select id="reg-role" class="form-control">
                     <option value="customer">Customer</option>
                     <option value="delivery">Delivery Rider</option>
                 </select>
-                <label for="reg-role">Identity Type</label>
+                <label for="reg-role">Account Type</label>
             </div>
-            <button type="submit" class="btn btn-primary" style="width:100%;padding:.8rem;">Create Identity →</button>
+            <button type="submit" class="btn btn-primary" style="width:100%;padding:.8rem;">Create Account →</button>
         </form>
         <p class="auth-toggle">
             Already part of the pack? <a href="#" id="show-login">Sign in here</a>

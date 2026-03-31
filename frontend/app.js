@@ -449,7 +449,7 @@ async function placeOrder() {
 // login page logic (login.html)
 
 function initLogin() {
-    // Auth tab switching (new Identity Portal tabs)
+    // Auth tab switching (login/signup tabs)
     const tabLogin = $('#tab-login');
     const tabSignup = $('#tab-signup');
     const tabLogin2 = $('#tab-login-2');
