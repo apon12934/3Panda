@@ -1,7 +1,8 @@
 // main frontend script file
 
+const hostname = window.location.hostname || '127.0.0.1';
 const API = window.location.protocol === 'file:' || window.location.port !== '3000' 
-    ? 'http://localhost:3000/api' 
+    ? `http://${hostname}:3000/api` 
     : window.location.origin + '/api';
 
 // small helper functions
