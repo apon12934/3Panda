@@ -65,6 +65,7 @@ html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
 }
 
 body {
@@ -73,7 +74,6 @@ body {
     color: var(--text);
     line-height: 1.6;
     min-height: 100vh;
-    overflow-x: hidden;
 }
 
 a {
@@ -96,13 +96,9 @@ img { display: block; max-width: 100%; }
    PAGE LOAD ANIMATION
    ============================================================ */
 
-@keyframes pageLoad {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: none; }
-}
-
+/* Reduced body animation to prevent fixed layout issues */
 body {
-    animation: pageLoad .6s var(--ease) both;
+    /* animation: pageLoad .6s var(--ease) both; */
 }
 
 /* ============================================================
