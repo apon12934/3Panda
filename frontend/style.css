@@ -653,6 +653,8 @@ body {
     border-radius: var(--radius);
     font-size: .95rem;
     font-family: var(--font-body);
+    line-height: 1.4;
+    height: 3rem;
     background: var(--bg);
     transition: border-color var(--duration) var(--ease),
                 box-shadow var(--duration) var(--ease),
