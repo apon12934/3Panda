@@ -124,11 +124,12 @@ function formatStatus(s) {
 
 function formatPrice(amount) {
     const value = Number(amount || 0);
-    return new Intl.NumberFormat('en-BD', {
-        style: 'currency',
-        currency: 'BDT',
+    const formatted = new Intl.NumberFormat('en-BD', {
+        minimumFractionDigits: 2,
         maximumFractionDigits: 2
     }).format(value);
+
+    return 'TK ' + formatted;
 }
 
 // navbar logic
