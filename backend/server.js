@@ -80,6 +80,11 @@ app.use(express.urlencoded({ extended: true }));
 // this serves the frontend folder
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
+// fast health endpoint for Render keepalive checks
+app.get('/api/health', (_req, res) => {
+    res.status(200).json({ ok: true, timestamp: new Date().toISOString() });
+});
+
 // auth middlewares
 
 const verifyToken = (req, res, next) => {

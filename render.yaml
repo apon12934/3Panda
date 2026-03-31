@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: threepanda
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+
+  - type: cron
+    name: threepanda-keepalive
+    env: node
+    plan: free
+    rootDir: backend
+    schedule: "*/10 * * * *"
+    buildCommand: npm install
+    startCommand: node keepalive.js
+    envVars:
+      - key: KEEPALIVE_URL
+        sync: false
