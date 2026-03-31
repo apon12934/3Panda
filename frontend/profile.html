@@ -4,41 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3 Panda — My Profile</title>
+    <meta name="description" content="Manage your 3 Panda profile and account settings.">
+    <link rel="icon" type="image/png" href="images/logo/3panda.png">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <!-- top nav bar -->
-<nav class="navbar">
+<nav class="navbar" id="main-navbar">
     <a href="index.html" class="brand">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M8 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/>
-            <path d="M12 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-            <line x1="9" y1="10" x2="9" y2="10.01"/>
-            <line x1="15" y1="10" x2="15" y2="10.01"/>
-        </svg>
-        3 Panda
+        <img src="images/logo/3panda.png" alt="3 Panda Logo">
+        <span>3 Panda</span>
     </a>
-    <ul class="nav-links">
+    <button class="hamburger" id="hamburger-btn" aria-label="Menu">
+        <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links" id="nav-links">
         <li><a href="index.html">Home</a></li>
         <span id="dynamic-nav"></span>
-        <li><a href="login.html" class="btn-nav" id="nav-auth-btn">Login</a></li>
+        <li><a href="login.html" class="btn-nav" id="nav-auth-btn">Join Us</a></li>
     </ul>
 </nav>
 
 <!-- profile section -->
-<div class="container-sm">
+<div class="container-sm" data-animate>
     <div id="status-msg" class="status-msg"></div>
 
     <div class="auth-card">
-        <h2>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:.4rem;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            My Profile
-        </h2>
+        <div class="auth-subtitle">Account Settings</div>
+        <h2>My Profile</h2>
 
-        <div class="text-center mb-2">
+        <div class="text-center mb-2" style="margin-top:1.5rem;">
             <img id="profile-img" class="profile-pic profile-pic-lg" style="margin:0 auto;" src="images/profiles/default.png"
                  onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22140%22 height=%22140%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23C62828%22 stroke-width=%221.5%22%3E%3Ccircle cx=%2212%22 cy=%227%22 r=%224%22/%3E%3Cpath d=%22M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2%22/%3E%3C/svg%3E'" alt="Profile">
         </div>
@@ -67,16 +63,15 @@
                 </div>
             </div>
             <div class="form-group">
-                <label for="profile-password">New Password <span class="text-muted" style="font-weight:400;">(leave blank to keep current)</span></label>
+                <label for="profile-password">New Password <span class="text-muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.82rem;">(leave blank to keep current)</span></label>
                 <input type="password" id="profile-password" class="form-control" placeholder="••••••••">
             </div>
             <div class="form-group">
                 <label for="profile-pic-input">Profile Picture</label>
                 <input type="file" id="profile-pic-input" class="form-control" accept="image/*">
             </div>
-            <button type="submit" class="btn btn-primary" style="width:100%;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                Save Changes
+            <button type="submit" class="btn btn-primary" style="width:100%;padding:.8rem;">
+                Save Changes →
             </button>
         </form>
     </div>
@@ -85,16 +80,38 @@
 <!-- footer area -->
 <footer class="site-footer">
     <div class="footer-inner">
-        <div class="footer-brand">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/><path d="M12 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="10" x2="9" y2="10.01"/><line x1="15" y1="10" x2="15" y2="10.01"/></svg>
-            <span>3 Panda</span>
+        <div class="footer-grid">
+            <div class="footer-brand-section">
+                <div class="footer-brand">
+                    <img src="images/logo/3panda.png" alt="3 Panda">
+                    <span>3 Panda</span>
+                </div>
+                <p>Defining the next era of kinetic food logistics through monolithic design and absolute precision.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Operations</h4>
+                <a href="index.html">Restaurants</a>
+                <a href="my-orders.html">Orders</a>
+                <a href="#">Partner Program</a>
+            </div>
+            <div class="footer-col">
+                <h4>Legal</h4>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Compliance</a>
+            </div>
+            <div class="footer-col">
+                <h4>Social</h4>
+                <div class="footer-social">
+                    <a href="#" aria-label="Email">@</a>
+                    <a href="#" aria-label="WhatsApp">W</a>
+                </div>
+            </div>
         </div>
-        <div class="footer-links">
-            <a href="index.html">Home</a>
-            <a href="login.html">Login</a>
-            <a href="profile.html">Profile</a>
+        <div class="footer-bottom">
+            <p class="footer-copy">&copy; 2025 3 Panda Kinetic Monolith. All rights reserved.</p>
+            <div class="footer-status">System Online</div>
         </div>
-        <p class="footer-copy">&copy; 2025 3 Panda Food Delivery. All rights reserved.</p>
     </div>
 </footer>
 <div id="toast-container"></div>

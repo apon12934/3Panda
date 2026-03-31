@@ -7,6 +7,76 @@ if (window.location.protocol === 'file:' || (window.location.hostname.match(/loc
     API = window.location.origin + '/api';
 }
 
+// ============================================================
+// SCROLL ANIMATION SYSTEM (IntersectionObserver)
+// ============================================================
+
+function initScrollAnimations() {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('animate-in');
+                // don't unobserve — one-time trigger
+                observer.unobserve(entry.target);
+            }
+        });
+    }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -40px 0px'
+    });
+
+    document.querySelectorAll('[data-animate], [data-stagger]').forEach(el => {
+        observer.observe(el);
+    });
+}
+
+// ============================================================
+// NAVBAR GLASSMORPHISM ON SCROLL
+// ============================================================
+
+function initNavbarScroll() {
+    const navbar = document.getElementById('main-navbar');
+    if (!navbar) return;
+
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            window.requestAnimationFrame(() => {
+                if (window.scrollY > 20) {
+                    navbar.classList.add('scrolled');
+                } else {
+                    navbar.classList.remove('scrolled');
+                }
+                ticking = false;
+            });
+            ticking = true;
+        }
+    });
+}
+
+// ============================================================
+// MOBILE HAMBURGER MENU
+// ============================================================
+
+function initHamburger() {
+    const btn = document.getElementById('hamburger-btn');
+    const links = document.getElementById('nav-links');
+    if (!btn || !links) return;
+
+    btn.addEventListener('click', () => {
+        btn.classList.toggle('active');
+        links.classList.toggle('open');
+    });
+
+    // close menu on link click
+    links.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => {
+            btn.classList.remove('active');
+            links.classList.remove('open');
+        });
+    });
+}
+
 // small helper functions
 
 const getToken = () => localStorage.getItem('token');
@@ -107,6 +177,9 @@ const page = (() => {
 
 document.addEventListener('DOMContentLoaded', () => {
     buildNav();
+    initScrollAnimations();
+    initNavbarScroll();
+    initHamburger();
 
     if (page === 'index.html' || page === '') initHome();
     if (page === 'login.html') initLogin();
@@ -121,7 +194,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const target = btn.dataset.tab;
             btn.closest('.tabs').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            const container = btn.closest('.container');
+            const container = btn.closest('.container') || btn.closest('.page-with-sidebar');
+            if (!container) return;
             container.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
             const panel = container.querySelector('#' + target);
             if (panel) panel.classList.add('active');
@@ -142,6 +216,23 @@ let selectedLng = null;
 function initHome() {
     loadRestaurants();
     loadMenuItems();
+
+    // hero search functionality
+    const searchInput = $('#hero-search-input');
+    const searchBtn = $('#hero-search-btn');
+    if (searchInput && searchBtn) {
+        searchBtn.addEventListener('click', () => {
+            const q = searchInput.value.trim().toLowerCase();
+            if (q) filterMenuBySearch(q);
+        });
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const q = searchInput.value.trim().toLowerCase();
+                if (q) filterMenuBySearch(q);
+            }
+        });
+    }
 
     // open/close cart + map popup
     const fab = $('#fab-cart');
@@ -168,6 +259,34 @@ function initHome() {
 
     const placeBtn = $('#place-order-btn');
     if (placeBtn) placeBtn.addEventListener('click', placeOrder);
+}
+
+// search filter
+async function filterMenuBySearch(query) {
+    try {
+        const res = await fetch(API + '/menu-items');
+        const data = await res.json();
+        const filtered = data.filter(item => item.name.toLowerCase().includes(query));
+        const container = $('#menu-list');
+        if (!filtered.length) {
+            container.innerHTML = '<div class="empty-state"><p>No items match your search.</p></div>';
+            return;
+        }
+        container.innerHTML = filtered.map(item => `
+            <div class="card">
+                <img class="card-img" src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}">
+                <div class="card-body">
+                    <h3>${item.name}</h3>
+                    <p class="price">$${Number(item.price).toFixed(2)}</p>
+                    <button class="btn btn-primary btn-sm mt-1" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'") }', ${item.price})">Add to Cart</button>
+                </div>
+            </div>
+        `).join('');
+        // scroll to menu section
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+        console.error(err);
+    }
 }
 
 async function loadRestaurants() {
@@ -330,10 +449,27 @@ async function placeOrder() {
 // login page logic (login.html)
 
 function initLogin() {
-    const showReg = $('#show-register');
+    // Auth tab switching (new Identity Portal tabs)
+    const tabLogin = $('#tab-login');
+    const tabSignup = $('#tab-signup');
+    const tabLogin2 = $('#tab-login-2');
+    const tabSignup2 = $('#tab-signup-2');
     const showLog = $('#show-login');
-    if (showReg) showReg.addEventListener('click', e => { e.preventDefault(); $('#login-card').classList.add('hidden'); $('#register-card').classList.remove('hidden'); });
-    if (showLog) showLog.addEventListener('click', e => { e.preventDefault(); $('#register-card').classList.add('hidden'); $('#login-card').classList.remove('hidden'); });
+
+    function showLoginCard() {
+        $('#login-card').classList.remove('hidden');
+        $('#register-card').classList.add('hidden');
+    }
+    function showRegisterCard() {
+        $('#login-card').classList.add('hidden');
+        $('#register-card').classList.remove('hidden');
+    }
+
+    if (tabLogin) tabLogin.addEventListener('click', showLoginCard);
+    if (tabSignup) tabSignup.addEventListener('click', showRegisterCard);
+    if (tabLogin2) tabLogin2.addEventListener('click', showLoginCard);
+    if (tabSignup2) tabSignup2.addEventListener('click', showRegisterCard);
+    if (showLog) showLog.addEventListener('click', e => { e.preventDefault(); showLoginCard(); });
 
     const loginForm = $('#login-form');
     if (loginForm) loginForm.addEventListener('submit', async (e) => {
@@ -386,8 +522,7 @@ function initLogin() {
             if (!res.ok) return showMsg(data.error);
 
             showMsg('Account created! Please sign in.', 'success');
-            $('#register-card').classList.add('hidden');
-            $('#login-card').classList.remove('hidden');
+            showLoginCard();
         } catch (err) {
             console.error(err);
             showMsg('Registration failed.');
@@ -659,6 +794,7 @@ function initAdmin() {
     adminLoadRestaurants();
     adminLoadItems();
     adminLoadOrders();
+    adminPopulateStats();
 
 // admin users section functions
     const cancelEditUser = $('#cancel-edit-user');
@@ -970,5 +1106,65 @@ window.adminUpdateOrderStatus = async (id, status) => {
         if (!res.ok) return showMsg(data.error);
         showMsg('Order #' + id + ' → ' + formatStatus(status), 'success');
         adminLoadOrders();
+        adminPopulateStats();
     } catch (err) { showMsg('Update failed.'); }
 };
+
+// admin dashboard stats
+async function adminPopulateStats() {
+    try {
+        // Fetch users count
+        const usersRes = await fetch(API + '/users', { headers: authHeaders() });
+        if (usersRes.ok) {
+            const users = await usersRes.json();
+            const usersEl = $('#stat-users');
+            if (usersEl) animateCounter(usersEl, users.length);
+        }
+
+        // Fetch restaurants count
+        const restsRes = await fetch(API + '/restaurants');
+        if (restsRes.ok) {
+            const rests = await restsRes.json();
+            const restsEl = $('#stat-restaurants');
+            if (restsEl) animateCounter(restsEl, rests.length);
+        }
+
+        // Fetch orders for revenue and count
+        const ordersRes = await fetch(API + '/orders', { headers: authHeaders() });
+        if (ordersRes.ok) {
+            const orders = await ordersRes.json();
+            const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
+            const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+
+            const ordersEl = $('#stat-orders');
+            if (ordersEl) animateCounter(ordersEl, activeOrders.length);
+
+            const revenueEl = $('#stat-revenue');
+            if (revenueEl) animateCounter(revenueEl, totalRevenue, true);
+        }
+    } catch (err) {
+        console.error('Stats error:', err);
+    }
+}
+
+// Animated counter
+function animateCounter(el, target, isCurrency = false) {
+    const duration = 800;
+    const steps = 30;
+    const stepTime = duration / steps;
+    let current = 0;
+    const increment = target / steps;
+
+    const timer = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+            current = target;
+            clearInterval(timer);
+        }
+        if (isCurrency) {
+            el.textContent = '$' + Math.round(current).toLocaleString();
+        } else {
+            el.textContent = Math.round(current).toLocaleString();
+        }
+    }, stepTime);
+}

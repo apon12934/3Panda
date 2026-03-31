@@ -3,48 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3 Panda — Food Delivery</title>
+    <title>3 Panda — Delicious Food, Delivered Fast</title>
+    <meta name="description" content="Browse premium restaurants, pick your favorites, and get them delivered to your door by 3 Panda riders.">
+    <link rel="icon" type="image/png" href="images/logo/3panda.png">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
 
 <!-- top nav bar -->
-<nav class="navbar">
+<nav class="navbar" id="main-navbar">
     <a href="index.html" class="brand">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M8 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/>
-            <path d="M12 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-            <line x1="9" y1="10" x2="9" y2="10.01"/>
-            <line x1="15" y1="10" x2="15" y2="10.01"/>
-        </svg>
-        3 Panda
+        <img src="images/logo/3panda.png" alt="3 Panda Logo">
+        <span>3 Panda</span>
     </a>
-    <ul class="nav-links">
+    <button class="hamburger" id="hamburger-btn" aria-label="Menu">
+        <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links" id="nav-links">
         <li><a href="index.html">Home</a></li>
         <!-- js adds extra nav links here depending on user role -->
         <span id="dynamic-nav"></span>
-        <li><a href="login.html" class="btn-nav" id="nav-auth-btn">Login</a></li>
+        <li><a href="login.html" class="btn-nav" id="nav-auth-btn">Join Us</a></li>
     </ul>
 </nav>
 
 <!-- hero area -->
-<section class="hero">
-    <h1>Delicious Food, Delivered Fast</h1>
+<section class="hero" data-animate>
+    <h1>Delicious Food.<em>Delivered Fast.</em></h1>
     <p>Browse restaurants, pick your favorites, and get them delivered to your door by our 3 Panda riders.</p>
+    <div class="hero-search">
+        <input type="text" placeholder="Search your favorite dish or restaurant..." id="hero-search-input">
+        <button class="btn btn-primary" id="hero-search-btn">Find Restaurants</button>
+    </div>
+    <div class="promo-banner" data-animate>
+        <div class="promo-text">
+            <strong>New Promo!</strong>
+            <span>Exclusive 3 Panda golden 3 new items. Check them out!</span>
+        </div>
+        <div class="promo-badge">~50% OFF</div>
+    </div>
 </section>
 
 <!-- main page content -->
 <div class="container">
 
     <!-- restaurants list section -->
-    <h2 class="section-title">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
-        Restaurants
-    </h2>
-    <div class="grid grid-3" id="restaurant-list">
+    <div class="section-header" data-animate>
+        <div>
+            <div class="section-label">Curated Selection</div>
+            <h2 class="section-title" style="margin-bottom:0;">
+                Premium Restaurants
+            </h2>
+        </div>
+        <a href="#" class="view-all">View all partners →</a>
+    </div>
+    <div class="grid grid-3" id="restaurant-list" data-animate data-stagger>
         <!-- js puts restaurant cards here -->
         <div class="empty-state">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16.01"/></svg>
@@ -52,12 +66,18 @@
         </div>
     </div>
 
+    <div class="divider"></div>
+
     <!-- menu items section -->
-    <h2 class="section-title mt-3">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-        Menu
-    </h2>
-    <div class="grid grid-3" id="menu-list">
+    <div class="section-header" data-animate>
+        <div>
+            <div class="section-label">Today's Picks</div>
+            <h2 class="section-title" style="margin-bottom:0;">
+                Trending Dishes
+            </h2>
+        </div>
+    </div>
+    <div class="grid grid-3" id="menu-list" data-animate data-stagger>
         <div class="empty-state">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16.01"/></svg>
             <p>Select a restaurant or browse all items...</p>
@@ -84,7 +104,7 @@
     <div class="popup-body">
         <!-- cart part -->
         <div class="cart-panel">
-            <h3 style="font-size:1.05rem;color:var(--red-dark);margin-bottom:.75rem;">Your Cart</h3>
+            <h3 style="font-family:var(--font-heading);font-size:1.05rem;color:var(--red);margin-bottom:.75rem;">Your Cart</h3>
             <div id="cart-items">
                 <p class="text-muted" style="font-size:.9rem;">Your cart is empty.</p>
             </div>
@@ -95,7 +115,7 @@
         </div>
         <!-- map part -->
         <div style="margin-top:1rem;">
-            <h3 style="font-size:1.05rem;color:var(--red-dark);margin-bottom:.5rem;">
+            <h3 style="font-family:var(--font-heading);font-size:1.05rem;color:var(--red);margin-bottom:.5rem;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:.2rem;"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 Delivery Location
             </h3>
@@ -111,16 +131,38 @@
 <!-- footer area -->
 <footer class="site-footer">
     <div class="footer-inner">
-        <div class="footer-brand">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/><path d="M12 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="10" x2="9" y2="10.01"/><line x1="15" y1="10" x2="15" y2="10.01"/></svg>
-            <span>3 Panda</span>
+        <div class="footer-grid">
+            <div class="footer-brand-section">
+                <div class="footer-brand">
+                    <img src="images/logo/3panda.png" alt="3 Panda">
+                    <span>3 Panda</span>
+                </div>
+                <p>Defining the next era of kinetic food logistics through monolithic design and absolute precision.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Operations</h4>
+                <a href="index.html">Restaurants</a>
+                <a href="my-orders.html">Orders</a>
+                <a href="#">Partner Program</a>
+            </div>
+            <div class="footer-col">
+                <h4>Legal</h4>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Compliance</a>
+            </div>
+            <div class="footer-col">
+                <h4>Social</h4>
+                <div class="footer-social">
+                    <a href="#" aria-label="Email">@</a>
+                    <a href="#" aria-label="WhatsApp">W</a>
+                </div>
+            </div>
         </div>
-        <div class="footer-links">
-            <a href="index.html">Home</a>
-            <a href="login.html">Login</a>
-            <a href="profile.html">Profile</a>
+        <div class="footer-bottom">
+            <p class="footer-copy">&copy; 2025 3 Panda Kinetic Monolith. All rights reserved.</p>
+            <div class="footer-status">System Online</div>
         </div>
-        <p class="footer-copy">&copy; 2025 3 Panda Food Delivery. All rights reserved.</p>
     </div>
 </footer>
 

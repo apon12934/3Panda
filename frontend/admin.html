@@ -4,41 +4,60 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3 Panda — Admin Dashboard</title>
+    <meta name="description" content="3 Panda administrative dashboard for managing users, restaurants, menu items and orders.">
+    <link rel="icon" type="image/png" href="images/logo/3panda.png">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <!-- top nav bar -->
-<nav class="navbar">
+<nav class="navbar" id="main-navbar">
     <a href="index.html" class="brand">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M8 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/>
-            <path d="M12 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-            <line x1="9" y1="10" x2="9" y2="10.01"/>
-            <line x1="15" y1="10" x2="15" y2="10.01"/>
-        </svg>
-        3 Panda
+        <img src="images/logo/3panda.png" alt="3 Panda Logo">
+        <span>3 Panda</span>
     </a>
-    <ul class="nav-links">
+    <button class="hamburger" id="hamburger-btn" aria-label="Menu">
+        <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links" id="nav-links">
         <li><a href="index.html">Home</a></li>
         <span id="dynamic-nav"></span>
-        <li><a href="login.html" class="btn-nav" id="nav-auth-btn">Login</a></li>
+        <li><a href="login.html" class="btn-nav" id="nav-auth-btn">Join Us</a></li>
     </ul>
 </nav>
 
 <!-- admin dashboard section -->
 <div class="container">
-    <h2 class="section-title">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        Admin Dashboard
-    </h2>
+    <div style="margin-bottom:.5rem;" data-animate>
+        <div class="section-label">Command Center</div>
+        <h1 style="font-family:var(--font-heading);font-size:2rem;font-weight:800;letter-spacing:-.03em;">Admin Dashboard</h1>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="stats-grid" data-animate data-stagger>
+        <div class="stat-card">
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-value" id="stat-revenue">$0</div>
+            <div class="stat-change">↗ Calculating...</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Active Orders</div>
+            <div class="stat-value" id="stat-orders">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Users</div>
+            <div class="stat-value" id="stat-users">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Restaurants</div>
+            <div class="stat-value" id="stat-restaurants">0</div>
+        </div>
+    </div>
 
     <div id="status-msg" class="status-msg"></div>
 
     <!-- tab buttons -->
-    <div class="tabs">
+    <div class="tabs" data-animate>
         <button class="tab-btn active" data-tab="tab-users">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.3rem;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             Users
@@ -58,7 +77,7 @@
     </div>
 
     <!-- users tab -->
-    <div class="tab-panel active" id="tab-users">
+    <div class="tab-panel active" id="tab-users" data-animate>
         <div class="table-wrap">
             <table>
                 <thead>
@@ -72,7 +91,8 @@
 
         <!-- form for editing a user -->
         <div class="auth-card mt-2 hidden" id="edit-user-card">
-            <h2 style="font-size:1.15rem;">Edit User</h2>
+            <div class="auth-subtitle">Edit User</div>
+            <h2 style="font-size:1.25rem;">Update User Details</h2>
             <form id="edit-user-form">
                 <input type="hidden" id="edit-user-id">
                 <div class="form-row">
@@ -105,10 +125,8 @@
     <div class="tab-panel" id="tab-restaurants">
         <!-- form to add restaurant -->
         <div class="auth-card mb-2">
-            <h2 style="font-size:1.15rem;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.3rem;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Add Restaurant
-            </h2>
+            <div class="auth-subtitle">New Entry</div>
+            <h2 style="font-size:1.25rem;">Add Restaurant</h2>
             <form id="add-restaurant-form" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="rest-name">Restaurant Name</label>
@@ -136,7 +154,8 @@
 
         <!-- form for editing restaurant -->
         <div class="auth-card mt-2 hidden" id="edit-restaurant-card">
-            <h2 style="font-size:1.15rem;">Edit Restaurant</h2>
+            <div class="auth-subtitle">Edit Entry</div>
+            <h2 style="font-size:1.25rem;">Edit Restaurant</h2>
             <form id="edit-restaurant-form" enctype="multipart/form-data">
                 <input type="hidden" id="edit-rest-id">
                 <div class="form-group">
@@ -159,10 +178,8 @@
     <div class="tab-panel" id="tab-items">
         <!-- form to add menu item -->
         <div class="auth-card mb-2">
-            <h2 style="font-size:1.15rem;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.3rem;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Add Menu Item
-            </h2>
+            <div class="auth-subtitle">New Entry</div>
+            <h2 style="font-size:1.25rem;">Add Menu Item</h2>
             <form id="add-item-form" enctype="multipart/form-data">
                 <div class="form-row">
                     <div class="form-group">
@@ -204,7 +221,8 @@
 
         <!-- form for editing menu item -->
         <div class="auth-card mt-2 hidden" id="edit-item-card">
-            <h2 style="font-size:1.15rem;">Edit Menu Item</h2>
+            <div class="auth-subtitle">Edit Entry</div>
+            <h2 style="font-size:1.25rem;">Edit Menu Item</h2>
             <form id="edit-item-form" enctype="multipart/form-data">
                 <input type="hidden" id="edit-item-id">
                 <div class="form-row">
@@ -249,21 +267,49 @@
         </div>
     </div>
 
+    <!-- System status bar -->
+    <div class="system-status-bar" data-animate>
+        <div class="status-indicator">System Operational</div>
+        <p>All delivery clusters are running within normal parameters. Next automated backup in 4h 12m.</p>
+    </div>
+
 </div>
 
 <!-- footer area -->
 <footer class="site-footer">
     <div class="footer-inner">
-        <div class="footer-brand">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/><path d="M12 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="10" x2="9" y2="10.01"/><line x1="15" y1="10" x2="15" y2="10.01"/></svg>
-            <span>3 Panda</span>
+        <div class="footer-grid">
+            <div class="footer-brand-section">
+                <div class="footer-brand">
+                    <img src="images/logo/3panda.png" alt="3 Panda">
+                    <span>3 Panda</span> <span class="badge badge-admin" style="margin-left:.5rem;font-size:.65rem;">Admin</span>
+                </div>
+                <p>Defining the next era of kinetic food logistics through monolithic design and absolute precision.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Operations</h4>
+                <a href="index.html">Restaurants</a>
+                <a href="my-orders.html">Orders</a>
+                <a href="#">Partner Program</a>
+            </div>
+            <div class="footer-col">
+                <h4>Legal</h4>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Compliance</a>
+            </div>
+            <div class="footer-col">
+                <h4>Social</h4>
+                <div class="footer-social">
+                    <a href="#" aria-label="Email">@</a>
+                    <a href="#" aria-label="WhatsApp">W</a>
+                </div>
+            </div>
         </div>
-        <div class="footer-links">
-            <a href="index.html">Home</a>
-            <a href="login.html">Login</a>
-            <a href="profile.html">Profile</a>
+        <div class="footer-bottom">
+            <p class="footer-copy">&copy; 2025 3 Panda Kinetic Monolith. All rights reserved.</p>
+            <div class="footer-status">System Online</div>
         </div>
-        <p class="footer-copy">&copy; 2025 3 Panda Food Delivery. All rights reserved.</p>
     </div>
 </footer>
 <div id="toast-container"></div>

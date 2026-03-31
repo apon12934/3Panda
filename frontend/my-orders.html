@@ -4,46 +4,72 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3 Panda — My Orders</title>
+    <meta name="description" content="Track your current cravings and relive your favorite culinary moments.">
+    <link rel="icon" type="image/png" href="images/logo/3panda.png">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <!-- top nav bar -->
-<nav class="navbar">
+<nav class="navbar" id="main-navbar">
     <a href="index.html" class="brand">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M8 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/>
-            <path d="M12 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-            <line x1="9" y1="10" x2="9" y2="10.01"/>
-            <line x1="15" y1="10" x2="15" y2="10.01"/>
-        </svg>
-        3 Panda
+        <img src="images/logo/3panda.png" alt="3 Panda Logo">
+        <span>3 Panda</span>
     </a>
-    <ul class="nav-links">
+    <button class="hamburger" id="hamburger-btn" aria-label="Menu">
+        <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links" id="nav-links">
         <li><a href="index.html">Home</a></li>
         <span id="dynamic-nav"></span>
-        <li><a href="login.html" class="btn-nav" id="nav-auth-btn">Login</a></li>
+        <li><a href="login.html" class="btn-nav" id="nav-auth-btn">Join Us</a></li>
     </ul>
 </nav>
 
-<!-- my orders section -->
-<div class="container">
-    <h2 class="section-title">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-        My Orders
-    </h2>
+<!-- my orders with sidebar -->
+<div class="page-with-sidebar">
+    <!-- Sidebar -->
+    <aside class="sidebar" data-animate="slide-left">
+        <div class="sidebar-label">Account</div>
+        <nav class="sidebar-nav">
+            <a href="profile.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Dashboard
+            </a>
+            <a href="my-orders.html" class="active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                My Orders
+            </a>
+            <a href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                Favorites
+            </a>
+            <a href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                Payment Methods
+            </a>
+            <a href="profile.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Settings
+            </a>
+        </nav>
+    </aside>
 
-    <div id="status-msg" class="status-msg"></div>
+    <!-- Main content -->
+    <main data-animate>
+        <h1 style="font-family:var(--font-heading);font-size:2rem;font-weight:800;letter-spacing:-.03em;margin-bottom:.25rem;">My Orders</h1>
+        <p class="text-muted" style="margin-bottom:1.5rem;">Track your current cravings and relive your favorite culinary moments.</p>
 
-    <div id="orders-list">
-        <div class="empty-state">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-            <p>You haven't placed any orders yet.</p>
-            <a href="index.html" class="btn btn-primary btn-sm mt-2">Browse Menu</a>
+        <div id="status-msg" class="status-msg"></div>
+
+        <div id="orders-list">
+            <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                <p>You haven't placed any orders yet.</p>
+                <a href="index.html" class="btn btn-primary btn-sm mt-2">Browse Menu</a>
+            </div>
         </div>
-    </div>
+    </main>
 </div>
 
 <!-- order card template (js clones this) -->
@@ -51,7 +77,7 @@
     <div class="card mb-2">
         <div class="card-body">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;">
-                <h3 style="margin:0;">Order #<span class="order-id"></span></h3>
+                <h3 style="margin:0;font-family:var(--font-heading);font-weight:700;">Order #<span class="order-id"></span></h3>
                 <span class="badge order-status"></span>
             </div>
             <div class="mt-1">
@@ -67,7 +93,7 @@
                 </table>
             </div>
             <div style="display:flex;justify-content:flex-end;margin-top:.75rem;">
-                <strong class="order-total" style="color:var(--red);"></strong>
+                <strong class="order-total" style="color:var(--red);font-family:var(--font-heading);"></strong>
             </div>
         </div>
     </div>
@@ -76,16 +102,38 @@
 <!-- footer area -->
 <footer class="site-footer">
     <div class="footer-inner">
-        <div class="footer-brand">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/><path d="M12 9a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="10" x2="9" y2="10.01"/><line x1="15" y1="10" x2="15" y2="10.01"/></svg>
-            <span>3 Panda</span>
+        <div class="footer-grid">
+            <div class="footer-brand-section">
+                <div class="footer-brand">
+                    <img src="images/logo/3panda.png" alt="3 Panda">
+                    <span>3 Panda</span>
+                </div>
+                <p>Defining the next era of kinetic food logistics through monolithic design and absolute precision.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Operations</h4>
+                <a href="index.html">Restaurants</a>
+                <a href="my-orders.html">Orders</a>
+                <a href="#">Partner Program</a>
+            </div>
+            <div class="footer-col">
+                <h4>Legal</h4>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Compliance</a>
+            </div>
+            <div class="footer-col">
+                <h4>Social</h4>
+                <div class="footer-social">
+                    <a href="#" aria-label="Email">@</a>
+                    <a href="#" aria-label="WhatsApp">W</a>
+                </div>
+            </div>
         </div>
-        <div class="footer-links">
-            <a href="index.html">Home</a>
-            <a href="login.html">Login</a>
-            <a href="profile.html">Profile</a>
+        <div class="footer-bottom">
+            <p class="footer-copy">&copy; 2025 3 Panda Kinetic Monolith. All rights reserved.</p>
+            <div class="footer-status">System Online</div>
         </div>
-        <p class="footer-copy">&copy; 2025 3 Panda Food Delivery. All rights reserved.</p>
     </div>
 </footer>
 <div id="toast-container"></div>
