@@ -63,17 +63,37 @@ function initHamburger() {
     const links = document.getElementById('nav-links');
     if (!btn || !links) return;
 
+    const closeMenu = () => {
+        btn.classList.remove('active');
+        links.classList.remove('open');
+        document.body.classList.remove('menu-open');
+    };
+
     btn.addEventListener('click', () => {
         btn.classList.toggle('active');
         links.classList.toggle('open');
+        document.body.classList.toggle('menu-open', links.classList.contains('open'));
     });
 
     // close menu on link click
     links.querySelectorAll('a').forEach(a => {
         a.addEventListener('click', () => {
-            btn.classList.remove('active');
-            links.classList.remove('open');
+            closeMenu();
         });
+    });
+
+    // close on scroll so it never stays half-open while browsing on mobile
+    window.addEventListener('scroll', () => {
+        if (window.innerWidth <= 768 && links.classList.contains('open')) {
+            closeMenu();
+        }
+    }, { passive: true });
+
+    // close when switching back to desktop width
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 768) {
+            closeMenu();
+        }
     });
 }
 
