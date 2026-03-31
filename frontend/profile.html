@@ -66,9 +66,13 @@
                 <input type="password" id="profile-password" class="form-control" placeholder="••••••••">
                 <label for="profile-password">New Password <span class="text-muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.82rem;">(leave blank to keep current)</span></label>
             </div>
-            <div class="form-group floating-group">
-                <input type="file" id="profile-pic-input" class="form-control" accept="image/*">
+            <div class="form-group floating-group has-file-upload">
+                <input type="file" id="profile-pic-input" class="form-control file-input" accept="image/*" data-placeholder="Upload profile picture">
                 <label for="profile-pic-input">Profile Picture</label>
+                <div class="file-upload-ui" aria-hidden="true">
+                    <span class="file-upload-btn">Choose Image</span>
+                    <span class="file-upload-text">Upload profile picture</span>
+                </div>
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%;padding:.8rem;">
                 Save Changes →
@@ -109,7 +113,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p class="footer-copy">&copy; 2026 3 Panda Kinetic Monolith. All rights reserved.</p>
+            <p class="footer-copy">&copy; 2026 3 Panda. All rights reserved.</p>
             <div class="footer-status">System Online</div>
         </div>
     </div>

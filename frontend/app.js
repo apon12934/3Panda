@@ -77,6 +77,31 @@ function initHamburger() {
     });
 }
 
+function initFileUploadPlaceholders() {
+    const inputs = document.querySelectorAll('.file-input');
+    inputs.forEach((input) => {
+        const group = input.closest('.has-file-upload');
+        const text = group ? group.querySelector('.file-upload-text') : null;
+        if (!group || !text) return;
+
+        const fallback = input.dataset.placeholder || 'Upload image';
+        const syncText = () => {
+            if (input.files && input.files.length > 0) {
+                text.textContent = input.files[0].name;
+                group.classList.add('has-file');
+            } else {
+                text.textContent = fallback;
+                group.classList.remove('has-file');
+            }
+        };
+
+        input.addEventListener('change', syncText);
+        input.addEventListener('focus', () => group.classList.add('is-focused'));
+        input.addEventListener('blur', () => group.classList.remove('is-focused'));
+        syncText();
+    });
+}
+
 // small helper functions
 
 const getToken = () => localStorage.getItem('token');
@@ -190,6 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initScrollAnimations();
     initNavbarScroll();
     initHamburger();
+    initFileUploadPlaceholders();
 
     if (page === 'index.html' || page === '') initHome();
     if (page === 'login.html') initLogin();

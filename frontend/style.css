@@ -700,7 +700,6 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     position: relative;
     margin-bottom: 1.25rem;
 }
-}
 
 /* Override the base .form-group label for floating variant */
 .floating-group label {
@@ -758,6 +757,83 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 /* Hide the blank placeholder visually — it's only there for :placeholder-shown */
 .floating-group .form-control::placeholder {
     color: transparent;
+}
+
+/* Dedicated custom upload UI (replaces browser default file input look) */
+.has-file-upload {
+    min-height: 3rem;
+}
+
+.has-file-upload .file-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 3rem;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 3;
+    padding: 0;
+}
+
+.has-file-upload label {
+    top: 0;
+    font-size: .68rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    background-color: var(--surface);
+    padding: 0 .4rem;
+    transform: translateY(-50%);
+    z-index: 4;
+}
+
+.file-upload-ui {
+    width: 100%;
+    height: 3rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    padding: .6rem .9rem;
+    transition: border-color var(--duration) var(--ease),
+                box-shadow var(--duration) var(--ease),
+                background var(--duration) var(--ease);
+}
+
+.file-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.65rem;
+    padding: 0 .7rem;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: .78rem;
+    font-weight: 600;
+    font-family: var(--font-body);
+    white-space: nowrap;
+}
+
+.file-upload-text {
+    min-width: 0;
+    flex: 1;
+    color: var(--text-secondary);
+    font-size: .9rem;
+    font-family: var(--font-body);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.has-file-upload .file-input:focus ~ .file-upload-ui,
+.has-file-upload.is-focused .file-upload-ui {
+    border-color: var(--red);
+    box-shadow: 0 0 0 4px var(--red-glow);
+    background: var(--surface);
 }
 
 /* Select elements always have a value, so their label is always floated */

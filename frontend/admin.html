@@ -133,9 +133,13 @@
                     <input type="text" id="rest-name" class="form-control" placeholder="e.g. Panda Wok" required>
                     <label for="rest-name">Restaurant Name</label>
                 </div>
-                <div class="form-group floating-group">
-                    <input type="file" id="rest-banner" class="form-control" accept="image/*">
+                <div class="form-group floating-group has-file-upload">
+                    <input type="file" id="rest-banner" class="form-control file-input" accept="image/*" data-placeholder="Upload banner image (16:9)">
                     <label for="rest-banner">Banner Image</label>
+                    <div class="file-upload-ui" aria-hidden="true">
+                        <span class="file-upload-btn">Choose Image</span>
+                        <span class="file-upload-text">Upload banner image (16:9)</span>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary btn-sm">Add Restaurant</button>
             </form>
@@ -163,9 +167,13 @@
                     <input type="text" id="edit-rest-name" class="form-control" placeholder="Restaurant name">
                     <label for="edit-rest-name">Name</label>
                 </div>
-                <div class="form-group floating-group">
-                    <input type="file" id="edit-rest-banner" class="form-control" accept="image/*">
+                <div class="form-group floating-group has-file-upload">
+                    <input type="file" id="edit-rest-banner" class="form-control file-input" accept="image/*" data-placeholder="Upload banner image (16:9)">
                     <label for="edit-rest-banner">Banner Image</label>
+                    <div class="file-upload-ui" aria-hidden="true">
+                        <span class="file-upload-btn">Choose Image</span>
+                        <span class="file-upload-text">Upload banner image (16:9)</span>
+                    </div>
                 </div>
                 <div class="gap-row">
                     <button type="submit" class="btn btn-primary btn-sm">Save</button>
@@ -199,9 +207,13 @@
                         <input type="number" id="item-price" class="form-control" step="0.01" min="0" placeholder="9.99" required>
                         <label for="item-price">Price (TK)</label>
                     </div>
-                    <div class="form-group floating-group">
-                        <input type="file" id="item-banner" class="form-control" accept="image/*">
+                    <div class="form-group floating-group has-file-upload">
+                        <input type="file" id="item-banner" class="form-control file-input" accept="image/*" data-placeholder="Upload item image (16:9)">
                         <label for="item-banner">Banner Image</label>
+                        <div class="file-upload-ui" aria-hidden="true">
+                            <span class="file-upload-btn">Choose Image</span>
+                            <span class="file-upload-text">Upload item image (16:9)</span>
+                        </div>
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary btn-sm">Add Item</button>
@@ -241,9 +253,13 @@
                         <input type="number" id="edit-item-price" class="form-control" step="0.01" min="0" placeholder="0.00">
                         <label for="edit-item-price">Price (TK)</label>
                     </div>
-                    <div class="form-group floating-group">
-                        <input type="file" id="edit-item-banner" class="form-control" accept="image/*">
+                    <div class="form-group floating-group has-file-upload">
+                        <input type="file" id="edit-item-banner" class="form-control file-input" accept="image/*" data-placeholder="Upload item image (16:9)">
                         <label for="edit-item-banner">Banner Image</label>
+                        <div class="file-upload-ui" aria-hidden="true">
+                            <span class="file-upload-btn">Choose Image</span>
+                            <span class="file-upload-text">Upload item image (16:9)</span>
+                        </div>
                     </div>
                 </div>
                 <div class="gap-row">
@@ -308,7 +324,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p class="footer-copy">&copy; 2026 3 Panda Kinetic Monolith. All rights reserved.</p>
+            <p class="footer-copy">&copy; 2026 3 Panda. All rights reserved.</p>
             <div class="footer-status">System Online</div>
         </div>
     </div>
