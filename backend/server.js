@@ -18,8 +18,12 @@ const SALT_ROUNDS = 10;
 
 // database setup stuff
 
-const DB_PATH = path.join(__dirname, '..', 'database', 'panda.db');
+const DB_PATH = process.env.DB_PATH
+    ? path.resolve(process.env.DB_PATH)
+    : path.join(__dirname, '..', 'database', 'panda.db');
 const SCHEMA_PATH = path.join(__dirname, '..', 'database', 'schema.sql');
+
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 const db = new sqlite3.Database(DB_PATH);
 
@@ -778,6 +782,7 @@ app.delete('/api/reviews/:id', verifyToken, async (req, res) => {
 initDB().then(() => {
     app.listen(PORT, () => {
         console.log(`3 Panda server running → http://localhost:${PORT}`);
+        console.log(`Using database file: ${DB_PATH}`);
         
         // Auto-ping system for Render Free Tier (prevents sleeping after 15 mins)
         // Render sets RENDER_EXTERNAL_URL automatically (e.g. https://my-app.onrender.com)
