@@ -531,11 +531,12 @@ function initLogin() {
     if (loginForm) loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
+            const identifier = $('#login-identifier').value.trim();
             const res = await fetch(API + '/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email: $('#login-email').value.trim(),
+                    identifier,
                     password: $('#login-password').value
                 })
             });
@@ -615,6 +616,17 @@ async function initProfile() {
             fd.append('username', $('#profile-name').value.trim());
             fd.append('email', $('#profile-email').value.trim());
             const pw = $('#profile-password').value;
+            const confirmPw = $('#profile-password-confirm') ? $('#profile-password-confirm').value : '';
+
+            if (pw || confirmPw) {
+                if (!pw || !confirmPw) {
+                    return showMsg('Please fill both password fields.');
+                }
+                if (pw !== confirmPw) {
+                    return showMsg('New password and confirm password do not match.');
+                }
+            }
+
             if (pw) fd.append('password', pw);
             if ($('#profile-fullname')) fd.append('full_name', $('#profile-fullname').value.trim());
             if ($('#profile-phone')) fd.append('phone', $('#profile-phone').value.trim());
@@ -630,6 +642,8 @@ async function initProfile() {
             const data = await res.json();
             if (!res.ok) return showMsg(data.error);
             showMsg('Profile updated!', 'success');
+            if ($('#profile-password')) $('#profile-password').value = '';
+            if ($('#profile-password-confirm')) $('#profile-password-confirm').value = '';
             // reload profile image preview
             const res2 = await fetch(API + '/users/profile', { headers: authHeaders() });
             const u2 = await res2.json();

@@ -158,9 +158,12 @@ app.post('/api/register', async (req, res) => {
         const allowedRoles = ['customer', 'delivery'];
         const userRole = allowedRoles.includes(role) ? role : 'customer';
 
-        const existing = await dbGet('SELECT id FROM Users WHERE email = ?', [email]);
+        const existing = await dbGet(
+            'SELECT id FROM Users WHERE lower(email) = lower(?) OR lower(username) = lower(?)',
+            [email, username]
+        );
         if (existing) {
-            return res.status(409).json({ error: 'Email already registered.' });
+            return res.status(409).json({ error: 'Email or username already registered.' });
         }
 
         const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
@@ -180,13 +183,17 @@ app.post('/api/register', async (req, res) => {
 // login user
 app.post('/api/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { identifier, email, password } = req.body;
+        const loginIdentifier = (identifier || email || '').trim();
 
-        if (!email || !password) {
-            return res.status(400).json({ error: 'Email and password are required.' });
+        if (!loginIdentifier || !password) {
+            return res.status(400).json({ error: 'Email/username and password are required.' });
         }
 
-        const user = await dbGet('SELECT * FROM Users WHERE email = ?', [email]);
+        const user = await dbGet(
+            'SELECT * FROM Users WHERE lower(email) = lower(?) OR lower(username) = lower(?)',
+            [loginIdentifier, loginIdentifier]
+        );
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials.' });
         }
