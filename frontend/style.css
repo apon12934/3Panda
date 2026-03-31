@@ -690,6 +690,84 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .form-row .form-group { flex: 1; }
 
 /* ============================================================
+   FLOATING LABEL
+   ============================================================ */
+
+/* Wrapper: makes the label position relative to the input area */
+.floating-group {
+    position: relative;
+    margin-bottom: 1.25rem;
+}
+}
+
+/* Override the base .form-group label for floating variant */
+.floating-group label {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 1rem;
+    margin-bottom: 0;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: .95rem;      /* full-size while acting as placeholder */
+    letter-spacing: .01em;
+    text-transform: none;
+    color: var(--text-light);
+    pointer-events: none;
+    transform: translateY(-50%);
+    transform-origin: left center;
+    transition:
+        top var(--duration) var(--ease),
+        font-size var(--duration) var(--ease),
+        color var(--duration) var(--ease),
+        letter-spacing var(--duration) var(--ease),
+        transform var(--duration) var(--ease),
+        background-color var(--duration) var(--ease),
+        padding var(--duration) var(--ease);
+    background-color: transparent;
+    padding: 0;
+}
+
+/* Floated state — triggered on focus OR when the placeholder is hidden
+   (i.e., the input has a non-empty value). Using :placeholder-shown
+   requires placeholder=" " (a space) on each input. */
+.floating-group .form-control:focus ~ label,
+.floating-group .form-control:not(:placeholder-shown) ~ label {
+    top: -0.65rem;
+    font-size: .68rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    background-color: var(--surface);
+    padding: 0 0.4rem;
+    transform: translateY(-50%);
+}
+
+/* Accent colour when the input is actively focused */
+.floating-group .form-control:focus ~ label {
+    color: var(--red);
+}
+
+/* Give inputs inside floating groups standard padding */
+.floating-group .form-control {
+    padding: .75rem 1rem;
+}
+
+/* Hide the blank placeholder visually — it's only there for :placeholder-shown */
+.floating-group .form-control::placeholder {
+    color: transparent;
+}
+
+/* Select elements always have a value, so their label is always floated */
+.floating-group--select label {
+    top: 0;
+    font-size: .68rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+/* ============================================================
    AUTH CARD (Identity Portal)
    ============================================================ */
 
