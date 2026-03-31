@@ -60,6 +60,14 @@
                 <p>No pending orders right now.</p>
             </div>
         </div>
+
+        <div id="selected-order-map-wrap" class="card mt-2 hidden">
+            <div class="card-body">
+                <h3 style="margin:0 0 .45rem 0;font-family:var(--font-heading);font-weight:700;">Selected Order Location</h3>
+                <p class="text-muted mb-1" style="font-size:.85rem;">Tap an order card above to view its delivery pin.</p>
+                <div id="selected-order-map" style="height:300px;border-radius:var(--radius);overflow:hidden;"></div>
+            </div>
+        </div>
     </div>
 
     <!-- history tab -->
@@ -87,7 +95,7 @@
 
 <!-- template card used for a delivery order -->
 <template id="delivery-order-template">
-    <div class="card mb-2">
+    <div class="card mb-2 delivery-order-card">
         <div class="card-body">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;">
                 <h3 style="margin:0;font-family:var(--font-heading);font-weight:700;">Order #<span class="order-id"></span></h3>

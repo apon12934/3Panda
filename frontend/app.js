@@ -753,6 +753,8 @@ async function fetchMyOrders() {
 
 let deliveryMap = null;
 let deliveryMarkers = [];
+let selectedOrderMap = null;
+let selectedOrderMarker = null;
 
 function initDelivery() {
     if (!getToken()) return window.location.href = 'login.html';
@@ -769,12 +771,16 @@ async function loadPendingOrders() {
 
         const container = $('#pending-orders');
         const tpl = $('#delivery-order-template');
+        const selectedMapWrap = $('#selected-order-map-wrap');
         if (!orders.length) {
             container.innerHTML = '<div class="empty-state"><p>No pending orders right now.</p></div>';
+            if (selectedMapWrap) selectedMapWrap.classList.add('hidden');
             return;
         }
 
         container.innerHTML = '';
+        let firstOrderWithLocation = null;
+
         orders.forEach(order => {
             const clone = tpl.content.cloneNode(true);
             clone.querySelector('.order-id').textContent = order.id;
@@ -795,14 +801,80 @@ async function loadPendingOrders() {
             const selectEl = clone.querySelector('.order-status-select');
             updateBtn.addEventListener('click', () => updateOrderStatus(order.id, selectEl.value));
 
+            const cardRoot = clone.querySelector('.delivery-order-card');
+            if (cardRoot) {
+                cardRoot.addEventListener('click', (e) => {
+                    if (e.target.closest('.update-status-btn') || e.target.closest('.order-status-select')) return;
+                    showSelectedPendingOrderOnMap(order, cardRoot);
+                });
+            }
+
+            if (!firstOrderWithLocation && parseDeliveryCoords(order.delivery_address)) {
+                firstOrderWithLocation = order;
+            }
+
             container.appendChild(clone);
         });
+
+        if (selectedMapWrap) {
+            if (firstOrderWithLocation) {
+                const firstCard = container.querySelector('.delivery-order-card');
+                showSelectedPendingOrderOnMap(firstOrderWithLocation, firstCard);
+            } else {
+                selectedMapWrap.classList.add('hidden');
+            }
+        }
 
         // save order coordinates for map tab
         window._pendingOrders = orders;
     } catch (err) {
         console.error(err);
     }
+}
+
+function parseDeliveryCoords(deliveryAddress) {
+    if (!deliveryAddress) return null;
+    const parts = deliveryAddress.split(',').map(s => parseFloat(s.trim()));
+    if (parts.length !== 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) return null;
+    return { lat: parts[0], lng: parts[1] };
+}
+
+function showSelectedPendingOrderOnMap(order, selectedCardEl) {
+    const mapWrap = $('#selected-order-map-wrap');
+    const mapEl = document.getElementById('selected-order-map');
+    if (!mapWrap || !mapEl || typeof L === 'undefined') return;
+
+    const coords = parseDeliveryCoords(order.delivery_address);
+    if (!coords) {
+        mapWrap.classList.add('hidden');
+        return;
+    }
+
+    mapWrap.classList.remove('hidden');
+
+    document.querySelectorAll('.delivery-order-card.is-selected').forEach(card => {
+        card.classList.remove('is-selected');
+    });
+    if (selectedCardEl) selectedCardEl.classList.add('is-selected');
+
+    if (!selectedOrderMap) {
+        selectedOrderMap = L.map('selected-order-map').setView([coords.lat, coords.lng], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(selectedOrderMap);
+    }
+
+    if (selectedOrderMarker) {
+        selectedOrderMap.removeLayer(selectedOrderMarker);
+        selectedOrderMarker = null;
+    }
+
+    selectedOrderMarker = L.marker([coords.lat, coords.lng]).addTo(selectedOrderMap)
+        .bindPopup(`Order #${order.id} - ${order.customer_name || 'Customer'}`)
+        .openPopup();
+
+    selectedOrderMap.setView([coords.lat, coords.lng], 15);
+    setTimeout(() => selectedOrderMap.invalidateSize(), 180);
 }
 
 async function loadDeliveryHistory() {

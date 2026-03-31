@@ -523,6 +523,11 @@ body {
     border-color: transparent;
 }
 
+.delivery-order-card.is-selected {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px var(--red-glow), var(--shadow-sm);
+}
+
 .card-img {
     width: 100%;
     aspect-ratio: 16 / 9;
