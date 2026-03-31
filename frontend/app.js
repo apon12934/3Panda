@@ -97,6 +97,52 @@ function initHamburger() {
     });
 }
 
+function initCommonButtonLogic() {
+    const viewAllPartners = document.getElementById('view-all-partners');
+    if (viewAllPartners) {
+        viewAllPartners.addEventListener('click', (e) => {
+            e.preventDefault();
+            const section = document.getElementById('restaurant-list');
+            if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+
+    const favoritesLink = document.getElementById('favorites-link');
+    if (favoritesLink) {
+        favoritesLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showMsg('Favorites feature is coming soon.');
+        });
+    }
+
+    const paymentMethodsLink = document.getElementById('payment-methods-link');
+    if (paymentMethodsLink) {
+        paymentMethodsLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showMsg('Payment methods feature is coming soon.');
+        });
+    }
+
+    const forgotResetLink = document.getElementById('forgot-reset-link');
+    if (forgotResetLink) {
+        forgotResetLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showMsg('Password reset is not available yet. Please contact support.');
+        });
+    }
+
+    // Fallback: avoid dead hash-links jumping to top without feedback.
+    document.querySelectorAll('a[href="#"]').forEach((link) => {
+        if (link.id === 'show-login' || link.id === 'view-all-partners' || link.id === 'favorites-link' || link.id === 'payment-methods-link' || link.id === 'forgot-reset-link') {
+            return;
+        }
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            showMsg('This section will be available soon.');
+        });
+    });
+}
+
 function initFileUploadPlaceholders() {
     const inputs = document.querySelectorAll('.file-input');
     inputs.forEach((input) => {
@@ -236,6 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initNavbarScroll();
     initHamburger();
     initFileUploadPlaceholders();
+    initCommonButtonLogic();
 
     if (page === 'index.html' || page === '') initHome();
     if (page === 'login.html') initLogin();
