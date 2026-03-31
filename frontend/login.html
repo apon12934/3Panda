@@ -41,13 +41,13 @@
         </div>
 
         <form id="login-form">
-            <div class="form-group">
-                <label for="login-email">Digital Signature (Email)</label>
+            <div class="form-group floating-group">
                 <input type="email" id="login-email" class="form-control" placeholder="panda@kinetic.io" required>
+                <label for="login-email">Digital Signature (Email)</label>
             </div>
-            <div class="form-group">
-                <label for="login-password">Access Key</label>
+            <div class="form-group floating-group">
                 <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+                <label for="login-password">Access Key</label>
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%;padding:.8rem;">Authenticate →</button>
         </form>
@@ -67,24 +67,24 @@
         </div>
 
         <form id="register-form">
-            <div class="form-group">
-                <label for="reg-name">Alias (Username)</label>
+            <div class="form-group floating-group">
                 <input type="text" id="reg-name" class="form-control" placeholder="pandauser" required>
+                <label for="reg-name">Alias (Username)</label>
             </div>
-            <div class="form-group">
-                <label for="reg-email">Digital Signature (Email)</label>
+            <div class="form-group floating-group">
                 <input type="email" id="reg-email" class="form-control" placeholder="you@kinetic.io" required>
+                <label for="reg-email">Digital Signature (Email)</label>        
             </div>
-            <div class="form-group">
-                <label for="reg-password">Access Key</label>
+            <div class="form-group floating-group">
                 <input type="password" id="reg-password" class="form-control" placeholder="••••••••" required>
+                <label for="reg-password">Access Key</label>
             </div>
-            <div class="form-group">
-                <label for="reg-role">Identity Type</label>
+            <div class="form-group floating-group">
                 <select id="reg-role" class="form-control">
                     <option value="customer">Customer</option>
                     <option value="delivery">Delivery Rider</option>
                 </select>
+                <label for="reg-role">Identity Type</label>
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%;padding:.8rem;">Create Identity →</button>
         </form>

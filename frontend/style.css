@@ -98,7 +98,7 @@ img { display: block; max-width: 100%; }
 
 @keyframes pageLoad {
     from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
+    to   { opacity: 1; transform: none; }
 }
 
 body {
@@ -1651,4 +1651,53 @@ tbody tr:last-child {
         padding: 1.5rem 1.25rem;
         border-radius: var(--radius-lg);
     }
+}
+\ n \ n / *   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = \ n       F L O A T I N G   L A B E L S \ n       = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   * / \ n . f l o a t i n g - g r o u p   { \ n         p o s i t i o n :   r e l a t i v e ; \ n } \ n \ n . f l o a t i n g - g r o u p   l a b e l   { \ n         p o s i t i o n :   a b s o l u t e ; \ n         l e f t :   1 r e m ; \ n         t o p :   5 0 % ; \ n         t r a n s f o r m :   t r a n s l a t e Y ( - 5 0 % ) ; \ n         p o i n t e r - e v e n t s :   n o n e ; \ n         t r a n s i t i o n :   t o p   0 . 2 5 s   v a r ( - - e a s e ) ,   t r a n s f o r m   0 . 2 5 s   v a r ( - - e a s e ) ,   f o n t - s i z e   0 . 2 s   v a r ( - - e a s e ) ,   c o l o r   0 . 2 s   v a r ( - - e a s e ) ; \ n         m a r g i n :   0 ; \ n         c o l o r :   v a r ( - - t e x t - l i g h t ) ; \ n         f o n t - f a m i l y :   v a r ( - - f o n t - b o d y ) ; \ n         f o n t - w e i g h t :   4 0 0 ; \ n         f o n t - s i z e :   . 9 5 r e m ; \ n         l e t t e r - s p a c i n g :   n o r m a l ; \ n         t e x t - t r a n s f o r m :   n o n e ; \ n } \ n \ n . f l o a t i n g - g r o u p   i n p u t : f o c u s   ~   l a b e l , \ n . f l o a t i n g - g r o u p   i n p u t : n o t ( : p l a c e h o l d e r - s h o w n )   ~   l a b e l , \ n . f l o a t i n g - g r o u p   s e l e c t   ~   l a b e l   { \ n         t o p :   0 ; \ n         l e f t :   0 . 8 r e m ; \ n         t r a n s f o r m :   t r a n s l a t e Y ( - 5 0 % ) ; \ n         p a d d i n g :   0   0 . 2 5 r e m ; \ n         b a c k g r o u n d - c o l o r :   v a r ( - - s u r f a c e ) ; \ n         c o l o r :   v a r ( - - t e x t ) ; \ n         f o n t - f a m i l y :   v a r ( - - f o n t - h e a d i n g ) ; \ n         f o n t - w e i g h t :   6 0 0 ; \ n         f o n t - s i z e :   . 7 2 r e m ; \ n         l e t t e r - s p a c i n g :   . 1 2 e m ; \ n         t e x t - t r a n s f o r m :   u p p e r c a s e ; \ n } \ n \ n / *   H i d e   n a t i v e   p l a c e h o l d e r   b y   d e f a u l t   * / \ n . f l o a t i n g - g r o u p   i n p u t : : p l a c e h o l d e r   { \ n         c o l o r :   t r a n s p a r e n t ; \ n } \ n \ n . f l o a t i n g - g r o u p   i n p u t : f o c u s : : p l a c e h o l d e r   { \ n         c o l o r :   v a r ( - - t e x t - l i g h t ) ; \ n } \ n 
+ 
+ 
+
+/* ============================================================
+   FLOATING LABELS
+   ============================================================ */
+.floating-group {
+    position: relative;
+}
+
+.floating-group label {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    transition: top 0.25s var(--ease), transform 0.25s var(--ease), font-size 0.2s var(--ease), color 0.25s var(--ease);
+    margin: 0;
+    color: var(--text-light);
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: .95rem;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+.floating-group input:focus ~ label,
+.floating-group input:not(:placeholder-shown) ~ label,
+.floating-group select ~ label {
+    top: 0;
+    left: 0.8rem;
+    transform: translateY(-50%);
+    padding: 0 0.25rem;
+    background-color: var(--surface);
+    color: var(--text);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: .72rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.floating-group input::placeholder {
+    color: transparent;
+}
+.floating-group input:focus::placeholder {
+    color: var(--text-light);
 }
