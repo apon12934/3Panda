@@ -74,7 +74,7 @@ body {
     color: var(--text);
     line-height: 1.6;
     min-height: 100vh;
-    overflow-x: clip;
+    overflow-x: auto;
 }
 
 a {
@@ -1022,7 +1022,8 @@ th {
 th, td {
     padding: .75rem 1.1rem;
     text-align: left;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
 }
 
 tbody tr {
@@ -1812,7 +1813,7 @@ tbody tr:last-child {
     }
 
     .container {
-        padding: 1.5rem 1.25rem;
+        overflow-x: auto;
     }
 
     .container-sm {
@@ -1845,6 +1846,32 @@ tbody tr:last-child {
     }
 
     .hero-search .btn {
+        width: 100%;
+    }
+
+    /* Admin dashboard mobile scrolling */
+    .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    th, td {
+        padding: .6rem .8rem;
+        font-size: .78rem;
+        white-space: normal;
+    }
+
+    .tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+    }
+
+    .tab-btn {
+        padding: .5rem 1rem;
+        font-size: .8rem;
+        white-space: nowrap;
+        flex-shrink: 0tn {
         width: 100%;
     }
 }
