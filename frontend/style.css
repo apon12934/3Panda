@@ -1666,7 +1666,7 @@ tbody tr:last-child {
     top: 50%;
     transform: translateY(-50%);
     pointer-events: none;
-    transition: top 0.25s var(--ease), transform 0.25s var(--ease), font-size 0.2s var(--ease), color 0.25s var(--ease);
+    transition: top 0.25s var(--ease), transform 0.25s var(--ease), font-size 0.2s var(--ease), color 0.2s var(--ease);
     margin: 0;
     color: var(--text-light);
     font-family: var(--font-body);
@@ -1674,11 +1674,12 @@ tbody tr:last-child {
     font-size: .95rem;
     letter-spacing: normal;
     text-transform: none;
+    z-index: 1;
 }
 
+/* Floating label active states for text inputs */
 .floating-group input:focus ~ label,
-.floating-group input:not(:placeholder-shown) ~ label,
-.floating-group select ~ label {
+.floating-group input:not(:placeholder-shown) ~ label {
     top: 0;
     left: 0.8rem;
     transform: translateY(-50%);
@@ -1692,9 +1693,29 @@ tbody tr:last-child {
     text-transform: uppercase;
 }
 
+/* Floating label active states for select and file inputs */
+.floating-group select:focus ~ label,
+.floating-group select:not([value=""]) ~ label,
+.floating-group input[type="file"]:not([value=""]) ~ label {
+    top: 0;
+    left: 0.8rem;
+    transform: translateY(-50%);
+    padding: 0 0.25rem;
+    background-color: var(--surface);
+    color: var(--text);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: .72rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+/* Hide placeholder text by default */
 .floating-group input::placeholder {
     color: transparent;
 }
+
+/* Show placeholder on focus */
 .floating-group input:focus::placeholder {
     color: var(--text-light);
 }
