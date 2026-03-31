@@ -1,6 +1,8 @@
 // main frontend script file
 
-const API = window.location.origin + '/api';
+const API = window.location.protocol === 'file:' || window.location.port !== '3000' 
+    ? 'http://localhost:3000/api' 
+    : window.location.origin + '/api';
 
 // small helper functions
 
