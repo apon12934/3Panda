@@ -124,15 +124,15 @@ INSERT OR IGNORE INTO Categories (name, description) VALUES
     ('Vegetarian', 'Plant-based dishes');
 
 -- sample restaurants
-INSERT OR IGNORE INTO Restaurants (name, description, address, image, is_active) VALUES
-    ('Panda Wok',    'Authentic Chinese wok dishes',  '123 Panda St',  'images/restaurants/panda_wok.jpg',    1),
-    ('Bamboo Bites', 'Fresh bamboo-inspired meals',   '456 Bamboo Ave', 'images/restaurants/bamboo_bites.jpg', 1);
+-- INSERT OR IGNORE INTO Restaurants (name, description, address, image, is_active) VALUES
+--     ('Panda Wok',    'Authentic Chinese wok dishes',  '123 Panda St',  'images/restaurants/panda_wok.jpg',    1),
+--     ('Bamboo Bites', 'Fresh bamboo-inspired meals',   '456 Bamboo Ave', 'images/restaurants/bamboo_bites.jpg', 1);
 
 -- sample menu items (2 for each restaurant)
-INSERT OR IGNORE INTO MenuItems (restaurant_id, category_id, name, description, price, image, is_available) VALUES
-    (1, 1, 'Kung Pao Chicken',  'Spicy stir-fried chicken with peanuts', 8.99,  'images/items/kung_pao_chicken.jpg', 1),
-    (1, 1, 'Fried Rice Combo',  'Classic fried rice with vegetables',    6.49,  'images/items/fried_rice_combo.jpg',  1),
-    (2, 2, 'Spring Rolls',      'Crispy vegetable spring rolls',         4.99,  'images/items/spring_rolls.jpg',      1),
-    (2, 2, 'Tofu Stir Fry',     'Stir-fried tofu with mixed veggies',   7.49,  'images/items/tofu_stir_fry.jpg',     1);
+-- INSERT OR IGNORE INTO MenuItems (restaurant_id, category_id, name, description, price, image, is_available) VALUES
+--     (1, 1, 'Kung Pao Chicken',  'Spicy stir-fried chicken with peanuts', 8.99,  'images/items/kung_pao_chicken.jpg', 1),
+--     (1, 1, 'Fried Rice Combo',  'Classic fried rice with vegetables',    6.49,  'images/items/fried_rice_combo.jpg',  1),
+--     (2, 2, 'Spring Rolls',      'Crispy vegetable spring rolls',         4.99,  'images/items/spring_rolls.jpg',      1),
+--     (2, 2, 'Tofu Stir Fry',     'Stir-fried tofu with mixed veggies',   7.49,  'images/items/tofu_stir_fry.jpg',     1);
 
 

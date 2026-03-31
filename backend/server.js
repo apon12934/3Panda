@@ -12,7 +12,7 @@ const multer = require('multer');
 const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const JWT_SECRET = 'threepanda_secret_key_2026';
 const SALT_ROUNDS = 10;
 
