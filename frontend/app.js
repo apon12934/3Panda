@@ -122,6 +122,15 @@ function formatStatus(s) {
     return (s || 'pending').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
+function formatPrice(amount) {
+    const value = Number(amount || 0);
+    return new Intl.NumberFormat('en-BD', {
+        style: 'currency',
+        currency: 'BDT',
+        maximumFractionDigits: 2
+    }).format(value);
+}
+
 // navbar logic
 
 function buildNav() {
@@ -277,7 +286,7 @@ async function filterMenuBySearch(query) {
                 <img class="card-img" src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}">
                 <div class="card-body">
                     <h3>${item.name}</h3>
-                    <p class="price">$${Number(item.price).toFixed(2)}</p>
+                    <p class="price">${formatPrice(item.price)}</p>
                     <button class="btn btn-primary btn-sm mt-1" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'") }', ${item.price})">Add to Cart</button>
                 </div>
             </div>
@@ -328,7 +337,7 @@ async function loadMenuItems(restaurantId) {
                 <img class="card-img" src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}">
                 <div class="card-body">
                     <h3>${item.name}</h3>
-                    <p class="price">$${Number(item.price).toFixed(2)}</p>
+                    <p class="price">${formatPrice(item.price)}</p>
                     <button class="btn btn-primary btn-sm mt-1" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price})">Add to Cart</button>
                 </div>
             </div>
@@ -379,14 +388,14 @@ function renderCart() {
         <div class="cart-item">
             <span>${c.name} x${c.quantity}</span>
             <span>
-                $${(c.price * c.quantity).toFixed(2)}
+                ${formatPrice(c.price * c.quantity)}
                 <button class="btn btn-danger btn-sm" style="padding:.15rem .5rem;margin-left:.4rem;font-size:.75rem;" onclick="removeFromCart(${c.menu_item_id})">X</button>
             </span>
         </div>
     `).join('');
 
     const total = cart.reduce((s, c) => s + c.price * c.quantity, 0);
-    totalEl.textContent = '$' + total.toFixed(2);
+    totalEl.textContent = formatPrice(total);
     totalRow.classList.remove('hidden');
     placeBtn.classList.remove('hidden');
 }
@@ -620,11 +629,11 @@ async function fetchMyOrders() {
             let total = 0;
             order.items.forEach(item => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${item.name}</td><td>${item.quantity}</td><td>$${(item.price * item.quantity).toFixed(2)}</td>`;
+                tr.innerHTML = `<td>${item.name}</td><td>${item.quantity}</td><td>${formatPrice(item.price * item.quantity)}</td>`;
                 tbody.appendChild(tr);
                 total += item.price * item.quantity;
             });
-            clone.querySelector('.order-total').textContent = 'Total: $' + (order.total_amount || total).toFixed(2);
+            clone.querySelector('.order-total').textContent = 'Total: ' + formatPrice(order.total_amount || total);
             container.appendChild(clone);
         });
     } catch (err) {
@@ -670,7 +679,7 @@ async function loadPendingOrders() {
             const tbody = clone.querySelector('.order-items');
             order.items.forEach(item => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${item.name}</td><td>${item.quantity}</td><td>$${(item.price * item.quantity).toFixed(2)}</td>`;
+                tr.innerHTML = `<td>${item.name}</td><td>${item.quantity}</td><td>${formatPrice(item.price * item.quantity)}</td>`;
                 tbody.appendChild(tr);
             });
 
@@ -714,7 +723,7 @@ async function loadDeliveryHistory() {
             const tbody = clone.querySelector('.order-items');
             order.items.forEach(item => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${item.name}</td><td>${item.quantity}</td><td>$${(item.price * item.quantity).toFixed(2)}</td>`;
+                tr.innerHTML = `<td>${item.name}</td><td>${item.quantity}</td><td>${formatPrice(item.price * item.quantity)}</td>`;
                 tbody.appendChild(tr);
             });
 
@@ -1013,7 +1022,7 @@ async function adminLoadItems() {
                 <td>${i.id}</td>
                 <td>${rMap[i.restaurant_id] || i.restaurant_id}</td>
                 <td>${i.name}</td>
-                <td>$${Number(i.price).toFixed(2)}</td>
+                <td>${formatPrice(i.price)}</td>
                 <td>${i.image ? '<img src="' + i.image + '" style="height:40px;border-radius:4px;">' : '—'}</td>
                 <td class="gap-row">
                     <button class="btn btn-sm btn-primary" onclick="adminEditItem(${i.id}, ${i.restaurant_id}, '${i.name.replace(/'/g,"\\'")}', ${i.price})">Edit</button>
@@ -1162,7 +1171,7 @@ function animateCounter(el, target, isCurrency = false) {
             clearInterval(timer);
         }
         if (isCurrency) {
-            el.textContent = '$' + Math.round(current).toLocaleString();
+            el.textContent = formatPrice(current);
         } else {
             el.textContent = Math.round(current).toLocaleString();
         }
