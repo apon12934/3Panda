@@ -829,16 +829,17 @@ initDB().then(() => {
         console.log(`3 Panda server running → http://localhost:${PORT}`);
         console.log(`Using database file: ${DB_PATH}`);
         
-        // Auto-ping system for Render Free Tier (prevents sleeping after 15 mins)
-        // Render sets RENDER_EXTERNAL_URL automatically (e.g. https://my-app.onrender.com)
+        // Secondary fallback only; primary keepalive should be done by Render Cron.
+        // In-process timers stop when a free web service is sleeping.
         const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL;
-        if (RENDER_EXTERNAL_URL) {
-            console.log(`Auto-ping enabled for ${RENDER_EXTERNAL_URL}`);
+        if (process.env.NODE_ENV === 'production' && RENDER_EXTERNAL_URL) {
+            const healthUrl = `${RENDER_EXTERNAL_URL.replace(/\/$/, '')}/api/health`;
+            console.log(`Auto-ping fallback enabled for ${healthUrl}`);
             // Ping every 14 minutes (14 * 60 * 1000 = 840000 ms)
             setInterval(async () => {
                 try {
-                    console.log(`[Auto-ping] Pinging ${RENDER_EXTERNAL_URL}...`);
-                    const response = await fetch(RENDER_EXTERNAL_URL);
+                    console.log(`[Auto-ping] Pinging ${healthUrl}...`);
+                    const response = await fetch(healthUrl);
                     console.log(`[Auto-ping] Status: ${response.status}`);
                 } catch (err) {
                     console.error(`[Auto-ping] Error:`, err.message);

@@ -13,9 +13,9 @@ services:
     env: node
     plan: free
     rootDir: backend
-    schedule: "*/10 * * * *"
+    schedule: "*/14 * * * *"
     buildCommand: npm install
     startCommand: node keepalive.js
     envVars:
       - key: KEEPALIVE_URL
-        sync: false
+        value: https://threepanda.onrender.com/api/health
