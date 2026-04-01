@@ -18,4 +18,6 @@ services:
     startCommand: node keepalive.js
     envVars:
       - key: KEEPALIVE_URL
+        value: https://3panda.ddns.net/api/health
+      - key: KEEPALIVE_FALLBACK_URL
         value: https://threepanda.onrender.com/api/health
