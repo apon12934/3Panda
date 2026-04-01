@@ -82,12 +82,16 @@ function initHamburger() {
         });
     });
 
-    // close on scroll so it never stays half-open while browsing on mobile
-    window.addEventListener('scroll', () => {
-        if (window.innerWidth <= 768 && links.classList.contains('open')) {
+    // close on outside click/tap (works with the mobile backdrop)
+    document.addEventListener('click', (e) => {
+        if (!links.classList.contains('open')) return;
+
+        const clickInsideMenu = links.contains(e.target);
+        const clickOnHamburger = btn.contains(e.target);
+        if (!clickInsideMenu && !clickOnHamburger) {
             closeMenu();
         }
-    }, { passive: true });
+    });
 
     // close when switching back to desktop width
     window.addEventListener('resize', () => {
