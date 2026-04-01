@@ -566,6 +566,7 @@ body {
     font-size: 1.1rem;
     margin-top: auto;
     padding-top: .4rem;
+    text-align: right;
 }
 
 .card-body .card-meta {
