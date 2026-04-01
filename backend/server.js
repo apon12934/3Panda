@@ -161,8 +161,10 @@ const upload = multer({
 app.post('/api/register', async (req, res) => {
     try {
         const { username, email, password, role, full_name, phone, address } = req.body;
+        const trimmedUsername = (username || '').trim();
+        const trimmedEmail = (email || '').trim();
 
-        if (!username || !email || !password) {
+        if (!trimmedUsername || !trimmedEmail || !password) {
             return res.status(400).json({ error: 'Username, email, and password are required.' });
         }
 
@@ -171,7 +173,7 @@ app.post('/api/register', async (req, res) => {
 
         const existing = await dbGet(
             'SELECT id FROM Users WHERE lower(email) = lower(?) OR lower(username) = lower(?)',
-            [email, username]
+            [trimmedEmail, trimmedUsername]
         );
         if (existing) {
             return res.status(409).json({ error: 'Email or username already registered.' });
@@ -181,10 +183,22 @@ app.post('/api/register', async (req, res) => {
 
         const result = await dbRun(
             'INSERT INTO Users (username, email, password, role, full_name, phone, address) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [username, email, hashedPassword, userRole, full_name || null, phone || null, address || null]
+            [trimmedUsername, trimmedEmail, hashedPassword, userRole, full_name || null, phone || null, address || null]
         );
 
-        return res.status(201).json({ message: 'Registration successful.', userId: result.lastID });
+        const token = jwt.sign(
+            { id: result.lastID, role: userRole },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        return res.status(201).json({
+            message: 'Registration successful.',
+            token,
+            role: userRole,
+            userId: result.lastID,
+            username: trimmedUsername
+        });
     } catch (err) {
         console.error('Register error:', err.message);
         return res.status(500).json({ error: 'Server error.' });

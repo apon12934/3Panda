@@ -646,8 +646,18 @@ function initLogin() {
             const data = await res.json();
             if (!res.ok) return showMsg(data.error);
 
-            showMsg('Account created! Please sign in.', 'success');
-            showLoginCard();
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('role', data.role);
+            localStorage.setItem('userId', data.userId);
+            localStorage.setItem('userName', data.username);
+
+            showMsg('Account created. Welcome, ' + data.username + '!', 'success');
+
+            setTimeout(() => {
+                if (data.role === 'admin') window.location.href = 'admin.html';
+                else if (data.role === 'delivery') window.location.href = 'delivery.html';
+                else window.location.href = 'index.html';
+            }, 600);
         } catch (err) {
             console.error(err);
             showMsg('Registration failed.');
