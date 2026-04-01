@@ -77,6 +77,17 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Performance: add HTTP caching headers for static assets
+app.use((req, res, next) => {
+    // Cache static assets for 1 hour
+    if (req.url.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2)$/i)) {
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
+    // Security header
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    next();
+});
+
 // this serves the frontend folder
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 

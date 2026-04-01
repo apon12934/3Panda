@@ -51,7 +51,7 @@ function initNavbarScroll() {
             });
             ticking = true;
         }
-    });
+    }, { passive: true });
 }
 
 // ============================================================
@@ -186,6 +186,21 @@ const authJSON = () => ({
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
+// Performance: Lazy loading for images
+function initLazyLoading() {
+    if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    if (img.dataset.src) img.src = img.dataset.src, img.removeAttribute('data-src');
+                    observer.unobserve(img);
+                }
+            });
+        }, { rootMargin: '50px' });
+        document.querySelectorAll('img[data-src]').forEach(img => imageObserver.observe(img));
+    }
+}
 
 function showMsg(text, type = 'error') {
     // show toast message in bottom-left
@@ -286,6 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initHamburger();
     initFileUploadPlaceholders();
     initCommonButtonLogic();
+    initLazyLoading();
 
     if (page === 'index.html' || page === '') initHome();
     if (page === 'login.html') initLogin();

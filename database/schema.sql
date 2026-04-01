@@ -135,4 +135,19 @@ INSERT OR IGNORE INTO Categories (name, description) VALUES
 --     (2, 2, 'Spring Rolls',      'Crispy vegetable spring rolls',         4.99,  'images/items/spring_rolls.jpg',      1),
 --     (2, 2, 'Tofu Stir Fry',     'Stir-fried tofu with mixed veggies',   7.49,  'images/items/tofu_stir_fry.jpg',     1);
 
+-- Performance indexes for frequently queried database columns
+CREATE INDEX IF NOT EXISTS idx_users_email ON Users(email);
+CREATE INDEX IF NOT EXISTS idx_users_username ON Users(username);
+CREATE INDEX IF NOT EXISTS idx_users_role ON Users(role);
+CREATE INDEX IF NOT EXISTS idx_menu_restaurant ON MenuItems(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_menu_category ON MenuItems(category_id);
+CREATE INDEX IF NOT EXISTS idx_orders_user ON Orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON Orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_delivery ON Orders(delivery_person_id);
+CREATE INDEX IF NOT EXISTS idx_orders_restaurant ON Orders(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_orderDet_order ON OrderDetails(order_id);
+CREATE INDEX IF NOT EXISTS idx_orderDet_item ON OrderDetails(menu_item_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_user ON Reviews(user_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_rest ON Reviews(restaurant_id);
+
 
