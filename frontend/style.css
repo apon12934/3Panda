@@ -326,11 +326,42 @@ body {
 
 .hero {
     position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 520px);
+    grid-template-areas:
+        'copy art'
+        'actions art';
+    column-gap: 2rem;
+    row-gap: 1rem;
+    align-items: end;
     text-align: left;
     padding: 4rem 2rem 3rem;
     max-width: 1200px;
     margin: 0 auto;
     overflow: hidden;
+}
+
+.hero-copy {
+    grid-area: copy;
+    max-width: 560px;
+}
+
+.hero-actions {
+    grid-area: actions;
+}
+
+.hero-art-wrap {
+    grid-area: art;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+}
+
+.hero-art {
+    width: min(100%, 500px);
+    max-height: 520px;
+    height: auto;
+    object-fit: contain;
 }
 
 .hero h1 {
@@ -1753,7 +1784,29 @@ tbody tr:last-child {
     }
 
     .hero {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            'copy'
+            'art'
+            'actions';
+        row-gap: 1.1rem;
         padding: 2.5rem 1.25rem 2rem;
+    }
+
+    .hero-copy,
+    .hero-actions {
+        max-width: 100%;
+    }
+
+    .hero-art-wrap {
+        justify-content: center;
+        max-width: 440px;
+        margin: 0 auto;
+    }
+
+    .hero-art {
+        width: min(100%, 420px);
+        max-height: 360px;
     }
 
     .hero h1 {
