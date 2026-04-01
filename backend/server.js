@@ -627,6 +627,14 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
         const order = await dbGet('SELECT * FROM Orders WHERE id = ?', [id]);
         if (!order) return res.status(404).json({ error: 'Order not found.' });
 
+        // Authorization: only admin or the assigned delivery person can update
+        if (req.user.role !== 'admin' && req.user.role !== 'delivery') {
+            return res.status(403).json({ error: 'Not authorized to update this order.' });
+        }
+        if (req.user.role === 'delivery' && order.delivery_person_id && order.delivery_person_id !== req.user.id) {
+            return res.status(403).json({ error: 'You can only update orders assigned to you.' });
+        }
+
         // if a delivery user takes this order, save their id
         let delivery_person_id = order.delivery_person_id;
         if (req.user.role === 'delivery' && !order.delivery_person_id) {

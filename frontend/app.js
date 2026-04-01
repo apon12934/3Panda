@@ -252,11 +252,14 @@ function buildNav() {
         if (authBtn) {
             authBtn.textContent = 'Logout';
             authBtn.href = '#';
-            authBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                localStorage.clear();
-                window.location.href = 'login.html';
-            });
+            if (!authBtn._logoutListenerAttached) {
+                authBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    localStorage.clear();
+                    window.location.href = 'login.html';
+                });
+                authBtn._logoutListenerAttached = true;
+            }
         }
     } else {
         nav.innerHTML = '';
@@ -395,6 +398,7 @@ async function filterMenuBySearch(query) {
 async function loadRestaurants() {
     try {
         const res = await fetch(API + '/restaurants');
+        if (!res.ok) return showMsg('Failed to load restaurants.');
         const data = await res.json();
         const container = $('#restaurant-list');
         if (!data.length) {
@@ -420,6 +424,7 @@ async function loadMenuItems(restaurantId) {
         let url = API + '/menu-items';
         if (restaurantId) url += '?restaurant_id=' + restaurantId;
         const res = await fetch(url);
+        if (!res.ok) return showMsg('Failed to load menu items.');
         const data = await res.json();
         const container = $('#menu-list');
         if (!data.length) {
@@ -714,8 +719,8 @@ function initMyOrders() {
 async function fetchMyOrders() {
     try {
         const res = await fetch(API + '/orders/mine', { headers: authHeaders() });
-        const orders = await res.json();
         if (!res.ok) return;
+        const orders = await res.json();
 
         const container = $('#orders-list');
         const tpl = $('#order-card-template');
@@ -766,8 +771,8 @@ function initDelivery() {
 async function loadPendingOrders() {
     try {
         const res = await fetch(API + '/delivery/pending', { headers: authHeaders() });
-        const orders = await res.json();
         if (!res.ok) return;
+        const orders = await res.json();
 
         const container = $('#pending-orders');
         const tpl = $('#delivery-order-template');
@@ -880,8 +885,8 @@ function showSelectedPendingOrderOnMap(order, selectedCardEl) {
 async function loadDeliveryHistory() {
     try {
         const res = await fetch(API + '/delivery/history', { headers: authHeaders() });
-        const orders = await res.json();
         if (!res.ok) return;
+        const orders = await res.json();
 
         const container = $('#history-orders');
         const tpl = $('#delivery-order-template');
@@ -1103,8 +1108,11 @@ function initAdmin() {
 async function adminLoadUsers() {
     try {
         const res = await fetch(API + '/users', { headers: authHeaders() });
+        if (!res.ok) {
+            const error = await res.json();
+            return showMsg(error.error || 'Failed to load users.');
+        }
         const users = await res.json();
-        if (!res.ok) return;
 
         const tbody = $('#users-tbody');
         tbody.innerHTML = users.map(u => `
@@ -1146,8 +1154,11 @@ window.adminDeleteUser = async (id) => {
 async function adminLoadRestaurants() {
     try {
         const res = await fetch(API + '/restaurants');
+        if (!res.ok) {
+            const error = await res.json();
+            return showMsg(error.error || 'Failed to load restaurants.');
+        }
         const list = await res.json();
-        if (!res.ok) return;
 
         const tbody = $('#restaurants-tbody');
         tbody.innerHTML = list.map(r => `
@@ -1187,11 +1198,17 @@ window.adminDeleteRestaurant = async (id) => {
 async function adminLoadItems() {
     try {
         const res = await fetch(API + '/menu-items');
+        if (!res.ok) {
+            const error = await res.json();
+            return showMsg(error.error || 'Failed to load items.');
+        }
         const list = await res.json();
-        if (!res.ok) return;
 
         // also load restaurants so we can show restaurant names
         const rRes = await fetch(API + '/restaurants');
+        if (!rRes.ok) {
+            return showMsg('Failed to load restaurants for display.');
+        }
         const rests = await rRes.json();
         const rMap = {};
         rests.forEach(r => rMap[r.id] = r.name);
@@ -1251,8 +1268,11 @@ async function adminRefreshRestaurantSelects() {
 async function adminLoadOrders() {
     try {
         const res = await fetch(API + '/orders', { headers: authHeaders() });
+        if (!res.ok) {
+            const error = await res.json();
+            return showMsg(error.error || 'Failed to load orders.');
+        }
         const orders = await res.json();
-        if (!res.ok) return;
 
         const tbody = $('#orders-tbody');
         if (!orders.length) {
