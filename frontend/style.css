@@ -518,6 +518,8 @@ body {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-xs);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
     transition: transform var(--duration) var(--ease),
                 box-shadow var(--duration) var(--ease);
     border: 1px solid var(--border-light);
@@ -538,6 +540,9 @@ body {
 
 .card-body {
     padding: 1.15rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
 }
 
 .card-body h3 {
@@ -559,7 +564,8 @@ body {
     font-family: var(--font-heading);
     font-weight: 700;
     font-size: 1.1rem;
-    margin-top: .25rem;
+    margin-top: auto;
+    padding-top: .4rem;
 }
 
 .card-body .card-meta {
