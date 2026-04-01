@@ -1907,6 +1907,66 @@ tbody tr:last-child {
     table {
         min-width: 680px;
     }
+
+    /* My Orders mobile-specific scaling */
+    .page-my-orders .page-with-sidebar {
+        padding: 1.25rem 1rem;
+        gap: 1rem;
+    }
+
+    .page-my-orders .sidebar-label {
+        margin-bottom: .75rem;
+        padding-left: .2rem;
+    }
+
+    .page-my-orders .sidebar-nav {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .45rem;
+        overflow: visible;
+        padding-bottom: 0;
+    }
+
+    .page-my-orders .sidebar-nav a {
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: .6rem .65rem;
+        font-size: .86rem;
+    }
+
+    .page-my-orders .table-wrap {
+        overflow-x: hidden;
+    }
+
+    .page-my-orders table {
+        min-width: 0;
+        width: 100%;
+        table-layout: fixed;
+        font-size: .82rem;
+    }
+
+    .page-my-orders th,
+    .page-my-orders td {
+        white-space: normal;
+        word-break: break-word;
+        padding: .62rem .5rem;
+    }
+
+    .page-my-orders th:nth-child(2),
+    .page-my-orders td:nth-child(2) {
+        width: 52px;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .page-my-orders th:nth-child(3),
+    .page-my-orders td:nth-child(3) {
+        width: 96px;
+        text-align: right;
+        white-space: nowrap;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1925,6 +1985,10 @@ tbody tr:last-child {
     .auth-card {
         padding: 1.5rem 1.25rem;
         border-radius: var(--radius-lg);
+    }
+
+    .page-my-orders .sidebar-nav {
+        grid-template-columns: 1fr;
     }
 }
 \ n \ n / *   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = \ n       F L O A T I N G   L A B E L S \ n       = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   * / \ n . f l o a t i n g - g r o u p   { \ n         p o s i t i o n :   r e l a t i v e ; \ n } \ n \ n . f l o a t i n g - g r o u p   l a b e l   { \ n         p o s i t i o n :   a b s o l u t e ; \ n         l e f t :   1 r e m ; \ n         t o p :   5 0 % ; \ n         t r a n s f o r m :   t r a n s l a t e Y ( - 5 0 % ) ; \ n         p o i n t e r - e v e n t s :   n o n e ; \ n         t r a n s i t i o n :   t o p   0 . 2 5 s   v a r ( - - e a s e ) ,   t r a n s f o r m   0 . 2 5 s   v a r ( - - e a s e ) ,   f o n t - s i z e   0 . 2 s   v a r ( - - e a s e ) ,   c o l o r   0 . 2 s   v a r ( - - e a s e ) ; \ n         m a r g i n :   0 ; \ n         c o l o r :   v a r ( - - t e x t - l i g h t ) ; \ n         f o n t - f a m i l y :   v a r ( - - f o n t - b o d y ) ; \ n         f o n t - w e i g h t :   4 0 0 ; \ n         f o n t - s i z e :   . 9 5 r e m ; \ n         l e t t e r - s p a c i n g :   n o r m a l ; \ n         t e x t - t r a n s f o r m :   n o n e ; \ n } \ n \ n . f l o a t i n g - g r o u p   i n p u t : f o c u s   ~   l a b e l , \ n . f l o a t i n g - g r o u p   i n p u t : n o t ( : p l a c e h o l d e r - s h o w n )   ~   l a b e l , \ n . f l o a t i n g - g r o u p   s e l e c t   ~   l a b e l   { \ n         t o p :   0 ; \ n         l e f t :   0 . 8 r e m ; \ n         t r a n s f o r m :   t r a n s l a t e Y ( - 5 0 % ) ; \ n         p a d d i n g :   0   0 . 2 5 r e m ; \ n         b a c k g r o u n d - c o l o r :   v a r ( - - s u r f a c e ) ; \ n         c o l o r :   v a r ( - - t e x t ) ; \ n         f o n t - f a m i l y :   v a r ( - - f o n t - h e a d i n g ) ; \ n         f o n t - w e i g h t :   6 0 0 ; \ n         f o n t - s i z e :   . 7 2 r e m ; \ n         l e t t e r - s p a c i n g :   . 1 2 e m ; \ n         t e x t - t r a n s f o r m :   u p p e r c a s e ; \ n } \ n \ n / *   H i d e   n a t i v e   p l a c e h o l d e r   b y   d e f a u l t   * / \ n . f l o a t i n g - g r o u p   i n p u t : : p l a c e h o l d e r   { \ n         c o l o r :   t r a n s p a r e n t ; \ n } \ n \ n . f l o a t i n g - g r o u p   i n p u t : f o c u s : : p l a c e h o l d e r   { \ n         c o l o r :   v a r ( - - t e x t - l i g h t ) ; \ n } \ n 
