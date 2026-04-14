@@ -609,7 +609,39 @@ function initRestaurantPopup() {
         carousel.scrollBy({ left: cardW + 16, behavior: 'smooth' });
     });
 
-    // update dots on scroll
+    
+    // Mouse drag scrolling
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    carousel.addEventListener('mousedown', (e) => {
+        isDown = true;
+        carousel.classList.add('is-dragging');
+        startX = e.pageX - carousel.offsetLeft;
+        scrollLeft = carousel.scrollLeft;
+    });
+
+    carousel.addEventListener('mouseleave', () => {
+        isDown = false;
+        carousel.classList.remove('is-dragging');
+    });
+
+    carousel.addEventListener('mouseup', () => {
+        isDown = false;
+        carousel.classList.remove('is-dragging');
+    });
+
+    carousel.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - carousel.offsetLeft;
+        const walk = (x - startX) * 1.5; // Drag speed multiplier
+        carousel.scrollLeft = scrollLeft - walk;
+    });
+
+    // Update dots on scroll
+
     carousel.addEventListener('scroll', () => updateCarouselDots());
 }
 

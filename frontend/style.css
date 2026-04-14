@@ -2078,8 +2078,21 @@ tbody tr:last-child {
    ============================================================ */
 
 .rest-popup {
-    max-width: 520px;
-    width: 92vw;
+    top: 50%;
+    left: 50%;
+    bottom: auto;
+    right: auto;
+    transform: translate(-50%, -50%);
+    width: 95vw;
+    height: 90vh; /* Taller on mobile */
+    max-height: 90vh;
+    border-radius: var(--radius-xl);
+    animation: popupScaleIn .35s var(--ease);
+}
+
+@keyframes popupScaleIn {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
 .rest-carousel-wrap {
@@ -2194,15 +2207,18 @@ tbody tr:last-child {
     box-shadow: var(--shadow-red);
 }
 
-.carousel-prev { left: -18px; }
-.carousel-next { right: -18px; }
+.carousel-prev { left: 8px; }
+.carousel-next { right: 8px; }
 
 @media (min-width: 769px) {
     .carousel-arrow {
         display: flex;
     }
     .rest-popup {
-        max-width: 600px;
+        max-width: 880px; /* Much wider on desktop */
+        width: 85vw;
+        height: auto; /* Revert to auto height on desktop */
+        max-height: 85vh;
     }
     .rest-carousel .carousel-card {
         flex: 0 0 260px;
@@ -2233,3 +2249,8 @@ tbody tr:last-child {
     transform: scale(1.3);
 }
 
+
+
+.rest-carousel { cursor: grab; }
+.rest-carousel.is-dragging { cursor: grabbing; scroll-snap-type: none; scroll-behavior: auto; }
+.rest-carousel.is-dragging .carousel-card { pointer-events: none; } /* prevent accidental clicks while dragging */
