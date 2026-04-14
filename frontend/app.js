@@ -1251,8 +1251,8 @@ async function adminLoadItems() {
             <tr>
                 <td>${i.id}</td>
                 <td>${rMap[i.restaurant_id] || i.restaurant_id}</td>
-                <td>${i.name}</td>
-                <td>${i.description || '—'}</td>
+                <td title="${i.name}" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.name}</td>
+                <td title="${i.description||''}" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.description || '—'}</td>
                 <td>${formatPrice(i.price)}</td>
                 <td>${i.image ? '<img src="' + i.image + '" style="height:40px;border-radius:4px;">' : '—'}</td>
                 <td class="gap-row">
