@@ -115,6 +115,28 @@
     <span class="fab-badge hidden" id="fab-badge">0</span>
 </button>
 
+
+<!-- restaurant menu popup -->
+<div class="popup-overlay hidden" id="rest-popup-overlay"></div>
+<div class="popup-panel rest-popup hidden" id="rest-popup">
+    <div class="popup-header">
+        <h2 id="rest-popup-name">Restaurant Menu</h2>
+        <button class="popup-close" id="rest-popup-close">&times;</button>
+    </div>
+    <div class="popup-body">
+        <div class="rest-carousel-wrap">
+            <button class="carousel-arrow carousel-prev" id="carousel-prev" aria-label="Previous">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div class="rest-carousel" id="rest-carousel"></div>
+            <button class="carousel-arrow carousel-next" id="carousel-next" aria-label="Next">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+        </div>
+        <div class="carousel-dots" id="carousel-dots"></div>
+    </div>
+</div>
+
 <div class="popup-overlay hidden" id="cart-popup-overlay"></div>
 <div class="popup-panel hidden" id="cart-popup">
     <div class="popup-header">

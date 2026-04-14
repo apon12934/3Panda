@@ -342,6 +342,7 @@ let selectedLng = null;
 function initHome() {
     loadRestaurants();
     loadMenuItems();
+    initRestaurantPopup();
 
     // hero search functionality
     const searchInput = $('#hero-search-input');
@@ -426,7 +427,7 @@ async function loadRestaurants() {
             return;
         }
         container.innerHTML = data.map(r => `
-            <div class="card" onclick="filterByRestaurant(${r.id})" style="cursor:pointer;">
+            <div class="card" onclick="filterByRestaurant(${r.id}, '${r.name.replace(/'/g, "\\\'")}')" style="cursor:pointer;">
                 <img class="card-img" src="${r.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${r.name}">
                 <div class="card-body">
                     <h3>${r.name}</h3>
@@ -467,8 +468,8 @@ async function loadMenuItems(restaurantId) {
     }
 }
 
-// keep this global because HTML uses inline onclick
-window.filterByRestaurant = (id) => loadMenuItems(id);
+// keep this global — opens restaurant popup instead of replacing menu list
+window.filterByRestaurant = (id, name) => openRestaurantPopup(id, name);
 
 window.addToCart = (id, name, price) => {
     const existing = cart.find(c => c.menu_item_id === id);
@@ -574,6 +575,115 @@ async function placeOrder() {
         showMsg('Failed to place order.');
     }
 }
+
+
+// ============================================================
+// RESTAURANT MENU POPUP + CAROUSEL
+// ============================================================
+
+function initRestaurantPopup() {
+    const popup = $('#rest-popup');
+    const overlay = $('#rest-popup-overlay');
+    const closeBtn = $('#rest-popup-close');
+    const prevBtn = $('#carousel-prev');
+    const nextBtn = $('#carousel-next');
+
+    if (!popup) return;
+
+    function closePopup() {
+        popup.classList.add('hidden');
+        overlay.classList.add('hidden');
+    }
+
+    overlay.addEventListener('click', closePopup);
+    closeBtn.addEventListener('click', closePopup);
+
+    // carousel arrow buttons
+    const carousel = $('#rest-carousel');
+    if (prevBtn) prevBtn.addEventListener('click', () => {
+        const cardW = carousel.querySelector('.carousel-card')?.offsetWidth || 280;
+        carousel.scrollBy({ left: -(cardW + 16), behavior: 'smooth' });
+    });
+    if (nextBtn) nextBtn.addEventListener('click', () => {
+        const cardW = carousel.querySelector('.carousel-card')?.offsetWidth || 280;
+        carousel.scrollBy({ left: cardW + 16, behavior: 'smooth' });
+    });
+
+    // update dots on scroll
+    carousel.addEventListener('scroll', () => updateCarouselDots());
+}
+
+async function openRestaurantPopup(restaurantId, restaurantName) {
+    const popup = $('#rest-popup');
+    const overlay = $('#rest-popup-overlay');
+    const nameEl = $('#rest-popup-name');
+    const carousel = $('#rest-carousel');
+    const dotsEl = $('#carousel-dots');
+
+    nameEl.textContent = restaurantName || 'Restaurant Menu';
+    carousel.innerHTML = '<p style="padding:1rem;color:var(--text-light)">Loading...</p>';
+    dotsEl.innerHTML = '';
+
+    popup.classList.remove('hidden');
+    overlay.classList.remove('hidden');
+
+    try {
+        const res = await fetch(API + '/menu-items?restaurant_id=' + restaurantId);
+        const items = await res.json();
+
+        if (!items.length) {
+            carousel.innerHTML = '<p style="padding:1.5rem;color:var(--text-light);text-align:center">No items available yet.</p>';
+            return;
+        }
+
+        carousel.innerHTML = items.map(item => `
+            <div class="carousel-card">
+                <img src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22250%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22250%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}">
+                <div class="carousel-card-body">
+                    <h4>${item.name}</h4>
+                    ${item.description ? '<p class="card-desc">' + item.description + '</p>' : ''}
+                    <div class="carousel-card-footer">
+                        <span class="price">${formatPrice(item.price)}</span>
+                        <button class="btn btn-primary btn-sm" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price})">Add to Cart</button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // create dots
+        dotsEl.innerHTML = items.map((_, i) =>
+            `<button class="dot${i === 0 ? ' active' : ''}" onclick="scrollCarouselTo(${i})"></button>`
+        ).join('');
+
+    } catch (err) {
+        console.error(err);
+        carousel.innerHTML = '<p style="padding:1rem;color:var(--text-light)">Failed to load menu.</p>';
+    }
+}
+
+function updateCarouselDots() {
+    const carousel = $('#rest-carousel');
+    const dots = $('#carousel-dots .dot');
+    if (!dots.length) return;
+    const cards = carousel.querySelectorAll('.carousel-card');
+    if (!cards.length) return;
+
+    const scrollLeft = carousel.scrollLeft;
+    const cardW = cards[0].offsetWidth + 16; // gap
+    const activeIndex = Math.round(scrollLeft / cardW);
+
+    dots.forEach((d, i) => {
+        d.classList.toggle('active', i === activeIndex);
+    });
+}
+
+window.scrollCarouselTo = (index) => {
+    const carousel = $('#rest-carousel');
+    const cards = carousel.querySelectorAll('.carousel-card');
+    if (!cards[index]) return;
+    const cardW = cards[0].offsetWidth + 16;
+    carousel.scrollTo({ left: cardW * index, behavior: 'smooth' });
+};
 
 // login page logic (login.html)
 
