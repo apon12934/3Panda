@@ -53,15 +53,20 @@ const initDB = async () => {
         const schemaPath = path.join(__dirname, '..', 'database', 'schema.sql');
         const schema = fs.readFileSync(schemaPath, 'utf-8');
 
-        // split by semicolons, filter out empty/comment-only statements
+        // split by semicolons, strip comment lines, filter out empty statements
         const statements = schema
             .split(';')
-            .map(s => s.trim())
-            .filter(s => s.length > 0 && !s.startsWith('--'));
+            .map(s => s
+                .split('\n')
+                .filter(line => !line.trim().startsWith('--'))
+                .join('\n')
+                .trim()
+            )
+            .filter(s => s.length > 0);
 
         for (const stmt of statements) {
             try {
-                await pool.execute(stmt);
+                await pool.query(stmt);
             } catch (err) {
                 // ignore "duplicate key" for INSERT IGNORE and "index already exists"
                 if (err.code === 'ER_DUP_ENTRY' || err.code === 'ER_DUP_KEYNAME') {
