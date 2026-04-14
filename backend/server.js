@@ -1,5 +1,6 @@
 // ============================================================
 // this is the main backend file for 3 Panda
+// migrated to MySQL (TiDB Serverless) + Cloudinary for images
 // ============================================================
 
 const express = require('express');
@@ -9,66 +10,97 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const sqlite3 = require('sqlite3').verbose();
+const mysql = require('mysql2/promise');
+const cloudinary = require('cloudinary').v2;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = 'threepanda_secret_key_2026';
 const SALT_ROUNDS = 10;
 
-// database setup stuff
+// database setup stuff (TiDB Serverless / MySQL)
 
-const DB_PATH = process.env.DB_PATH
-    ? path.resolve(process.env.DB_PATH)
-    : path.join(__dirname, '..', 'database', 'panda.db');
-const SCHEMA_PATH = path.join(__dirname, '..', 'database', 'schema.sql');
+const pool = mysql.createPool({
+    host: process.env.TIDB_HOST,
+    port: parseInt(process.env.TIDB_PORT || '4000', 10),
+    user: process.env.TIDB_USER,
+    password: process.env.TIDB_PASSWORD,
+    database: process.env.TIDB_DATABASE,
+    ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true },
+    waitForConnections: true,
+    connectionLimit: 5
+});
 
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+// small helper wrappers so we can use async/await with mysql2
+const dbRun = async (sql, params = []) => {
+    const [result] = await pool.execute(sql, params);
+    return { insertId: result.insertId, affectedRows: result.affectedRows };
+};
 
-const db = new sqlite3.Database(DB_PATH);
+const dbGet = async (sql, params = []) => {
+    const [rows] = await pool.execute(sql, params);
+    return rows[0] || null;
+};
 
-// small helper wrappers so we can use async/await with sqlite
-const dbRun = (sql, params = []) =>
-    new Promise((resolve, reject) => {
-        db.run(sql, params, function (err) {
-            if (err) reject(err);
-            else resolve({ lastID: this.lastID, changes: this.changes });
-        });
-    });
+const dbAll = async (sql, params = []) => {
+    const [rows] = await pool.execute(sql, params);
+    return rows;
+};
 
-const dbGet = (sql, params = []) =>
-    new Promise((resolve, reject) => {
-        db.get(sql, params, (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-        });
-    });
-
-const dbAll = (sql, params = []) =>
-    new Promise((resolve, reject) => {
-        db.all(sql, params, (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
-        });
-    });
-
-const dbExec = (sql) =>
-    new Promise((resolve, reject) => {
-        db.exec(sql, (err) => {
-            if (err) reject(err);
-            else resolve();
-        });
-    });
-
-// run schema.sql when server starts
+// run schema.sql when server starts (execute each statement separately)
 const initDB = async () => {
     try {
-        const schema = fs.readFileSync(SCHEMA_PATH, 'utf-8');
-        await dbExec(schema);
+        const schemaPath = path.join(__dirname, '..', 'database', 'schema.sql');
+        const schema = fs.readFileSync(schemaPath, 'utf-8');
+
+        // split by semicolons, filter out empty/comment-only statements
+        const statements = schema
+            .split(';')
+            .map(s => s.trim())
+            .filter(s => s.length > 0 && !s.startsWith('--'));
+
+        for (const stmt of statements) {
+            try {
+                await pool.execute(stmt);
+            } catch (err) {
+                // ignore "duplicate key" for INSERT IGNORE and "index already exists"
+                if (err.code === 'ER_DUP_ENTRY' || err.code === 'ER_DUP_KEYNAME') {
+                    continue;
+                }
+                console.warn('Schema statement warning:', err.message);
+            }
+        }
+
         console.log('Database initialised.');
     } catch (err) {
         console.error('DB init error:', err.message);
     }
+};
+
+// cloudinary setup for image hosting
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// helper to upload a multer file buffer to cloudinary
+const uploadToCloudinary = (fileBuffer, folder) => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            {
+                folder: `3panda/${folder}`,
+                resource_type: 'image',
+                transformation: [{ quality: 'auto', fetch_format: 'auto' }]
+            },
+            (error, result) => {
+                if (error) reject(error);
+                else resolve(result.secure_url);
+            }
+        );
+        stream.end(fileBuffer);
+    });
 };
 
 // global middlewares
@@ -119,33 +151,10 @@ const requireAdmin = (req, res, next) => {
     next();
 };
 
-// image upload setup
-
-const FRONTEND_DIR = path.join(__dirname, '..', 'frontend');
-
-const storage = multer.diskStorage({
-    destination: (req, _file, cb) => {
-        let subfolder = 'images/profiles';
-
-        if (req.baseUrl.includes('restaurant') || req.path.includes('restaurant')) {
-            subfolder = 'images/restaurants';
-        } else if (req.baseUrl.includes('menu') || req.path.includes('menu') || req.baseUrl.includes('item') || req.path.includes('item')) {
-            subfolder = 'images/items';
-        }
-
-        const dest = path.join(FRONTEND_DIR, subfolder);
-        fs.mkdirSync(dest, { recursive: true });
-        cb(null, dest);
-    },
-    filename: (_req, file, cb) => {
-        const unique = Date.now() + '-' + Math.round(Math.random() * 1e6);
-        const ext = path.extname(file.originalname);
-        cb(null, unique + ext);
-    }
-});
+// image upload setup (multer memory storage → cloudinary)
 
 const upload = multer({
-    storage,
+    storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 }, // max upload size is 5 MB
     fileFilter: (_req, file, cb) => {
         const allowed = /jpeg|jpg|png|gif|webp/;
@@ -187,7 +196,7 @@ app.post('/api/register', async (req, res) => {
         );
 
         const token = jwt.sign(
-            { id: result.lastID, role: userRole },
+            { id: result.insertId, role: userRole },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
@@ -196,7 +205,7 @@ app.post('/api/register', async (req, res) => {
             message: 'Registration successful.',
             token,
             role: userRole,
-            userId: result.lastID,
+            userId: result.insertId,
             username: trimmedUsername
         });
     } catch (err) {
@@ -266,14 +275,17 @@ app.post('/api/restaurants', verifyToken, requireAdmin, upload.single('banner'),
         const { name, description, address, phone } = req.body;
         if (!name) return res.status(400).json({ error: 'Restaurant name is required.' });
 
-        const image = req.file ? 'images/restaurants/' + req.file.filename : null;
+        let image = null;
+        if (req.file) {
+            image = await uploadToCloudinary(req.file.buffer, 'restaurants');
+        }
 
         const result = await dbRun(
             'INSERT INTO Restaurants (name, description, address, phone, image) VALUES (?, ?, ?, ?, ?)',
             [name, description || null, address || null, phone || null, image]
         );
 
-        return res.status(201).json({ message: 'Restaurant created.', id: result.lastID });
+        return res.status(201).json({ message: 'Restaurant created.', id: result.insertId });
     } catch (err) {
         console.error('Create restaurant error:', err.message);
         return res.status(500).json({ error: 'Server error.' });
@@ -289,9 +301,10 @@ app.put('/api/restaurants/:id', verifyToken, requireAdmin, upload.single('banner
         const existing = await dbGet('SELECT * FROM Restaurants WHERE id = ?', [id]);
         if (!existing) return res.status(404).json({ error: 'Restaurant not found.' });
 
-        const image = req.file
-            ? 'images/restaurants/' + req.file.filename
-            : existing.image;
+        let image = existing.image;
+        if (req.file) {
+            image = await uploadToCloudinary(req.file.buffer, 'restaurants');
+        }
 
         await dbRun(
             'UPDATE Restaurants SET name = ?, description = ?, address = ?, phone = ?, image = ? WHERE id = ?',
@@ -310,7 +323,7 @@ app.delete('/api/restaurants/:id', verifyToken, requireAdmin, async (req, res) =
     try {
         const { id } = req.params;
         const result = await dbRun('DELETE FROM Restaurants WHERE id = ?', [id]);
-        if (result.changes === 0) return res.status(404).json({ error: 'Restaurant not found.' });
+        if (result.affectedRows === 0) return res.status(404).json({ error: 'Restaurant not found.' });
         return res.json({ message: 'Restaurant deleted.' });
     } catch (err) {
         console.error('Delete restaurant error:', err.message);
@@ -345,14 +358,17 @@ app.post('/api/menu-items', verifyToken, requireAdmin, upload.single('banner'), 
             return res.status(400).json({ error: 'restaurant_id, name, and price are required.' });
         }
 
-        const image = req.file ? 'images/items/' + req.file.filename : null;
+        let image = null;
+        if (req.file) {
+            image = await uploadToCloudinary(req.file.buffer, 'items');
+        }
 
         const result = await dbRun(
             'INSERT INTO MenuItems (restaurant_id, category_id, name, description, price, image) VALUES (?, ?, ?, ?, ?, ?)',
             [restaurant_id, category_id || null, name, description || null, price, image]
         );
 
-        return res.status(201).json({ message: 'Menu item created.', id: result.lastID });
+        return res.status(201).json({ message: 'Menu item created.', id: result.insertId });
     } catch (err) {
         console.error('Create menu item error:', err.message);
         return res.status(500).json({ error: 'Server error.' });
@@ -368,9 +384,10 @@ app.put('/api/menu-items/:id', verifyToken, requireAdmin, upload.single('banner'
         const existing = await dbGet('SELECT * FROM MenuItems WHERE id = ?', [id]);
         if (!existing) return res.status(404).json({ error: 'Menu item not found.' });
 
-        const image = req.file
-            ? 'images/items/' + req.file.filename
-            : existing.image;
+        let image = existing.image;
+        if (req.file) {
+            image = await uploadToCloudinary(req.file.buffer, 'items');
+        }
 
         await dbRun(
             'UPDATE MenuItems SET restaurant_id = ?, category_id = ?, name = ?, description = ?, price = ?, image = ? WHERE id = ?',
@@ -397,7 +414,7 @@ app.delete('/api/menu-items/:id', verifyToken, requireAdmin, async (req, res) =>
     try {
         const { id } = req.params;
         const result = await dbRun('DELETE FROM MenuItems WHERE id = ?', [id]);
-        if (result.changes === 0) return res.status(404).json({ error: 'Menu item not found.' });
+        if (result.affectedRows === 0) return res.status(404).json({ error: 'Menu item not found.' });
         return res.json({ message: 'Menu item deleted.' });
     } catch (err) {
         console.error('Delete menu item error:', err.message);
@@ -430,9 +447,10 @@ app.put('/api/users/profile', verifyToken, upload.single('profile_picture'), asy
         const existing = await dbGet('SELECT * FROM Users WHERE id = ?', [req.user.id]);
         if (!existing) return res.status(404).json({ error: 'User not found.' });
 
-        const profile_image = req.file
-            ? 'images/profiles/' + req.file.filename
-            : existing.profile_image;
+        let profile_image = existing.profile_image;
+        if (req.file) {
+            profile_image = await uploadToCloudinary(req.file.buffer, 'profiles');
+        }
 
         let hashedPassword = existing.password;
         if (password) {
@@ -492,7 +510,7 @@ app.delete('/api/users/:id', verifyToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await dbRun('DELETE FROM Users WHERE id = ?', [id]);
-        if (result.changes === 0) return res.status(404).json({ error: 'User not found.' });
+        if (result.affectedRows === 0) return res.status(404).json({ error: 'User not found.' });
         return res.json({ message: 'User deleted.' });
     } catch (err) {
         console.error('Delete user error:', err.message);
@@ -530,7 +548,7 @@ app.post('/api/orders', verifyToken, async (req, res) => {
             [req.user.id, restaurant_id, total_amount, 'pending', delivery_address || null, payment_method || 'cash', notes || null]
         );
 
-        const orderId = orderResult.lastID;
+        const orderId = orderResult.insertId;
 
         for (const item of itemDetails) {
             await dbRun(
@@ -729,7 +747,7 @@ app.post('/api/categories', verifyToken, requireAdmin, async (req, res) => {
         const { name, description } = req.body;
         if (!name) return res.status(400).json({ error: 'Category name is required.' });
         const result = await dbRun('INSERT INTO Categories (name, description) VALUES (?, ?)', [name, description || null]);
-        return res.status(201).json({ message: 'Category created.', id: result.lastID });
+        return res.status(201).json({ message: 'Category created.', id: result.insertId });
     } catch (err) {
         console.error('Create category error:', err.message);
         return res.status(500).json({ error: 'Server error.' });
@@ -757,7 +775,7 @@ app.delete('/api/categories/:id', verifyToken, requireAdmin, async (req, res) =>
     try {
         const { id } = req.params;
         const result = await dbRun('DELETE FROM Categories WHERE id = ?', [id]);
-        if (result.changes === 0) return res.status(404).json({ error: 'Category not found.' });
+        if (result.affectedRows === 0) return res.status(404).json({ error: 'Category not found.' });
         return res.json({ message: 'Category deleted.' });
     } catch (err) {
         console.error('Delete category error:', err.message);
@@ -798,7 +816,7 @@ app.post('/api/reviews', verifyToken, async (req, res) => {
             'INSERT INTO Reviews (user_id, restaurant_id, order_id, rating, comment) VALUES (?, ?, ?, ?, ?)',
             [req.user.id, restaurant_id, order_id || null, rating, comment || null]
         );
-        return res.status(201).json({ message: 'Review submitted.', id: result.lastID });
+        return res.status(201).json({ message: 'Review submitted.', id: result.insertId });
     } catch (err) {
         console.error('Create review error:', err.message);
         return res.status(500).json({ error: 'Server error.' });
@@ -827,7 +845,7 @@ app.delete('/api/reviews/:id', verifyToken, async (req, res) => {
 initDB().then(() => {
     app.listen(PORT, () => {
         console.log(`3 Panda server running → http://localhost:${PORT}`);
-        console.log(`Using database file: ${DB_PATH}`);
+        console.log(`Using TiDB database: ${process.env.TIDB_HOST || 'not configured'}/${process.env.TIDB_DATABASE || 'not configured'}`);
         
         // Secondary fallback only; primary keepalive should be done by Render Cron.
         // In-process timers stop when a free web service is sleeping.
@@ -848,5 +866,3 @@ initDB().then(() => {
         }
     });
 });
-
-
