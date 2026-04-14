@@ -402,6 +402,7 @@ async function filterMenuBySearch(query) {
                 <img class="card-img" src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}">
                 <div class="card-body">
                     <h3>${item.name}</h3>
+                    ${item.description ? '<p class="card-desc">' + item.description + '</p>' : ''}
                     <p class="price">${formatPrice(item.price)}</p>
                     <button class="btn btn-primary btn-sm mt-1" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'") }', ${item.price})">Add to Cart</button>
                 </div>
@@ -455,6 +456,7 @@ async function loadMenuItems(restaurantId) {
                 <img class="card-img" src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}">
                 <div class="card-body">
                     <h3>${item.name}</h3>
+                    ${item.description ? '<p class="card-desc">' + item.description + '</p>' : ''}
                     <p class="price">${formatPrice(item.price)}</p>
                     <button class="btn btn-primary btn-sm mt-1" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price})">Add to Cart</button>
                 </div>
@@ -1092,6 +1094,7 @@ function initAdmin() {
         const fd = new FormData();
         fd.append('restaurant_id', $('#item-restaurant').value);
         fd.append('name', $('#item-name').value.trim());
+        fd.append('description', $('#item-description').value.trim());
         fd.append('price', $('#item-price').value);
         const file = $('#item-banner').files[0];
         if (file) fd.append('banner', file);
@@ -1115,6 +1118,7 @@ function initAdmin() {
         const fd = new FormData();
         fd.append('restaurant_id', $('#edit-item-restaurant').value);
         fd.append('name', $('#edit-item-name').value.trim());
+        fd.append('description', $('#edit-item-description').value.trim());
         fd.append('price', $('#edit-item-price').value);
         const file = $('#edit-item-banner').files[0];
         if (file) fd.append('banner', file);
@@ -1248,10 +1252,11 @@ async function adminLoadItems() {
                 <td>${i.id}</td>
                 <td>${rMap[i.restaurant_id] || i.restaurant_id}</td>
                 <td>${i.name}</td>
+                <td>${i.description || '—'}</td>
                 <td>${formatPrice(i.price)}</td>
                 <td>${i.image ? '<img src="' + i.image + '" style="height:40px;border-radius:4px;">' : '—'}</td>
                 <td class="gap-row">
-                    <button class="btn btn-sm btn-primary" onclick="adminEditItem(${i.id}, ${i.restaurant_id}, '${i.name.replace(/'/g,"\\'")}', ${i.price})">Edit</button>
+                    <button class="btn btn-sm btn-primary" onclick="adminEditItem(${i.id}, ${i.restaurant_id}, '${i.name.replace(/'/g,"\\'")}', ${i.price}, '${(i.description||'').replace(/'/g,"\\'")}')">Edit</button>
                     <button class="btn btn-sm btn-danger" onclick="adminDeleteItem(${i.id})">Del</button>
                 </td>
             </tr>
@@ -1259,11 +1264,12 @@ async function adminLoadItems() {
     } catch (err) { console.error(err); }
 }
 
-window.adminEditItem = (id, restId, name, price) => {
+window.adminEditItem = (id, restId, name, price, desc) => {
     $('#edit-item-card').classList.remove('hidden');
     $('#edit-item-id').value = id;
     $('#edit-item-restaurant').value = restId;
     $('#edit-item-name').value = name;
+    $('#edit-item-description').value = desc || '';
     $('#edit-item-price').value = price;
 };
 
