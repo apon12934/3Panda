@@ -338,16 +338,29 @@ app.delete('/api/restaurants/:id', verifyToken, requireAdmin, async (req, res) =
 
 // admin + menu item routes
 
-// get menu items (public, can filter by restaurant_id)
+// get menu items (public, can filter by restaurant_id and/or search)
 app.get('/api/menu-items', async (req, res) => {
     try {
-        const { restaurant_id } = req.query;
-        let rows;
+        const { restaurant_id, search } = req.query;
+        let sql = 'SELECT * FROM MenuItems';
+        const conditions = [];
+        const params = [];
+
         if (restaurant_id) {
-            rows = await dbAll('SELECT * FROM MenuItems WHERE restaurant_id = ?', [restaurant_id]);
-        } else {
-            rows = await dbAll('SELECT * FROM MenuItems');
+            conditions.push('restaurant_id = ?');
+            params.push(restaurant_id);
         }
+        if (search) {
+            conditions.push('(name LIKE ? OR description LIKE ?)');
+            const term = `%${search}%`;
+            params.push(term, term);
+        }
+
+        if (conditions.length) {
+            sql += ' WHERE ' + conditions.join(' AND ');
+        }
+
+        const rows = await dbAll(sql, params);
         return res.json(rows);
     } catch (err) {
         console.error('Get menu items error:', err.message);

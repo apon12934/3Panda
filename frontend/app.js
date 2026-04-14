@@ -387,18 +387,17 @@ function initHome() {
     if (placeBtn) placeBtn.addEventListener('click', placeOrder);
 }
 
-// search filter
+// search filter (queries database directly via API)
 async function filterMenuBySearch(query) {
     try {
-        const res = await fetch(API + '/menu-items');
+        const res = await fetch(API + '/menu-items?search=' + encodeURIComponent(query));
         const data = await res.json();
-        const filtered = data.filter(item => item.name.toLowerCase().includes(query));
         const container = $('#menu-list');
-        if (!filtered.length) {
+        if (!data.length) {
             container.innerHTML = '<div class="empty-state"><p>No items match your search.</p></div>';
             return;
         }
-        container.innerHTML = filtered.map(item => `
+        container.innerHTML = data.map(item => `
             <div class="card">
                 <img class="card-img" src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}">
                 <div class="card-body">
