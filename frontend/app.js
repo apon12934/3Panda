@@ -1180,6 +1180,7 @@ function initAdmin() {
     adminLoadOrders();
     adminPopulateStats();
     adminLoadPendingApprovals();
+    adminRefreshVendorSelects();
 
 // admin users section functions
     const cancelEditUser = $('#cancel-edit-user');
@@ -1213,7 +1214,7 @@ function initAdmin() {
         e.preventDefault();
         const fd = new FormData();
         fd.append('name', $('#rest-name').value.trim());
-        const ownerUsername = $('#rest-owner-username').value.trim();
+        const ownerUsername = $('#rest-owner-username').value;
         if (ownerUsername) fd.append('owner_username', ownerUsername);
         const file = $('#rest-banner').files[0];
         if (file) fd.append('banner', file);
@@ -1237,7 +1238,7 @@ function initAdmin() {
         const id = $('#edit-rest-id').value;
         const fd = new FormData();
         fd.append('name', $('#edit-rest-name').value.trim());
-        fd.append('owner_username', $('#edit-rest-owner-username').value.trim());
+        fd.append('owner_username', $('#edit-rest-owner-username').value);
         const file = $('#edit-rest-banner').files[0];
         if (file) fd.append('banner', file);
         try {
@@ -1461,6 +1462,22 @@ async function adminRefreshRestaurantSelects() {
         const sel2 = $('#edit-item-restaurant');
         if (sel1) sel1.innerHTML = opts;
         if (sel2) sel2.innerHTML = opts;
+    } catch (err) { console.error(err); }
+}
+
+async function adminRefreshVendorSelects() {
+    try {
+        const res = await fetch(API + '/users', { headers: authHeaders() });
+        if (!res.ok) return;
+        const users = await res.json();
+        const vendors = users.filter(user => user.role === 'vendor');
+        const opts = '<option value="">Unassigned</option>' +
+            vendors.map(user => `<option value="${user.username}">${user.username}${user.full_name ? ' — ' + user.full_name : ''}</option>`).join('');
+
+        const addSelect = $('#rest-owner-username');
+        const editSelect = $('#edit-rest-owner-username');
+        if (addSelect) addSelect.innerHTML = opts;
+        if (editSelect) editSelect.innerHTML = opts;
     } catch (err) { console.error(err); }
 }
 

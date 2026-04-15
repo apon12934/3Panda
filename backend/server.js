@@ -298,10 +298,12 @@ app.post('/api/restaurants', verifyToken, requireAdmin, upload.single('banner'),
         if (!name) return res.status(400).json({ error: 'Restaurant name is required.' });
 
         // If an owner_username is provided, verify the user exists
-        let assignedOwner = owner_username || req.user.username;
+        let assignedOwner = null;
         if (owner_username) {
-            const ownerUser = await dbGet('SELECT username FROM Users WHERE username = ?', [owner_username]);
+            const ownerUser = await dbGet('SELECT username, role FROM Users WHERE username = ?', [owner_username]);
             if (!ownerUser) return res.status(400).json({ error: 'Specified owner user not found.' });
+            if (ownerUser.role !== 'vendor') return res.status(400).json({ error: 'Restaurant owner must be a vendor account.' });
+            assignedOwner = owner_username;
         }
 
         let image = null;
@@ -336,8 +338,9 @@ app.put('/api/restaurants/:id', verifyToken, requireAdmin, upload.single('banner
             if (!trimmedOwner) {
                 resolvedOwner = null;
             } else {
-                const ownerUser = await dbGet('SELECT username FROM Users WHERE username = ?', [trimmedOwner]);
+                const ownerUser = await dbGet('SELECT username, role FROM Users WHERE username = ?', [trimmedOwner]);
                 if (!ownerUser) return res.status(400).json({ error: 'Specified owner user not found.' });
+                if (ownerUser.role !== 'vendor') return res.status(400).json({ error: 'Restaurant owner must be a vendor account.' });
                 resolvedOwner = trimmedOwner;
             }
         }
@@ -389,6 +392,9 @@ app.patch('/api/restaurants/:id/owner', verifyToken, requireAdmin, async (req, r
         // verify the target user exists
         const targetUser = await dbGet('SELECT username, role FROM Users WHERE username = ?', [owner_username]);
         if (!targetUser) return res.status(404).json({ error: 'Target user not found.' });
+        if (targetUser.role !== 'vendor') {
+            return res.status(400).json({ error: 'Restaurant owner must be a vendor account.' });
+        }
 
         await dbRun(
             'UPDATE Restaurants SET owner_username = ? WHERE id = ?',
