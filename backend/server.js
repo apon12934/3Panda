@@ -53,6 +53,7 @@ const schemaCompat = {
     checked: false,
     ordersUserColumn: 'user_username',
     ordersDeliveryColumn: 'delivery_person_username',
+    reviewsUserColumn: 'user_username',
     usersHasId: false
 };
 
@@ -72,6 +73,14 @@ const ensureSchemaCompat = async () => {
             schemaCompat.ordersDeliveryColumn = 'delivery_person_id';
         } else if (orderColNames.has('delivery_person_username')) {
             schemaCompat.ordersDeliveryColumn = 'delivery_person_username';
+        }
+
+        const reviewCols = await dbAll('SHOW COLUMNS FROM Reviews');
+        const reviewColNames = new Set(reviewCols.map(col => col.Field));
+        if (reviewColNames.has('user_id')) {
+            schemaCompat.reviewsUserColumn = 'user_id';
+        } else if (reviewColNames.has('user_username')) {
+            schemaCompat.reviewsUserColumn = 'user_username';
         }
 
         const userCols = await dbAll('SHOW COLUMNS FROM Users');
@@ -98,6 +107,15 @@ const resolveOrderUserValue = async (username) => {
 const resolveDeliveryPersonValue = async (username) => {
     const compat = await ensureSchemaCompat();
     if (compat.ordersDeliveryColumn === 'delivery_person_username') return username;
+
+    if (!compat.usersHasId) return null;
+    const userRow = await dbGet('SELECT id FROM Users WHERE username = ?', [username]);
+    return userRow ? userRow.id : null;
+};
+
+const resolveReviewUserValue = async (username) => {
+    const compat = await ensureSchemaCompat();
+    if (compat.reviewsUserColumn === 'user_username') return username;
 
     if (!compat.usersHasId) return null;
     const userRow = await dbGet('SELECT id FROM Users WHERE username = ?', [username]);
@@ -1204,26 +1222,33 @@ app.delete('/api/categories/:id', verifyToken, requireAdmin, async (req, res) =>
 // get reviews (public, can filter by restaurant_id)
 app.get('/api/reviews', async (req, res) => {
     try {
+        const compat = await ensureSchemaCompat();
+        const reviewUserJoinKey = getUserJoinKeyForOrderColumn(compat.reviewsUserColumn);
+
         const { restaurant_id } = req.query;
         let rows;
         if (restaurant_id) {
             rows = await dbAll(
-                `SELECT r.id, r.user_username, r.restaurant_id, r.order_id, r.rating, r.comment,
+                `SELECT r.id,
+                        COALESCE(u.username, CAST(r.${compat.reviewsUserColumn} AS CHAR)) AS user_username,
+                        r.restaurant_id, r.order_id, r.rating, r.comment,
                         r.vendor_reply, r.vendor_reply_at, r.created_at,
                         u.username
                  FROM Reviews r
-                 JOIN Users u ON r.user_username = u.username
+                 LEFT JOIN Users u ON r.${compat.reviewsUserColumn} = u.${reviewUserJoinKey}
                  WHERE r.restaurant_id = ?
                  ORDER BY r.created_at DESC`,
                 [restaurant_id]
             );
         } else {
             rows = await dbAll(
-                `SELECT r.id, r.user_username, r.restaurant_id, r.order_id, r.rating, r.comment,
+                `SELECT r.id,
+                        COALESCE(u.username, CAST(r.${compat.reviewsUserColumn} AS CHAR)) AS user_username,
+                        r.restaurant_id, r.order_id, r.rating, r.comment,
                         r.vendor_reply, r.vendor_reply_at, r.created_at,
                         u.username
                  FROM Reviews r
-                 JOIN Users u ON r.user_username = u.username
+                 LEFT JOIN Users u ON r.${compat.reviewsUserColumn} = u.${reviewUserJoinKey}
                  ORDER BY r.created_at DESC`
             );
         }
@@ -1237,6 +1262,12 @@ app.get('/api/reviews', async (req, res) => {
 // add review (logged in user)
 app.post('/api/reviews', verifyToken, async (req, res) => {
     try {
+        const compat = await ensureSchemaCompat();
+        const reviewUserValue = await resolveReviewUserValue(req.user.username);
+        if (reviewUserValue === null || reviewUserValue === undefined) {
+            return res.status(400).json({ error: 'User account mapping failed for review.' });
+        }
+
         const { restaurant_id, order_id, rating, comment } = req.body;
         if (req.user.role !== 'customer') {
             return res.status(403).json({ error: 'Only customers can write reviews.' });
@@ -1257,16 +1288,16 @@ app.post('/api/reviews', verifyToken, async (req, res) => {
         }
 
         const existing = await dbGet(
-            'SELECT id FROM Reviews WHERE user_username = ? AND restaurant_id = ? ORDER BY id DESC LIMIT 1',
-            [req.user.username, restaurant_id]
+            `SELECT id FROM Reviews WHERE ${compat.reviewsUserColumn} = ? AND restaurant_id = ? ORDER BY id DESC LIMIT 1`,
+            [reviewUserValue, restaurant_id]
         );
         if (existing) {
             return res.status(409).json({ error: 'You already reviewed this restaurant.' });
         }
 
         const result = await dbRun(
-            'INSERT INTO Reviews (user_username, restaurant_id, order_id, rating, comment) VALUES (?, ?, ?, ?, ?)',
-            [req.user.username, restaurant_id, order_id || null, numericRating, comment || null]
+            `INSERT INTO Reviews (${compat.reviewsUserColumn}, restaurant_id, order_id, rating, comment) VALUES (?, ?, ?, ?, ?)`,
+            [reviewUserValue, restaurant_id, order_id || null, numericRating, comment || null]
         );
         return res.status(201).json({ message: 'Review submitted.', id: result.insertId });
     } catch (err) {
@@ -1316,13 +1347,18 @@ app.put('/api/reviews/:id/reply', verifyToken, async (req, res) => {
 // delete review (admin or review owner)
 app.delete('/api/reviews/:id', verifyToken, async (req, res) => {
     try {
+        const compat = await ensureSchemaCompat();
+        const reviewUserValue = await resolveReviewUserValue(req.user.username);
+
         const { id } = req.params;
-        const review = await dbGet('SELECT * FROM Reviews WHERE username = ?', [id]);
+        const review = await dbGet('SELECT * FROM Reviews WHERE id = ?', [id]);
         if (!review) return res.status(404).json({ error: 'Review not found.' });
-        if (req.user.role !== 'admin' && review.user_username !== req.user.id) {
+
+        if (req.user.role !== 'admin' && review[compat.reviewsUserColumn] !== reviewUserValue) {
             return res.status(403).json({ error: 'Not authorized.' });
         }
-        await dbRun('DELETE FROM Reviews WHERE username = ?', [id]);
+
+        await dbRun('DELETE FROM Reviews WHERE id = ?', [id]);
         return res.json({ message: 'Review deleted.' });
     } catch (err) {
         console.error('Delete review error:', err.message);
