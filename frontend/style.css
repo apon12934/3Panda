@@ -937,6 +937,10 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .custom-dropdown {
     position: relative;
     width: 100%;
+    z-index: auto;
+}
+
+.custom-dropdown.is-open {
     z-index: 1200;
 }
 
@@ -952,11 +956,11 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
 .custom-dropdown-trigger {
     width: 100%;
-    min-height: 3rem;
+    min-height: 2.9rem;
     padding: .75rem 1rem;
-    border: 1.5px solid var(--charcoal);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: var(--surface);
+    background: var(--surface-soft);
     color: var(--text);
     display: flex;
     align-items: center;
@@ -982,6 +986,8 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .custom-dropdown-trigger:focus-visible,
 .custom-dropdown.is-open .custom-dropdown-trigger {
     border-color: var(--red);
+    box-shadow: 0 0 0 4px var(--focus-ring);
+    background: var(--surface);
 }
 
 .custom-dropdown-value {
