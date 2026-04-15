@@ -1213,6 +1213,8 @@ function initAdmin() {
         e.preventDefault();
         const fd = new FormData();
         fd.append('name', $('#rest-name').value.trim());
+        const ownerUsername = $('#rest-owner-username').value.trim();
+        if (ownerUsername) fd.append('owner_username', ownerUsername);
         const file = $('#rest-banner').files[0];
         if (file) fd.append('banner', file);
         try {
@@ -1235,6 +1237,7 @@ function initAdmin() {
         const id = $('#edit-rest-id').value;
         const fd = new FormData();
         fd.append('name', $('#edit-rest-name').value.trim());
+        fd.append('owner_username', $('#edit-rest-owner-username').value.trim());
         const file = $('#edit-rest-banner').files[0];
         if (file) fd.append('banner', file);
         try {
@@ -1362,7 +1365,7 @@ async function adminLoadRestaurants() {
                 <td><span class="status-badge status-badge--${r.status || 'approved'}">${(r.status || 'approved').charAt(0).toUpperCase() + (r.status || 'approved').slice(1)}</span></td>
                 <td>${r.image ? '<img src="' + r.image + '" style="height:40px;border-radius:4px;">' : '\u2014'}</td>
                 <td class="gap-row">
-                    <button class="btn btn-sm btn-primary" onclick="adminEditRestaurant(${r.id}, '${r.name.replace(/'/g,"\\'")}')">Edit</button>
+                    <button class="btn btn-sm btn-primary" onclick="adminEditRestaurant(${r.id}, '${r.name.replace(/'/g,"\\'")}', '${(r.owner_username || '').replace(/'/g,"\\'")}')">Edit</button>
                     <button class="btn btn-sm btn-danger" onclick="adminDeleteRestaurant(${r.id})">Del</button>
                 </td>
             </tr>
@@ -1370,10 +1373,11 @@ async function adminLoadRestaurants() {
     } catch (err) { console.error(err); }
 }
 
-window.adminEditRestaurant = (id, name) => {
+window.adminEditRestaurant = (id, name, ownerUsername) => {
     $('#edit-restaurant-card').classList.remove('hidden');
     $('#edit-rest-id').value = id;
     $('#edit-rest-name').value = name;
+    $('#edit-rest-owner-username').value = ownerUsername || '';
 };
 
 window.adminDeleteRestaurant = async (id) => {

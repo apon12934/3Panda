@@ -324,11 +324,23 @@ app.post('/api/restaurants', verifyToken, requireAdmin, upload.single('banner'),
 // update restaurant (admin only)
 app.put('/api/restaurants/:id', verifyToken, requireAdmin, upload.single('banner'), async (req, res) => {
     try {
-        const { name, description, address, phone } = req.body;
+        const { name, description, address, phone, owner_username } = req.body;
         const { id } = req.params;
 
         const existing = await dbGet('SELECT * FROM Restaurants WHERE id = ?', [id]);
         if (!existing) return res.status(404).json({ error: 'Restaurant not found.' });
+
+        let resolvedOwner = existing.owner_username;
+        if (owner_username !== undefined) {
+            const trimmedOwner = String(owner_username).trim();
+            if (!trimmedOwner) {
+                resolvedOwner = null;
+            } else {
+                const ownerUser = await dbGet('SELECT username FROM Users WHERE username = ?', [trimmedOwner]);
+                if (!ownerUser) return res.status(400).json({ error: 'Specified owner user not found.' });
+                resolvedOwner = trimmedOwner;
+            }
+        }
 
         let image = existing.image;
         if (req.file) {
@@ -336,8 +348,8 @@ app.put('/api/restaurants/:id', verifyToken, requireAdmin, upload.single('banner
         }
 
         await dbRun(
-            'UPDATE Restaurants SET name = ?, description = ?, address = ?, phone = ?, image = ? WHERE id = ?',
-            [name || existing.name, description !== undefined ? description : existing.description, address !== undefined ? address : existing.address, phone !== undefined ? phone : existing.phone, image, id]
+            'UPDATE Restaurants SET name = ?, description = ?, address = ?, phone = ?, image = ?, owner_username = ? WHERE id = ?',
+            [name || existing.name, description !== undefined ? description : existing.description, address !== undefined ? address : existing.address, phone !== undefined ? phone : existing.phone, image, resolvedOwner, id]
         );
 
         return res.json({ message: 'Restaurant updated.' });
