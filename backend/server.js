@@ -1208,11 +1208,24 @@ app.get('/api/reviews', async (req, res) => {
         let rows;
         if (restaurant_id) {
             rows = await dbAll(
-                `SELECT r.*, u.username FROM Reviews r JOIN Users u ON r.user_username = u.username WHERE r.restaurant_id = ? ORDER BY r.created_at DESC`,
+                `SELECT r.id, r.user_username, r.restaurant_id, r.order_id, r.rating, r.comment,
+                        r.vendor_reply, r.vendor_reply_at, r.created_at,
+                        u.username
+                 FROM Reviews r
+                 JOIN Users u ON r.user_username = u.username
+                 WHERE r.restaurant_id = ?
+                 ORDER BY r.created_at DESC`,
                 [restaurant_id]
             );
         } else {
-            rows = await dbAll('SELECT r.*, u.username FROM Reviews r JOIN Users u ON r.user_username = u.username ORDER BY r.created_at DESC');
+            rows = await dbAll(
+                `SELECT r.id, r.user_username, r.restaurant_id, r.order_id, r.rating, r.comment,
+                        r.vendor_reply, r.vendor_reply_at, r.created_at,
+                        u.username
+                 FROM Reviews r
+                 JOIN Users u ON r.user_username = u.username
+                 ORDER BY r.created_at DESC`
+            );
         }
         return res.json(rows);
     } catch (err) {
@@ -1225,16 +1238,77 @@ app.get('/api/reviews', async (req, res) => {
 app.post('/api/reviews', verifyToken, async (req, res) => {
     try {
         const { restaurant_id, order_id, rating, comment } = req.body;
+        if (req.user.role !== 'customer') {
+            return res.status(403).json({ error: 'Only customers can write reviews.' });
+        }
+
         if (!restaurant_id || !rating) {
             return res.status(400).json({ error: 'restaurant_id and rating are required.' });
         }
+
+        const numericRating = Number(rating);
+        if (!Number.isInteger(numericRating) || numericRating < 1 || numericRating > 5) {
+            return res.status(400).json({ error: 'Rating must be an integer between 1 and 5.' });
+        }
+
+        const restaurant = await dbGet('SELECT id FROM Restaurants WHERE id = ?', [restaurant_id]);
+        if (!restaurant) {
+            return res.status(404).json({ error: 'Restaurant not found.' });
+        }
+
+        const existing = await dbGet(
+            'SELECT id FROM Reviews WHERE user_username = ? AND restaurant_id = ? ORDER BY id DESC LIMIT 1',
+            [req.user.username, restaurant_id]
+        );
+        if (existing) {
+            return res.status(409).json({ error: 'You already reviewed this restaurant.' });
+        }
+
         const result = await dbRun(
             'INSERT INTO Reviews (user_username, restaurant_id, order_id, rating, comment) VALUES (?, ?, ?, ?, ?)',
-            [req.user.id, restaurant_id, order_id || null, rating, comment || null]
+            [req.user.username, restaurant_id, order_id || null, numericRating, comment || null]
         );
-        return res.status(201).json({ message: 'Review submitted.', username: trimmedUsername });
+        return res.status(201).json({ message: 'Review submitted.', id: result.insertId });
     } catch (err) {
         console.error('Create review error:', err.message);
+        return res.status(500).json({ error: 'Server error.' });
+    }
+});
+
+// vendor reply to a review on owned restaurant
+app.put('/api/reviews/:id/reply', verifyToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'vendor') {
+            return res.status(403).json({ error: 'Vendor access required.' });
+        }
+
+        const { id } = req.params;
+        const replyText = (req.body.reply || '').trim();
+        if (!replyText) {
+            return res.status(400).json({ error: 'Reply is required.' });
+        }
+
+        const review = await dbGet('SELECT id, restaurant_id FROM Reviews WHERE id = ?', [id]);
+        if (!review) {
+            return res.status(404).json({ error: 'Review not found.' });
+        }
+
+        const ownedRestaurant = await dbGet(
+            'SELECT id FROM Restaurants WHERE id = ? AND owner_username = ?',
+            [review.restaurant_id, req.user.username]
+        );
+        if (!ownedRestaurant) {
+            return res.status(403).json({ error: 'You can only reply to reviews of your own restaurants.' });
+        }
+
+        await dbRun(
+            'UPDATE Reviews SET vendor_reply = ?, vendor_reply_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [replyText, id]
+        );
+
+        return res.json({ message: 'Reply posted.' });
+    } catch (err) {
+        console.error('Reply review error:', err.message);
         return res.status(500).json({ error: 'Server error.' });
     }
 });

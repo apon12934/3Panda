@@ -101,11 +101,16 @@ CREATE TABLE IF NOT EXISTS Reviews (
     order_id        INT              DEFAULT NULL,
     rating          INT              NOT NULL CHECK (rating >= 1 AND rating <= 5),
     comment         TEXT             DEFAULT NULL,
+    vendor_reply    TEXT             DEFAULT NULL,
+    vendor_reply_at TIMESTAMP        NULL DEFAULT NULL,
     created_at      TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_username)       REFERENCES Users       (username) ON UPDATE CASCADE ON DELETE CASCADE,
     FOREIGN KEY (restaurant_id) REFERENCES Restaurants  (id) ON UPDATE CASCADE ON DELETE CASCADE,
     FOREIGN KEY (order_id)      REFERENCES Orders       (id) ON UPDATE CASCADE ON DELETE SET NULL
 );
+
+ALTER TABLE Reviews ADD COLUMN IF NOT EXISTS vendor_reply TEXT DEFAULT NULL;
+ALTER TABLE Reviews ADD COLUMN IF NOT EXISTS vendor_reply_at TIMESTAMP NULL DEFAULT NULL;
 
 -- ---------------- sample data for testing ----------------
 DELETE FROM Users WHERE email = 'admin@3panda.com';

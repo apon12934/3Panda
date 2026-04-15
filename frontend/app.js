@@ -556,6 +556,8 @@ let selectedLat = null;
 let selectedLng = null;
 let selectedAddressLabel = '';
 let mapSearchDebounce = null;
+let activeRestaurantIdForReviews = null;
+let selectedReviewRating = 0;
 
 function initHome() {
     loadRestaurants();
@@ -984,10 +986,22 @@ async function openRestaurantPopup(restaurantId, restaurantName) {
     const nameEl = $('#rest-popup-name');
     const carousel = $('#rest-carousel');
     const dotsEl = $('#carousel-dots');
+    const submitReviewBtn = $('#submit-review-btn');
 
     nameEl.textContent = restaurantName || 'Restaurant Menu';
     carousel.innerHTML = '<p style="padding:1rem;color:var(--text-light)">Loading...</p>';
     dotsEl.innerHTML = '';
+
+    activeRestaurantIdForReviews = restaurantId;
+    selectedReviewRating = 0;
+    setupReviewStarPicker();
+    refreshReviewWriteVisibility();
+    loadRestaurantReviews(restaurantId);
+
+    if (submitReviewBtn && submitReviewBtn.dataset.bound !== '1') {
+        submitReviewBtn.addEventListener('click', submitRestaurantReview);
+        submitReviewBtn.dataset.bound = '1';
+    }
 
     popup.classList.remove('hidden');
     overlay.classList.remove('hidden');
@@ -1049,6 +1063,195 @@ window.scrollCarouselTo = (index) => {
     const cardW = cards[0].offsetWidth + 16;
     carousel.scrollTo({ left: cardW * index, behavior: 'smooth' });
 };
+
+function setupReviewStarPicker() {
+    const stars = Array.from($$('#review-stars .review-star'));
+    if (!stars.length) return;
+
+    const paint = (rating) => {
+        stars.forEach((star) => {
+            const value = Number(star.dataset.rating);
+            star.classList.toggle('is-active', value <= rating);
+        });
+    };
+
+    stars.forEach((star) => {
+        if (star.dataset.bound === '1') return;
+        star.addEventListener('mouseenter', () => paint(Number(star.dataset.rating)));
+        star.addEventListener('mouseleave', () => paint(selectedReviewRating));
+        star.addEventListener('click', () => {
+            selectedReviewRating = Number(star.dataset.rating);
+            paint(selectedReviewRating);
+        });
+        star.dataset.bound = '1';
+    });
+
+    paint(selectedReviewRating);
+}
+
+function renderReviewList(container, reviews, opts = {}) {
+    if (!container) return;
+    const showReplyEditor = !!opts.showReplyEditor;
+
+    const escapeHtml = (value) => String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    if (!reviews.length) {
+        container.innerHTML = '<p class="text-muted" style="font-size:.88rem;">No reviews yet.</p>';
+        return;
+    }
+
+    container.innerHTML = reviews.map((review) => {
+        const score = Number(review.rating) || 0;
+        const stars = '★'.repeat(Math.max(0, Math.min(5, score))) + '☆'.repeat(Math.max(0, 5 - score));
+        const reviewText = review.comment ? escapeHtml(review.comment) : 'No written comment.';
+        const vendorReply = review.vendor_reply
+            ? `<div class="review-vendor-reply"><strong>Vendor reply:</strong><p>${escapeHtml(review.vendor_reply)}</p></div>`
+            : '';
+
+        const safeReviewer = escapeHtml(review.user_username || review.username || 'Customer');
+
+        const replyEditor = showReplyEditor
+            ? `<div class="review-reply-editor">
+                    <textarea class="form-control vendor-reply-input" rows="2" placeholder="Write a reply to this review">${escapeHtml(review.vendor_reply || '')}</textarea>
+                    <div class="gap-row mt-1" style="justify-content:flex-end;">
+                        <button class="btn btn-primary btn-sm vendor-reply-btn" data-review-id="${review.id}">Save Reply</button>
+                    </div>
+               </div>`
+            : '';
+
+        return `<div class="review-item">
+            <div class="review-item-head">
+                <strong>${safeReviewer}</strong>
+                <span class="review-stars-label">${stars}</span>
+            </div>
+            <p class="review-item-text">${reviewText}</p>
+            ${vendorReply}
+            ${replyEditor}
+        </div>`;
+    }).join('');
+}
+
+async function loadRestaurantReviews(restaurantId) {
+    const listEl = $('#rest-review-list');
+    const avgEl = $('#rest-review-avg');
+    if (!listEl) return;
+
+    listEl.innerHTML = '<p class="text-muted" style="font-size:.88rem;">Loading reviews...</p>';
+    if (avgEl) {
+        avgEl.classList.add('hidden');
+        avgEl.textContent = '';
+    }
+
+    try {
+        const res = await fetch(API + '/reviews?restaurant_id=' + encodeURIComponent(restaurantId));
+        const reviews = res.ok ? await res.json() : [];
+
+        renderReviewList(listEl, reviews);
+
+        if (avgEl && reviews.length) {
+            const total = reviews.reduce((sum, r) => sum + Number(r.rating || 0), 0);
+            const avg = total / reviews.length;
+            avgEl.classList.remove('hidden');
+            avgEl.textContent = `${avg.toFixed(1)} / 5 (${reviews.length})`;
+        }
+    } catch (err) {
+        console.error(err);
+        listEl.innerHTML = '<p class="text-muted" style="font-size:.88rem;">Failed to load reviews.</p>';
+    }
+}
+
+function refreshReviewWriteVisibility() {
+    const wrap = $('#review-form-wrap');
+    if (!wrap) return;
+    const isCustomer = !!getToken() && getRole() === 'customer';
+    wrap.classList.toggle('hidden', !isCustomer);
+}
+
+async function submitRestaurantReview() {
+    if (!activeRestaurantIdForReviews) return;
+    if (!getToken() || getRole() !== 'customer') {
+        showMsg('Only logged-in customers can submit reviews.');
+        return;
+    }
+    if (!selectedReviewRating) {
+        showMsg('Please select a rating from 1 to 5.');
+        return;
+    }
+
+    const commentEl = $('#review-comment');
+    const payload = {
+        restaurant_id: activeRestaurantIdForReviews,
+        rating: selectedReviewRating,
+        comment: commentEl ? commentEl.value.trim() : ''
+    };
+
+    try {
+        const res = await fetch(API + '/reviews', {
+            method: 'POST',
+            headers: authJSON(),
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) return showMsg(data.error || 'Failed to submit review.');
+
+        selectedReviewRating = 0;
+        setupReviewStarPicker();
+        if (commentEl) commentEl.value = '';
+        showMsg('Thanks! Your review has been posted.', 'success');
+        loadRestaurantReviews(activeRestaurantIdForReviews);
+    } catch (err) {
+        console.error(err);
+        showMsg('Failed to submit review.');
+    }
+}
+
+async function vendorLoadReviews(restaurantId) {
+    const listEl = $('#vendor-reviews-list');
+    if (!listEl) return;
+
+    listEl.innerHTML = '<p class="text-muted">Loading reviews...</p>';
+    try {
+        const res = await fetch(API + '/reviews?restaurant_id=' + encodeURIComponent(restaurantId));
+        const reviews = res.ok ? await res.json() : [];
+        renderReviewList(listEl, reviews, { showReplyEditor: true });
+
+        listEl.querySelectorAll('.vendor-reply-btn').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const reviewId = btn.dataset.reviewId;
+                const card = btn.closest('.review-item');
+                const input = card ? card.querySelector('.vendor-reply-input') : null;
+                const reply = input ? input.value.trim() : '';
+                if (!reply) {
+                    showMsg('Please write a reply before saving.');
+                    return;
+                }
+
+                try {
+                    const saveRes = await fetch(API + '/reviews/' + reviewId + '/reply', {
+                        method: 'PUT',
+                        headers: authJSON(),
+                        body: JSON.stringify({ reply })
+                    });
+                    const saveData = await saveRes.json();
+                    if (!saveRes.ok) return showMsg(saveData.error || 'Reply failed.');
+                    showMsg('Reply posted.', 'success');
+                    vendorLoadReviews(restaurantId);
+                } catch (err) {
+                    console.error(err);
+                    showMsg('Reply failed.');
+                }
+            });
+        });
+    } catch (err) {
+        console.error(err);
+        listEl.innerHTML = '<p class="text-muted">Failed to load reviews.</p>';
+    }
+}
 
 // login page logic (login.html)
 
@@ -2583,6 +2786,7 @@ window.vendorManageMenu = (restaurantId, restaurantName) => {
     $('#vendor-menu-title').textContent = restaurantName + ' \u2014 Menu';
     $('#vendor-item-restaurant-id').value = restaurantId;
     vendorLoadMenuItems(restaurantId);
+    vendorLoadReviews(restaurantId);
     initFileUploadPlaceholders();
 };
 

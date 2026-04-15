@@ -1476,6 +1476,100 @@ tbody tr:last-child {
     color: var(--text);
 }
 
+.restaurant-reviews {
+    border-top: 1px solid var(--border-light);
+    padding-top: .9rem;
+}
+
+.review-avg-badge {
+    font-size: .8rem;
+    font-weight: 600;
+    background: var(--red-subtle);
+    color: var(--red-dark);
+    border: 1px solid #FECACA;
+    border-radius: var(--radius-full);
+    padding: .2rem .6rem;
+}
+
+.review-form-wrap {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: .65rem;
+    background: var(--bg);
+}
+
+.review-stars {
+    display: flex;
+    gap: .2rem;
+    margin-bottom: .45rem;
+}
+
+.review-star {
+    border: none;
+    background: transparent;
+    color: #D1D5DB;
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+}
+
+.review-star.is-active {
+    color: #F59E0B;
+}
+
+.review-list {
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+}
+
+.review-item {
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: .6rem .7rem;
+}
+
+.review-item-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .6rem;
+}
+
+.review-stars-label {
+    color: #F59E0B;
+    font-size: .9rem;
+    letter-spacing: .05em;
+}
+
+.review-item-text {
+    margin-top: .3rem;
+    color: var(--text-secondary);
+    font-size: .88rem;
+}
+
+.review-vendor-reply {
+    margin-top: .45rem;
+    padding: .45rem .55rem;
+    border-radius: var(--radius-sm);
+    background: var(--bg-warm);
+    border-left: 3px solid var(--red-light);
+}
+
+.review-vendor-reply p {
+    margin: .2rem 0 0;
+    color: var(--text-secondary);
+    font-size: .86rem;
+}
+
+.review-reply-editor {
+    margin-top: .45rem;
+    padding-top: .45rem;
+    border-top: 1px dashed var(--border);
+}
+
 /* ============================================================
    FAB (Floating Cart Button)
    ============================================================ */
