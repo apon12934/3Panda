@@ -1092,6 +1092,7 @@ function setupReviewStarPicker() {
 function renderReviewList(container, reviews, opts = {}) {
     if (!container) return;
     const showReplyEditor = !!opts.showReplyEditor;
+    const currentUser = getToken() ? localStorage.getItem('username') : null;
 
     const escapeHtml = (value) => String(value || '')
         .replace(/&/g, '&amp;')
@@ -1114,6 +1115,14 @@ function renderReviewList(container, reviews, opts = {}) {
             : '';
 
         const safeReviewer = escapeHtml(review.user_username || review.username || 'Customer');
+        const isOwner = currentUser === (review.user_username || review.username);
+
+        const actionButtons = isOwner && !showReplyEditor
+            ? `<div class="review-actions gap-row" style="gap:.5rem;margin-top:0.5rem;">
+                   <button class="btn btn-sm btn-outline-primary review-edit-btn" data-review-id="${review.id}" data-rating="${review.rating}" data-comment="${escapeHtml(review.comment || '')}">Edit</button>
+                   <button class="btn btn-sm btn-outline-danger review-delete-btn" data-review-id="${review.id}">Delete</button>
+               </div>`
+            : '';
 
         const replyEditor = showReplyEditor
             ? `<div class="review-reply-editor">
@@ -1124,16 +1133,27 @@ function renderReviewList(container, reviews, opts = {}) {
                </div>`
             : '';
 
-        return `<div class="review-item">
+        return `<div class="review-item" data-review-id="${review.id}">
             <div class="review-item-head">
                 <strong>${safeReviewer}</strong>
                 <span class="review-stars-label">${stars}</span>
             </div>
             <p class="review-item-text">${reviewText}</p>
             ${vendorReply}
+            ${actionButtons}
             ${replyEditor}
         </div>`;
     }).join('');
+
+    // Attach event listeners
+    if (!showReplyEditor) {
+        container.querySelectorAll('.review-edit-btn').forEach((btn) => {
+            btn.addEventListener('click', () => openReviewEditModal(btn));
+        });
+        container.querySelectorAll('.review-delete-btn').forEach((btn) => {
+            btn.addEventListener('click', () => deleteReview(btn.dataset.reviewId));
+        });
+    }
 }
 
 async function loadRestaurantReviews(restaurantId) {
@@ -1210,6 +1230,127 @@ async function submitRestaurantReview() {
         showMsg('Failed to submit review.');
     }
 }
+
+async function openReviewEditModal(btn) {
+    const reviewId = btn.dataset.reviewId;
+    const currentRating = Number(btn.dataset.rating);
+    const currentComment = btn.dataset.comment;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+        <div class="modal-content" style="width:90%;max-width:500px;">
+            <div class="modal-header">
+                <h5>Edit Your Review</h5>
+                <button type="button" class="close-modal" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-body" style="padding:1rem;">
+                <div style="margin-bottom:1rem;">
+                    <label>Rating:</label>
+                    <div class="review-stars edit-modal-stars" style="font-size:2rem;cursor:pointer;">
+                        ${['1','2','3','4','5'].map(n => `<span class="edit-star-btn" data-rating="${n}" style="margin-right:0.25rem;color:${Number(n) <= currentRating ? '#ffc107' : '#ccc'};cursor:pointer;">★</span>`).join('')}
+                    </div>
+                </div>
+                <div>
+                    <label>Comment:</label>
+                    <textarea class="form-control edit-review-comment" rows="3" style="width:100%;padding:0.5rem;">${escapeHtml(currentComment)}</textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding:1rem;display:flex;gap:0.5rem;justify-content:flex-end;border-top:1px solid #ccc;">
+                <button class="btn btn-secondary cancel-edit-btn">Cancel</button>
+                <button class="btn btn-primary save-edit-btn" data-review-id="${reviewId}">Save Changes</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    let editRating = currentRating;
+
+    modal.querySelectorAll('.edit-star-btn').forEach((star) => {
+        star.addEventListener('click', () => {
+            editRating = Number(star.dataset.rating);
+            modal.querySelectorAll('.edit-star-btn').forEach((s, idx) => {
+                s.style.color = (idx + 1) <= editRating ? '#ffc107' : '#ccc';
+            });
+        });
+        star.addEventListener('mouseover', () => {
+            const hovRating = Number(star.dataset.rating);
+            modal.querySelectorAll('.edit-star-btn').forEach((s, idx) => {
+                s.style.color = (idx + 1) <= hovRating ? '#ffc107' : '#ccc';
+            });
+        });
+    });
+
+    modal.addEventListener('mouseleave', () => {
+        modal.querySelectorAll('.edit-star-btn').forEach((s, idx) => {
+            s.style.color = (idx + 1) <= editRating ? '#ffc107' : '#ccc';
+        });
+    });
+
+    modal.querySelector('.cancel-edit-btn').addEventListener('click', () => modal.remove());
+    modal.querySelector('.close-modal').addEventListener('click', () => modal.remove());
+
+    modal.querySelector('.save-edit-btn').addEventListener('click', async () => {
+        const commentEl = modal.querySelector('.edit-review-comment');
+        const newComment = commentEl.value.trim();
+
+        const payload = {
+            rating: editRating,
+            comment: newComment
+        };
+
+        try {
+            const res = await fetch(API + '/reviews/' + reviewId, {
+                method: 'PUT',
+                headers: authJSON(),
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                showMsg(data.error || 'Failed to update review.');
+                return;
+            }
+
+            showMsg('Review updated!', 'success');
+            modal.remove();
+            loadRestaurantReviews(activeRestaurantIdForReviews);
+        } catch (err) {
+            console.error(err);
+            showMsg('Failed to update review.');
+        }
+    });
+}
+
+async function deleteReview(reviewId) {
+    if (!confirm('Are you sure you want to delete this review? This cannot be undone.')) return;
+
+    try {
+        const res = await fetch(API + '/reviews/' + reviewId, {
+            method: 'DELETE',
+            headers: authJSON()
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            showMsg(data.error || 'Failed to delete review.');
+            return;
+        }
+
+        showMsg('Review deleted.', 'success');
+        loadRestaurantReviews(activeRestaurantIdForReviews);
+    } catch (err) {
+        console.error(err);
+        showMsg('Failed to delete review.');
+    }
+}
+
+const escapeHtml = (value) => String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 async function vendorLoadReviews(restaurantId) {
     const listEl = $('#vendor-reviews-list');

@@ -1306,6 +1306,57 @@ app.post('/api/reviews', verifyToken, async (req, res) => {
     }
 });
 
+// update review (rating/comment only - review owner only)
+app.put('/api/reviews/:id', verifyToken, async (req, res) => {
+    try {
+        const compat = await ensureSchemaCompat();
+        const reviewUserValue = await resolveReviewUserValue(req.user.username);
+        if (reviewUserValue === null || reviewUserValue === undefined) {
+            return res.status(400).json({ error: 'User account mapping failed.' });
+        }
+
+        const { id } = req.params;
+        const { rating, comment } = req.body;
+
+        const review = await dbGet('SELECT * FROM Reviews WHERE id = ?', [id]);
+        if (!review) return res.status(404).json({ error: 'Review not found.' });
+
+        // Only the review author can edit
+        if (review[compat.reviewsUserColumn] !== reviewUserValue) {
+            return res.status(403).json({ error: 'You can only edit your own reviews.' });
+        }
+
+        if (rating !== undefined) {
+            const numericRating = Number(rating);
+            if (!Number.isInteger(numericRating) || numericRating < 1 || numericRating > 5) {
+                return res.status(400).json({ error: 'Rating must be an integer between 1 and 5.' });
+            }
+        }
+
+        const updates = [];
+        const params = [];
+        if (rating !== undefined) {
+            updates.push('rating = ?');
+            params.push(Number(rating));
+        }
+        if (comment !== undefined) {
+            updates.push('comment = ?');
+            params.push(comment || null);
+        }
+
+        if (!updates.length) {
+            return res.status(400).json({ error: 'No fields to update.' });
+        }
+
+        params.push(id);
+        await dbRun(`UPDATE Reviews SET ${updates.join(', ')} WHERE id = ?`, params);
+        return res.json({ message: 'Review updated.' });
+    } catch (err) {
+        console.error('Update review error:', err.message);
+        return res.status(500).json({ error: 'Server error.' });
+    }
+});
+
 // vendor reply to a review on owned restaurant
 app.put('/api/reviews/:id/reply', verifyToken, async (req, res) => {
     try {
