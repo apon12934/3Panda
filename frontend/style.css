@@ -2253,4 +2253,4 @@ tbody tr:last-child {
 
 .rest-carousel { cursor: grab; }
 .rest-carousel.is-dragging { cursor: grabbing; scroll-snap-type: none; scroll-behavior: auto; }
-.rest-carousel.is-dragging .carousel-card { pointer-events: none; } /* prevent accidental clicks while dragging */
+

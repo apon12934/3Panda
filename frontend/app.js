@@ -614,9 +614,11 @@ function initRestaurantPopup() {
     let isDown = false;
     let startX;
     let scrollLeft;
+    let hasDragged = false;
 
     carousel.addEventListener('mousedown', (e) => {
         isDown = true;
+        hasDragged = false;
         carousel.classList.add('is-dragging');
         startX = e.pageX - carousel.offsetLeft;
         scrollLeft = carousel.scrollLeft;
@@ -637,8 +639,17 @@ function initRestaurantPopup() {
         e.preventDefault();
         const x = e.pageX - carousel.offsetLeft;
         const walk = (x - startX) * 1.5; // Drag speed multiplier
+        if (Math.abs(walk) > 5) hasDragged = true;
         carousel.scrollLeft = scrollLeft - walk;
     });
+
+    // intercept click
+    carousel.addEventListener('click', (e) => {
+        if (hasDragged) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }, true);
 
     // Update dots on scroll
 
