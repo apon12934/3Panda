@@ -183,7 +183,7 @@ app.post('/api/register', async (req, res) => {
             return res.status(400).json({ error: 'Username, email, and password are required.' });
         }
 
-        const allowedRoles = ['customer', 'delivery'];
+        const allowedRoles = ['customer', 'delivery', 'vendor'];
         const userRole = allowedRoles.includes(role) ? role : 'customer';
 
         const existing = await dbGet(
@@ -390,6 +390,210 @@ app.patch('/api/restaurants/:id/owner', verifyToken, requireAdmin, async (req, r
         });
     } catch (err) {
         console.error('Re-assign restaurant owner error:', err.message);
+        return res.status(500).json({ error: 'Server error.' });
+    }
+});
+
+// vendor-specific routes
+
+// get restaurants owned by the logged-in vendor
+app.get('/api/vendor/restaurants', verifyToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'vendor') {
+            return res.status(403).json({ error: 'Vendor access required.' });
+        }
+        const rows = await dbAll(
+            'SELECT * FROM Restaurants WHERE owner_username = ?',
+            [req.user.username]
+        );
+        return res.json(rows);
+    } catch (err) {
+        console.error('Vendor restaurants error:', err.message);
+        return res.status(500).json({ error: 'Server error.' });
+    }
+});
+
+// vendor: submit a new restaurant for approval
+app.post('/api/vendor/restaurants', verifyToken, upload.single('banner'), async (req, res) => {
+    try {
+        if (req.user.role !== 'vendor') {
+            return res.status(403).json({ error: 'Vendor access required.' });
+        }
+        const { name, description, address, phone } = req.body;
+        if (!name) return res.status(400).json({ error: 'Restaurant name is required.' });
+
+        let image = null;
+        if (req.file) {
+            image = await uploadToCloudinary(req.file.buffer, 'restaurants');
+        }
+
+        const result = await dbRun(
+            'INSERT INTO Restaurants (name, description, address, phone, image, owner_username, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [name, description || null, address || null, phone || null, image, req.user.username, 'pending']
+        );
+
+        return res.status(201).json({ message: 'Restaurant submitted for approval.', id: result.insertId });
+    } catch (err) {
+        console.error('Vendor create restaurant error:', err.message);
+        return res.status(500).json({ error: 'Server error.' });
+    }
+});
+
+// vendor: get menu items for a specific owned restaurant
+app.get('/api/vendor/menu-items/:restaurantId', verifyToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'vendor') {
+            return res.status(403).json({ error: 'Vendor access required.' });
+        }
+        const { restaurantId } = req.params;
+
+        // verify ownership
+        const restaurant = await dbGet(
+            'SELECT * FROM Restaurants WHERE id = ? AND owner_username = ?',
+            [restaurantId, req.user.username]
+        );
+        if (!restaurant) return res.status(404).json({ error: 'Restaurant not found or not owned by you.' });
+        if (restaurant.status !== 'approved') {
+            return res.status(403).json({ error: 'Restaurant is not yet approved.' });
+        }
+
+        const items = await dbAll(
+            'SELECT * FROM MenuItems WHERE restaurant_id = ?',
+            [restaurantId]
+        );
+        return res.json(items);
+    } catch (err) {
+        console.error('Vendor menu items error:', err.message);
+        return res.status(500).json({ error: 'Server error.' });
+    }
+});
+
+// vendor: add menu item to an owned restaurant
+app.post('/api/vendor/menu-items', verifyToken, upload.single('banner'), async (req, res) => {
+    try {
+        if (req.user.role !== 'vendor') {
+            return res.status(403).json({ error: 'Vendor access required.' });
+        }
+        const { restaurant_id, name, description, price } = req.body;
+        if (!restaurant_id || !name || price == null) {
+            return res.status(400).json({ error: 'restaurant_id, name, and price are required.' });
+        }
+
+        // verify ownership + approved status
+        const restaurant = await dbGet(
+            'SELECT * FROM Restaurants WHERE id = ? AND owner_username = ?',
+            [restaurant_id, req.user.username]
+        );
+        if (!restaurant) return res.status(404).json({ error: 'Restaurant not found or not owned by you.' });
+        if (restaurant.status !== 'approved') {
+            return res.status(403).json({ error: 'Cannot add items to a non-approved restaurant.' });
+        }
+
+        let image = null;
+        if (req.file) {
+            image = await uploadToCloudinary(req.file.buffer, 'items');
+        }
+
+        const result = await dbRun(
+            'INSERT INTO MenuItems (restaurant_id, name, description, price, image) VALUES (?, ?, ?, ?, ?)',
+            [restaurant_id, name, description || null, price, image]
+        );
+
+        return res.status(201).json({ message: 'Menu item created.', id: result.insertId });
+    } catch (err) {
+        console.error('Vendor create menu item error:', err.message);
+        return res.status(500).json({ error: 'Server error.' });
+    }
+});
+
+// vendor: update menu item on an owned restaurant
+app.put('/api/vendor/menu-items/:id', verifyToken, upload.single('banner'), async (req, res) => {
+    try {
+        if (req.user.role !== 'vendor') {
+            return res.status(403).json({ error: 'Vendor access required.' });
+        }
+        const { id } = req.params;
+        const { name, description, price } = req.body;
+
+        const item = await dbGet('SELECT * FROM MenuItems WHERE id = ?', [id]);
+        if (!item) return res.status(404).json({ error: 'Menu item not found.' });
+
+        // verify ownership
+        const restaurant = await dbGet(
+            'SELECT * FROM Restaurants WHERE id = ? AND owner_username = ?',
+            [item.restaurant_id, req.user.username]
+        );
+        if (!restaurant) return res.status(403).json({ error: 'Not authorized to edit this item.' });
+
+        let image = item.image;
+        if (req.file) {
+            image = await uploadToCloudinary(req.file.buffer, 'items');
+        }
+
+        await dbRun(
+            'UPDATE MenuItems SET name = ?, description = ?, price = ?, image = ? WHERE id = ?',
+            [name || item.name, description !== undefined ? description : item.description, price != null ? price : item.price, image, id]
+        );
+
+        return res.json({ message: 'Menu item updated.' });
+    } catch (err) {
+        console.error('Vendor update menu item error:', err.message);
+        return res.status(500).json({ error: 'Server error.' });
+    }
+});
+
+// vendor: delete menu item on an owned restaurant
+app.delete('/api/vendor/menu-items/:id', verifyToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'vendor') {
+            return res.status(403).json({ error: 'Vendor access required.' });
+        }
+        const { id } = req.params;
+
+        const item = await dbGet('SELECT * FROM MenuItems WHERE id = ?', [id]);
+        if (!item) return res.status(404).json({ error: 'Menu item not found.' });
+
+        // verify ownership
+        const restaurant = await dbGet(
+            'SELECT * FROM Restaurants WHERE id = ? AND owner_username = ?',
+            [item.restaurant_id, req.user.username]
+        );
+        if (!restaurant) return res.status(403).json({ error: 'Not authorized to delete this item.' });
+
+        await dbRun('DELETE FROM MenuItems WHERE id = ?', [id]);
+        return res.json({ message: 'Menu item deleted.' });
+    } catch (err) {
+        console.error('Vendor delete menu item error:', err.message);
+        return res.status(500).json({ error: 'Server error.' });
+    }
+});
+
+// admin: update restaurant status (approve/reject)
+app.patch('/api/restaurants/:id/status', verifyToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        const validStatuses = ['pending', 'approved', 'rejected'];
+        if (!status || !validStatuses.includes(status)) {
+            return res.status(400).json({ error: 'Invalid status. Must be pending, approved, or rejected.' });
+        }
+
+        const restaurant = await dbGet('SELECT * FROM Restaurants WHERE id = ?', [id]);
+        if (!restaurant) return res.status(404).json({ error: 'Restaurant not found.' });
+
+        await dbRun(
+            'UPDATE Restaurants SET status = ? WHERE id = ?',
+            [status, id]
+        );
+
+        return res.json({
+            message: `Restaurant "${restaurant.name}" status updated to "${status}".`,
+            restaurant_id: parseInt(id),
+            new_status: status
+        });
+    } catch (err) {
+        console.error('Update restaurant status error:', err.message);
         return res.status(500).json({ error: 'Server error.' });
     }
 });

@@ -260,6 +260,9 @@ function buildNav() {
         if (role === 'admin') {
             links += '<li><a href="admin.html">Dashboard</a></li>';
         }
+        if (role === 'vendor') {
+            links += '<li><a href="vendor.html">Vendor Hub</a></li>';
+        }
         if (role === 'delivery') {
             links += '<li><a href="delivery.html">Delivery Hub</a></li>';
         }
@@ -313,6 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (page === 'my-orders.html') initMyOrders();
     if (page === 'delivery.html') initDelivery();
     if (page === 'admin.html') initAdmin();
+    if (page === 'vendor.html') initVendor();
 
     // tab switch click handlers
     $$('.tab-btn').forEach(btn => {
@@ -779,6 +783,7 @@ function initLogin() {
             setTimeout(() => {
                 if (data.role === 'admin') window.location.href = 'admin.html';
                 else if (data.role === 'delivery') window.location.href = 'delivery.html';
+                else if (data.role === 'vendor') window.location.href = 'vendor.html';
                 else window.location.href = 'index.html';
             }, 600);
         } catch (err) {
@@ -814,6 +819,7 @@ function initLogin() {
             setTimeout(() => {
                 if (data.role === 'admin') window.location.href = 'admin.html';
                 else if (data.role === 'delivery') window.location.href = 'delivery.html';
+                else if (data.role === 'vendor') window.location.href = 'vendor.html';
                 else window.location.href = 'index.html';
             }, 600);
         } catch (err) {
@@ -1173,6 +1179,7 @@ function initAdmin() {
     adminLoadItems();
     adminLoadOrders();
     adminPopulateStats();
+    adminLoadPendingApprovals();
 
 // admin users section functions
     const cancelEditUser = $('#cancel-edit-user');
@@ -1339,7 +1346,7 @@ window.adminDeleteUser = async (id) => {
 
 async function adminLoadRestaurants() {
     try {
-        const res = await fetch(API + '/restaurants');
+        const res = await fetch(API + '/restaurants', { headers: authHeaders() });
         if (!res.ok) {
             const error = await res.json();
             return showMsg(error.error || 'Failed to load restaurants.');
@@ -1351,7 +1358,9 @@ async function adminLoadRestaurants() {
             <tr>
                 <td>${r.id}</td>
                 <td>${r.name}</td>
-                <td>${r.image ? '<img src="' + r.image + '" style="height:40px;border-radius:4px;">' : '—'}</td>
+                <td>${r.owner_username || '\u2014'}</td>
+                <td><span class="status-badge status-badge--${r.status || 'approved'}">${(r.status || 'approved').charAt(0).toUpperCase() + (r.status || 'approved').slice(1)}</span></td>
+                <td>${r.image ? '<img src="' + r.image + '" style="height:40px;border-radius:4px;">' : '\u2014'}</td>
                 <td class="gap-row">
                     <button class="btn btn-sm btn-primary" onclick="adminEditRestaurant(${r.id}, '${r.name.replace(/'/g,"\\'")}')">Edit</button>
                     <button class="btn btn-sm btn-danger" onclick="adminDeleteRestaurant(${r.id})">Del</button>
@@ -1565,3 +1574,308 @@ function animateCounter(el, target, isCurrency = false) {
         }
     }, stepTime);
 }
+
+// ============================================================
+// ADMIN: PENDING APPROVALS
+// ============================================================
+
+const noImagePlaceholder = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E';
+
+async function adminLoadPendingApprovals() {
+    const container = $('#pending-approvals-list');
+    const badge = $('#approvals-count-badge');
+    if (!container) return;
+
+    try {
+        const res = await fetch(API + '/restaurants', { headers: authHeaders() });
+        if (!res.ok) return;
+        const allRestaurants = await res.json();
+        const pending = allRestaurants.filter(r => r.status === 'pending');
+
+        // Update badge count
+        if (badge) {
+            if (pending.length > 0) {
+                badge.textContent = pending.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        if (!pending.length) {
+            container.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><p>No pending approvals. All clear!</p></div>';
+            return;
+        }
+
+        container.innerHTML = pending.map(r => `
+            <div class="vendor-rest-card is-pending">
+                <img class="card-img" src="${r.image || noImagePlaceholder}" alt="${r.name}">
+                <div class="card-body">
+                    <h3>${r.name} <span class="status-badge status-badge--pending">Pending</span></h3>
+                    <div class="approval-card-owner">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Submitted by: <strong>${r.owner_username || '\u2014'}</strong>
+                    </div>
+                    <p>${r.description || 'No description provided.'}</p>
+                    <div class="card-actions">
+                        <button class="btn btn-sm btn-approve" onclick="adminApproveRestaurant(${r.id})">\u2713 Approve</button>
+                        <button class="btn btn-sm btn-reject" onclick="adminRejectRestaurant(${r.id})">\u2717 Reject</button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error('Load pending approvals error:', err);
+    }
+}
+
+window.adminApproveRestaurant = async (id) => {
+    try {
+        const res = await fetch(API + '/restaurants/' + id + '/status', {
+            method: 'PATCH',
+            headers: authJSON(),
+            body: JSON.stringify({ status: 'approved' })
+        });
+        const data = await res.json();
+        if (!res.ok) return showMsg(data.error);
+        showMsg(data.message, 'success');
+        adminLoadPendingApprovals();
+        adminLoadRestaurants();
+        adminPopulateStats();
+    } catch (err) { showMsg('Approval failed.'); }
+};
+
+window.adminRejectRestaurant = async (id) => {
+    if (!confirm('Reject this restaurant?')) return;
+    try {
+        const res = await fetch(API + '/restaurants/' + id + '/status', {
+            method: 'PATCH',
+            headers: authJSON(),
+            body: JSON.stringify({ status: 'rejected' })
+        });
+        const data = await res.json();
+        if (!res.ok) return showMsg(data.error);
+        showMsg(data.message, 'success');
+        adminLoadPendingApprovals();
+        adminLoadRestaurants();
+    } catch (err) { showMsg('Rejection failed.'); }
+};
+
+// ============================================================
+// VENDOR DASHBOARD (vendor.html)
+// ============================================================
+
+let _vendorCurrentRestaurantId = null;
+
+function initVendor() {
+    if (!getToken() || getRole() !== 'vendor') return window.location.href = 'login.html';
+
+    vendorLoadRestaurants();
+
+    // Add new restaurant form
+    const addRestForm = $('#vendor-add-restaurant-form');
+    if (addRestForm) addRestForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData();
+        fd.append('name', $('#vendor-rest-name').value.trim());
+        fd.append('description', $('#vendor-rest-desc').value.trim());
+        fd.append('address', $('#vendor-rest-address').value.trim());
+        fd.append('phone', $('#vendor-rest-phone').value.trim());
+        const file = $('#vendor-rest-banner').files[0];
+        if (file) fd.append('banner', file);
+
+        try {
+            const res = await fetch(API + '/vendor/restaurants', {
+                method: 'POST', headers: authHeaders(), body: fd
+            });
+            const data = await res.json();
+            if (!res.ok) return showMsg(data.error);
+            showMsg(data.message, 'success');
+            addRestForm.reset();
+            vendorLoadRestaurants();
+        } catch (err) { showMsg('Failed to submit restaurant.'); }
+    });
+
+    // Back to restaurants button
+    const backBtn = $('#vendor-back-to-restaurants');
+    if (backBtn) backBtn.addEventListener('click', () => {
+        $('#vendor-menu-section').classList.add('hidden');
+        $('#vendor-restaurants').classList.remove('hidden');
+        $('#vendor-add-restaurant-card').classList.remove('hidden');
+        _vendorCurrentRestaurantId = null;
+    });
+
+    // Add menu item form
+    const addItemForm = $('#vendor-add-item-form');
+    if (addItemForm) addItemForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData();
+        fd.append('restaurant_id', _vendorCurrentRestaurantId);
+        fd.append('name', $('#vendor-item-name').value.trim());
+        fd.append('description', $('#vendor-item-desc').value.trim());
+        fd.append('price', $('#vendor-item-price').value);
+        const file = $('#vendor-item-banner').files[0];
+        if (file) fd.append('banner', file);
+
+        try {
+            const res = await fetch(API + '/vendor/menu-items', {
+                method: 'POST', headers: authHeaders(), body: fd
+            });
+            const data = await res.json();
+            if (!res.ok) return showMsg(data.error);
+            showMsg(data.message, 'success');
+            addItemForm.reset();
+            vendorLoadMenuItems(_vendorCurrentRestaurantId);
+        } catch (err) { showMsg('Failed to add item.'); }
+    });
+
+    // Cancel edit item
+    const cancelEdit = $('#vendor-cancel-edit-item');
+    if (cancelEdit) cancelEdit.addEventListener('click', () => {
+        $('#vendor-edit-item-card').classList.add('hidden');
+    });
+
+    // Edit item form
+    const editItemForm = $('#vendor-edit-item-form');
+    if (editItemForm) editItemForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = $('#vendor-edit-item-id').value;
+        const fd = new FormData();
+        fd.append('name', $('#vendor-edit-item-name').value.trim());
+        fd.append('description', $('#vendor-edit-item-desc').value.trim());
+        fd.append('price', $('#vendor-edit-item-price').value);
+        const file = $('#vendor-edit-item-banner').files[0];
+        if (file) fd.append('banner', file);
+
+        try {
+            const res = await fetch(API + '/vendor/menu-items/' + id, {
+                method: 'PUT', headers: authHeaders(), body: fd
+            });
+            const data = await res.json();
+            if (!res.ok) return showMsg(data.error);
+            showMsg(data.message, 'success');
+            $('#vendor-edit-item-card').classList.add('hidden');
+            vendorLoadMenuItems(_vendorCurrentRestaurantId);
+        } catch (err) { showMsg('Update failed.'); }
+    });
+}
+
+async function vendorLoadRestaurants() {
+    const container = $('#vendor-restaurants');
+    if (!container) return;
+
+    try {
+        const res = await fetch(API + '/vendor/restaurants', { headers: authHeaders() });
+        if (!res.ok) {
+            const error = await res.json();
+            return showMsg(error.error);
+        }
+        const list = await res.json();
+
+        if (!list.length) {
+            container.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg><p>You don\'t have any restaurants yet.<br>Submit one below to get started!</p></div>';
+            return;
+        }
+
+        container.innerHTML = list.map(r => {
+            const statusClass = r.status === 'pending' ? 'is-pending' : r.status === 'rejected' ? 'is-rejected' : '';
+            const statusBadge = '<span class="status-badge status-badge--' + r.status + '">' + r.status.charAt(0).toUpperCase() + r.status.slice(1) + '</span>';
+
+            let actions = '';
+            let pendingOverlay = '';
+
+            if (r.status === 'approved') {
+                actions = '<button class="btn btn-sm btn-manage" onclick="vendorManageMenu(' + r.id + ', \'' + r.name.replace(/'/g, "\\'") + '\')">Manage Menu \u2192</button>';
+            } else if (r.status === 'pending') {
+                pendingOverlay = '<div class="vendor-pending-overlay">' +
+                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+                    '<span>Verification pending \u2014 an admin must approve this restaurant before you can manage its menu.</span>' +
+                    '</div>';
+            } else if (r.status === 'rejected') {
+                pendingOverlay = '<div class="vendor-pending-overlay" style="background:linear-gradient(135deg,#FFF5F5,#FEE2E2);border-color:#FECACA;color:#991B1B;">' +
+                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#DC2626"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' +
+                    '<span>This restaurant was rejected. Please contact support for details.</span>' +
+                    '</div>';
+            }
+
+            return '<div class="vendor-rest-card ' + statusClass + '">' +
+                '<img class="card-img" src="' + (r.image || noImagePlaceholder) + '" alt="' + r.name + '">' +
+                '<div class="card-body">' +
+                '<h3>' + r.name + ' ' + statusBadge + '</h3>' +
+                '<p>' + (r.description || 'No description.') + '</p>' +
+                '<div class="card-actions">' + actions + '</div>' +
+                '</div>' +
+                pendingOverlay +
+                '</div>';
+        }).join('');
+    } catch (err) {
+        console.error('Vendor load restaurants error:', err);
+        container.innerHTML = '<div class="empty-state"><p>Failed to load restaurants.</p></div>';
+    }
+}
+
+window.vendorManageMenu = (restaurantId, restaurantName) => {
+    _vendorCurrentRestaurantId = restaurantId;
+    $('#vendor-restaurants').classList.add('hidden');
+    $('#vendor-add-restaurant-card').classList.add('hidden');
+    $('#vendor-menu-section').classList.remove('hidden');
+    $('#vendor-menu-title').textContent = restaurantName + ' \u2014 Menu';
+    $('#vendor-item-restaurant-id').value = restaurantId;
+    vendorLoadMenuItems(restaurantId);
+    initFileUploadPlaceholders();
+};
+
+async function vendorLoadMenuItems(restaurantId) {
+    const tbody = $('#vendor-items-tbody');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch(API + '/vendor/menu-items/' + restaurantId, { headers: authHeaders() });
+        if (!res.ok) {
+            const error = await res.json();
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">' + (error.error || 'Failed to load items.') + '</td></tr>';
+            return;
+        }
+        const items = await res.json();
+
+        if (!items.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No menu items yet. Add one above!</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = items.map(i => `
+            <tr>
+                <td>${i.id}</td>
+                <td title="${i.name}" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.name}</td>
+                <td title="${i.description||''}" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.description || '\u2014'}</td>
+                <td>${formatPrice(i.price)}</td>
+                <td>${i.image ? '<img src="' + i.image + '" style="height:40px;border-radius:4px;">' : '\u2014'}</td>
+                <td class="gap-row">
+                    <button class="btn btn-sm btn-primary" onclick="vendorEditItem(${i.id}, '${i.name.replace(/'/g,"\\'")}', ${i.price}, '${(i.description||'').replace(/'/g,"\\'")}')">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="vendorDeleteItem(${i.id})">Del</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        console.error('Vendor load menu items error:', err);
+    }
+}
+
+window.vendorEditItem = (id, name, price, desc) => {
+    $('#vendor-edit-item-card').classList.remove('hidden');
+    $('#vendor-edit-item-id').value = id;
+    $('#vendor-edit-item-name').value = name;
+    $('#vendor-edit-item-desc').value = desc || '';
+    $('#vendor-edit-item-price').value = price;
+};
+
+window.vendorDeleteItem = async (id) => {
+    if (!confirm('Delete item #' + id + '?')) return;
+    try {
+        const res = await fetch(API + '/vendor/menu-items/' + id, { method: 'DELETE', headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) return showMsg(data.error);
+        showMsg('Item deleted.', 'success');
+        vendorLoadMenuItems(_vendorCurrentRestaurantId);
+    } catch (err) { showMsg('Delete failed.'); }
+};

@@ -74,6 +74,10 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.3rem;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             Orders
         </button>
+        <button class="tab-btn" data-tab="tab-approvals">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.3rem;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Pending Approvals <span id="approvals-count-badge" class="approvals-count-dot hidden"></span>
+        </button>
     </div>
 
     <!-- users tab -->
@@ -110,6 +114,7 @@
                         <option value=""></option>
                         <option value="customer">Customer</option>
                         <option value="delivery">Delivery</option>
+                        <option value="vendor">Vendor</option>
                         <option value="admin">Admin</option>
                     </select>
                     <label for="edit-user-role">Role</label>
@@ -149,10 +154,10 @@
         <div class="table-wrap">
             <table>
                 <thead>
-                    <tr><th>ID</th><th>Name</th><th>Image</th><th>Actions</th></tr>
+                    <tr><th>ID</th><th>Name</th><th>Owner</th><th>Status</th><th>Image</th><th>Actions</th></tr>
                 </thead>
                 <tbody id="restaurants-tbody">
-                    <tr><td colspan="4" class="text-center text-muted">Loading restaurants...</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted">Loading restaurants...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -285,6 +290,18 @@
                     <tr><td colspan="6" class="text-center text-muted">Loading orders...</td></tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- pending approvals tab -->
+    <div class="tab-panel" id="tab-approvals">
+        <div style="margin-bottom:1rem;">
+            <div class="section-label">Vendor Verification</div>
+            <h2 style="font-family:var(--font-heading);font-size:1.35rem;font-weight:700;letter-spacing:-.02em;">Pending Restaurant Approvals</h2>
+            <p style="color:var(--text-secondary);font-size:.88rem;margin-top:.25rem;">Review and approve vendor-submitted restaurants.</p>
+        </div>
+        <div id="pending-approvals-list" class="vendor-grid">
+            <div class="empty-state"><p>Loading pending approvals...</p></div>
         </div>
     </div>
 
