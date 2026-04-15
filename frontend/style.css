@@ -904,7 +904,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     margin-bottom: 1.25rem;
 }
 
-.custom-dropdown-group > label {
+.custom-dropdown-group:not(.floating-group) > label {
     display: block;
     margin-bottom: .4rem;
     font-family: var(--font-heading);
@@ -917,6 +917,13 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
 .custom-dropdown {
     position: relative;
+    width: 100%;
+}
+
+.custom-dropdown--inline {
+    width: auto;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 .custom-dropdown-native {
@@ -939,6 +946,16 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     font-size: .95rem;
     cursor: pointer;
     transition: border-color .15s ease-out, background .15s ease-out, color .15s ease-out;
+}
+
+.custom-dropdown--inline .custom-dropdown-trigger {
+    width: auto;
+    min-width: 11rem;
+}
+
+.custom-dropdown--inline .custom-dropdown-option {
+    font-size: .84rem;
+    padding: .65rem .85rem;
 }
 
 .custom-dropdown-trigger:hover,
@@ -1021,6 +1038,27 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
 .custom-dropdown-option + .custom-dropdown-option {
     border-top: 1px solid var(--border-light);
+}
+
+.floating-group.custom-dropdown-group > label,
+.floating-group.custom-dropdown-group.is-open > label {
+    top: 0;
+    font-size: .68rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    background-color: var(--surface);
+    padding: 0 0.4rem;
+    transform: translateY(-50%);
+    z-index: 4;
+}
+
+.floating-group.custom-dropdown-group.is-filled > label {
+    color: var(--text-secondary);
+}
+
+.floating-group.custom-dropdown-group.is-open > label {
+    color: var(--red);
 }
 
 /* ============================================================

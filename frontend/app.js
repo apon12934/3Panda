@@ -173,8 +173,20 @@ function initFileUploadPlaceholders() {
 }
 
 function initCustomDropdowns() {
-    const dropdowns = document.querySelectorAll('[data-custom-dropdown]');
-    if (!dropdowns.length) return;
+    const dropdownRegistry = window.__customDropdownRegistry || (window.__customDropdownRegistry = new WeakMap());
+
+    const getPlaceholderText = (select) => {
+        const label = select.id ? document.querySelector(`label[for="${select.id}"]`) : null;
+        const labelText = label ? label.textContent.replace(/\s*\([^)]*\)/g, '').trim() : '';
+        if (labelText) return 'Select ' + labelText.toLowerCase();
+        return 'Select option';
+    };
+
+    const getDisplayText = (select) => {
+        const selectedOption = select.options[select.selectedIndex] || select.options[0];
+        const selectedText = selectedOption ? selectedOption.textContent.trim() : '';
+        return selectedText || getPlaceholderText(select);
+    };
 
     const closeDropdown = (dropdown) => {
         if (!dropdown) return;
@@ -184,55 +196,188 @@ function initCustomDropdowns() {
     };
 
     const closeAllDropdowns = (except) => {
-        dropdowns.forEach((dropdown) => {
+        document.querySelectorAll('[data-custom-dropdown].is-open').forEach((dropdown) => {
             if (dropdown !== except) closeDropdown(dropdown);
         });
     };
 
-    dropdowns.forEach((dropdown) => {
-        const nativeSelect = dropdown.querySelector('select');
-        const trigger = dropdown.querySelector('.custom-dropdown-trigger');
-        const valueEl = dropdown.querySelector('.custom-dropdown-value');
-        const options = Array.from(dropdown.querySelectorAll('.custom-dropdown-option'));
+    const buildMenu = (state) => {
+        const { select, menu } = state;
+        if (!menu) return;
 
-        if (!nativeSelect || !trigger || !valueEl || !options.length) return;
+        menu.innerHTML = '';
+        Array.from(select.options).forEach((option) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'custom-dropdown-option';
+            button.dataset.value = option.value;
+            button.setAttribute('role', 'option');
+            button.setAttribute('aria-selected', option.value === select.value ? 'true' : 'false');
+            button.textContent = option.textContent.trim() || (option.value === '' ? getPlaceholderText(select) : option.value);
+            if (option.disabled) button.disabled = true;
 
-        const syncSelection = (value) => {
-            nativeSelect.value = value;
-            const selectedOption = options.find(option => option.dataset.value === value) || options[0];
-            const selectedLabel = selectedOption ? selectedOption.textContent.trim() : nativeSelect.options[nativeSelect.selectedIndex]?.textContent?.trim() || '';
-            valueEl.textContent = selectedLabel;
-
-            options.forEach((option) => {
-                const isSelected = option.dataset.value === value;
-                option.classList.toggle('is-selected', isSelected);
-                option.setAttribute('aria-selected', String(isSelected));
+            button.addEventListener('click', () => {
+                if (button.disabled) return;
+                select.value = option.value;
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+                closeDropdown(state.dropdown);
             });
-        };
 
-        syncSelection(nativeSelect.value || options[0].dataset.value);
-
-        trigger.addEventListener('click', (e) => {
-            e.preventDefault();
-            const willOpen = !dropdown.classList.contains('is-open');
-            closeAllDropdowns(dropdown);
-            dropdown.classList.toggle('is-open', willOpen);
-            trigger.setAttribute('aria-expanded', String(willOpen));
+            menu.appendChild(button);
         });
+    };
 
-        options.forEach((option) => {
-            option.addEventListener('click', () => {
-                syncSelection(option.dataset.value);
-                closeDropdown(dropdown);
+    const syncState = (state) => {
+        const { select, dropdown, valueEl, trigger, group, menu } = state;
+        if (!select || !dropdown || !valueEl || !trigger) return;
+
+        valueEl.textContent = getDisplayText(select);
+        trigger.setAttribute('aria-expanded', String(dropdown.classList.contains('is-open')));
+
+        const isFilled = select.value !== '';
+        if (group) group.classList.toggle('is-filled', isFilled);
+
+        if (menu) {
+            Array.from(menu.querySelectorAll('.custom-dropdown-option')).forEach((button) => {
+                const isSelected = button.dataset.value === select.value;
+                button.classList.toggle('is-selected', isSelected);
+                button.setAttribute('aria-selected', String(isSelected));
             });
-        });
-    });
-
-    document.addEventListener('click', (event) => {
-        if (!event.target.closest('[data-custom-dropdown]')) {
-            closeAllDropdowns();
         }
+    };
+
+    const enhanceSelect = (select) => {
+        if (!select || select.dataset.customDropdownEnhanced === 'true' || select.multiple || select.size > 1) return;
+
+        const existingDropdown = select.closest('[data-custom-dropdown]');
+        let dropdown = existingDropdown;
+        let trigger = existingDropdown ? existingDropdown.querySelector('.custom-dropdown-trigger') : null;
+        let valueEl = existingDropdown ? existingDropdown.querySelector('.custom-dropdown-value') : null;
+        let menu = existingDropdown ? existingDropdown.querySelector('.custom-dropdown-menu') : null;
+
+        if (!existingDropdown) {
+            const parent = select.parentElement;
+            if (!parent) return;
+
+            dropdown = document.createElement('div');
+            dropdown.className = 'custom-dropdown';
+            dropdown.dataset.customDropdown = 'true';
+
+            if (select.style.width === 'auto' || select.style.display === 'inline' || select.closest('.gap-row')) {
+                dropdown.classList.add('custom-dropdown--inline');
+            }
+
+            parent.insertBefore(dropdown, select);
+            dropdown.appendChild(select);
+            select.classList.add('custom-dropdown-native');
+            select.setAttribute('aria-hidden', 'true');
+            select.setAttribute('tabindex', '-1');
+
+            trigger = document.createElement('button');
+            trigger.type = 'button';
+            trigger.className = 'custom-dropdown-trigger';
+            trigger.setAttribute('aria-haspopup', 'listbox');
+            trigger.setAttribute('aria-expanded', 'false');
+            if (select.style.fontSize) trigger.style.fontSize = select.style.fontSize;
+
+            valueEl = document.createElement('span');
+            valueEl.className = 'custom-dropdown-value';
+
+            const icon = document.createElement('span');
+            icon.className = 'custom-dropdown-icon';
+            icon.setAttribute('aria-hidden', 'true');
+
+            menu = document.createElement('div');
+            menu.className = 'custom-dropdown-menu';
+            menu.setAttribute('role', 'listbox');
+            const label = select.id ? document.querySelector(`label[for="${select.id}"]`) : null;
+            if (label) menu.setAttribute('aria-label', label.textContent.trim());
+
+            trigger.append(valueEl, icon);
+            dropdown.append(trigger, menu);
+        }
+
+        const group = dropdown.parentElement;
+        if (group) group.classList.add('custom-dropdown-group');
+
+        const state = { select, dropdown, trigger, valueEl, menu, group, observer: null };
+        dropdownRegistry.set(select, state);
+        select.dataset.customDropdownEnhanced = 'true';
+
+        if (!select.classList.contains('custom-dropdown-native')) {
+            select.classList.add('custom-dropdown-native');
+            select.setAttribute('aria-hidden', 'true');
+            select.setAttribute('tabindex', '-1');
+        }
+
+        buildMenu(state);
+        syncState(state);
+
+        if (!select._customDropdownChangeBound) {
+            select.addEventListener('change', () => syncState(state));
+            select._customDropdownChangeBound = true;
+        }
+
+        if (trigger && !trigger._customDropdownBound) {
+            trigger.addEventListener('click', (event) => {
+                event.preventDefault();
+                const willOpen = !dropdown.classList.contains('is-open');
+                closeAllDropdowns(dropdown);
+                dropdown.classList.toggle('is-open', willOpen);
+                trigger.setAttribute('aria-expanded', String(willOpen));
+            });
+
+            trigger.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    closeDropdown(dropdown);
+                }
+            });
+
+            trigger._customDropdownBound = true;
+        }
+
+        if (!state.observer) {
+            state.observer = new MutationObserver(() => {
+                buildMenu(state);
+                syncState(state);
+            });
+            state.observer.observe(select, { childList: true });
+        }
+
+        return state;
+    };
+
+    document.querySelectorAll('[data-custom-dropdown]').forEach((dropdown) => {
+        const select = dropdown.querySelector('select');
+        if (!select) return;
+        enhanceSelect(select);
     });
+
+    document.querySelectorAll('select.form-control').forEach((select) => {
+        if (select.closest('[data-custom-dropdown]')) return;
+        enhanceSelect(select);
+    });
+
+    if (!window.__customDropdownOutsideClickBound) {
+        document.addEventListener('click', (event) => {
+            if (!event.target.closest('[data-custom-dropdown]')) {
+                closeAllDropdowns();
+            }
+        });
+        window.__customDropdownOutsideClickBound = true;
+    }
+
+    window.refreshCustomDropdown = (selectOrId) => {
+        const select = typeof selectOrId === 'string' ? document.getElementById(selectOrId) : selectOrId;
+        if (!select) return;
+        const state = dropdownRegistry.get(select);
+        if (!state) {
+            enhanceSelect(select);
+            return;
+        }
+        buildMenu(state);
+        syncState(state);
+    };
 }
 
 // small helper functions
