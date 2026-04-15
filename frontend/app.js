@@ -1750,7 +1750,7 @@ async function loadPendingOrders() {
             if (cardRoot) {
                 cardRoot.addEventListener('click', (e) => {
                     if (e.target.closest('.update-status-btn') || e.target.closest('.order-status-select')) return;
-                    showSelectedPendingOrderOnMap(order, cardRoot);
+                    showSelectedPendingOrderOnMap(order, cardRoot, { scrollToMap: true });
                 });
             }
 
@@ -1863,7 +1863,7 @@ async function getRiderLocation() {
     });
 }
 
-function showSelectedPendingOrderOnMap(order, selectedCardEl) {
+function showSelectedPendingOrderOnMap(order, selectedCardEl, opts = {}) {
     const mapWrap = $('#selected-order-map-wrap');
     const mapEl = document.getElementById('selected-order-map');
     if (!mapWrap || !mapEl || typeof L === 'undefined') return;
@@ -1877,6 +1877,10 @@ function showSelectedPendingOrderOnMap(order, selectedCardEl) {
     window._selectedPendingOrderForMap = order;
 
     mapWrap.classList.remove('hidden');
+
+    if (opts.scrollToMap && window.innerWidth <= 1024) {
+        mapWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 
     document.querySelectorAll('.delivery-order-card.is-selected').forEach(card => {
         card.classList.remove('is-selected');
