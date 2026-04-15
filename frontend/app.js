@@ -358,6 +358,7 @@ function initCustomDropdowns() {
 
     document.querySelectorAll('select.form-control').forEach((select) => {
         if (select.closest('[data-custom-dropdown]')) return;
+        if (select.classList.contains('admin-order-status-select')) return;
         enhanceSelect(select);
     });
 
@@ -2693,11 +2694,6 @@ async function adminLoadOrders() {
             </tr>
         `).join('');
 
-        if (typeof window.refreshCustomDropdown === 'function') {
-            tbody.querySelectorAll('.admin-order-status-select').forEach((selectEl) => {
-                window.refreshCustomDropdown(selectEl);
-            });
-        }
     } catch (err) { console.error(err); }
 }
 
