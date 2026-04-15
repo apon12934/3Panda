@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS Users (
     address         TEXT             DEFAULT NULL,
     profile_image   VARCHAR(500)     DEFAULT NULL,
     role            VARCHAR(20)      NOT NULL DEFAULT 'customer'
-                                     CHECK (role IN ('customer', 'admin', 'delivery')),
+                                     CHECK (role IN ('customer', 'admin', 'delivery', 'vendor')),
     created_at      TIMESTAMP        DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -27,7 +27,12 @@ CREATE TABLE IF NOT EXISTS Restaurants (
     image           VARCHAR(500)     DEFAULT NULL,
     rating          DECIMAL(3,2)     DEFAULT NULL,
     is_active       TINYINT(1)       DEFAULT 1,
-    created_at      TIMESTAMP        DEFAULT CURRENT_TIMESTAMP
+    owner_username  VARCHAR(100)     DEFAULT NULL,
+    status          VARCHAR(20)      DEFAULT 'pending'
+                                     CHECK (status IN ('pending', 'approved', 'rejected')),
+    created_at      TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (owner_username) REFERENCES Users (username)
+        ON UPDATE CASCADE ON DELETE SET NULL
 );
 
 -- ---------------- categories table ----------------
@@ -121,6 +126,10 @@ INSERT IGNORE INTO Categories (name, description) VALUES
     ('Chinese',  'Traditional Chinese cuisine'),
     ('Vegetarian', 'Plant-based dishes');
 
+-- migrate existing restaurants to Admin ownership with approved status
+UPDATE Restaurants SET owner_username = 'Admin', status = 'approved'
+    WHERE owner_username IS NULL;
+
 -- Performance indexes for frequently queried database columns
 CREATE INDEX idx_users_email ON Users(email);
 CREATE INDEX idx_users_username ON Users(username);
@@ -135,3 +144,5 @@ CREATE INDEX idx_orderDet_order ON OrderDetails(order_id);
 CREATE INDEX idx_orderDet_item ON OrderDetails(menu_item_id);
 CREATE INDEX idx_reviews_user_username ON Reviews(user_username);
 CREATE INDEX idx_reviews_rest ON Reviews(restaurant_id);
+CREATE INDEX idx_restaurants_owner ON Restaurants(owner_username);
+CREATE INDEX idx_restaurants_status ON Restaurants(status);

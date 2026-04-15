@@ -265,9 +265,25 @@ app.post('/api/login', async (req, res) => {
 // admin + restaurant routes
 
 // get all restaurants (public)
-app.get('/api/restaurants', async (_req, res) => {
+app.get('/api/restaurants', async (req, res) => {
     try {
-        const rows = await dbAll('SELECT * FROM Restaurants');
+        // Show all restaurants for authenticated admins, only approved for public
+        let rows;
+        const authHeader = req.headers.authorization;
+        let isAdmin = false;
+        if (authHeader) {
+            try {
+                const token = authHeader.split(' ')[1];
+                const decoded = jwt.verify(token, JWT_SECRET);
+                if (decoded.role === 'admin') isAdmin = true;
+            } catch (_e) { /* ignore invalid tokens for public access */ }
+        }
+
+        if (isAdmin) {
+            rows = await dbAll('SELECT r.*, u.full_name AS owner_name FROM Restaurants r LEFT JOIN Users u ON r.owner_username = u.username');
+        } else {
+            rows = await dbAll("SELECT * FROM Restaurants WHERE status = 'approved'");
+        }
         return res.json(rows);
     } catch (err) {
         console.error('Get restaurants error:', err.message);
@@ -278,8 +294,15 @@ app.get('/api/restaurants', async (_req, res) => {
 // add restaurant (admin only)
 app.post('/api/restaurants', verifyToken, requireAdmin, upload.single('banner'), async (req, res) => {
     try {
-        const { name, description, address, phone } = req.body;
+        const { name, description, address, phone, owner_username } = req.body;
         if (!name) return res.status(400).json({ error: 'Restaurant name is required.' });
+
+        // If an owner_username is provided, verify the user exists
+        let assignedOwner = owner_username || req.user.username;
+        if (owner_username) {
+            const ownerUser = await dbGet('SELECT username FROM Users WHERE username = ?', [owner_username]);
+            if (!ownerUser) return res.status(400).json({ error: 'Specified owner user not found.' });
+        }
 
         let image = null;
         if (req.file) {
@@ -287,11 +310,11 @@ app.post('/api/restaurants', verifyToken, requireAdmin, upload.single('banner'),
         }
 
         const result = await dbRun(
-            'INSERT INTO Restaurants (name, description, address, phone, image) VALUES (?, ?, ?, ?, ?)',
-            [name, description || null, address || null, phone || null, image]
+            'INSERT INTO Restaurants (name, description, address, phone, image, owner_username, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [name, description || null, address || null, phone || null, image, assignedOwner, 'approved']
         );
 
-        return res.status(201).json({ message: 'Restaurant created.', username: trimmedUsername });
+        return res.status(201).json({ message: 'Restaurant created.', id: result.insertId });
     } catch (err) {
         console.error('Create restaurant error:', err.message);
         return res.status(500).json({ error: 'Server error.' });
@@ -304,7 +327,7 @@ app.put('/api/restaurants/:id', verifyToken, requireAdmin, upload.single('banner
         const { name, description, address, phone } = req.body;
         const { id } = req.params;
 
-        const existing = await dbGet('SELECT * FROM Restaurants WHERE username = ?', [id]);
+        const existing = await dbGet('SELECT * FROM Restaurants WHERE id = ?', [id]);
         if (!existing) return res.status(404).json({ error: 'Restaurant not found.' });
 
         let image = existing.image;
@@ -313,7 +336,7 @@ app.put('/api/restaurants/:id', verifyToken, requireAdmin, upload.single('banner
         }
 
         await dbRun(
-            'UPDATE Restaurants SET name = ?, description = ?, address = ?, phone = ?, image = ? WHERE username = ?',
+            'UPDATE Restaurants SET name = ?, description = ?, address = ?, phone = ?, image = ? WHERE id = ?',
             [name || existing.name, description !== undefined ? description : existing.description, address !== undefined ? address : existing.address, phone !== undefined ? phone : existing.phone, image, id]
         );
 
@@ -328,11 +351,45 @@ app.put('/api/restaurants/:id', verifyToken, requireAdmin, upload.single('banner
 app.delete('/api/restaurants/:id', verifyToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await dbRun('DELETE FROM Restaurants WHERE username = ?', [id]);
+        const result = await dbRun('DELETE FROM Restaurants WHERE id = ?', [id]);
         if (result.affectedRows === 0) return res.status(404).json({ error: 'Restaurant not found.' });
         return res.json({ message: 'Restaurant deleted.' });
     } catch (err) {
         console.error('Delete restaurant error:', err.message);
+        return res.status(500).json({ error: 'Server error.' });
+    }
+});
+
+// re-assign restaurant ownership (admin only)
+app.patch('/api/restaurants/:id/owner', verifyToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { owner_username } = req.body;
+
+        if (!owner_username) {
+            return res.status(400).json({ error: 'owner_username is required.' });
+        }
+
+        // verify the restaurant exists
+        const restaurant = await dbGet('SELECT * FROM Restaurants WHERE id = ?', [id]);
+        if (!restaurant) return res.status(404).json({ error: 'Restaurant not found.' });
+
+        // verify the target user exists
+        const targetUser = await dbGet('SELECT username, role FROM Users WHERE username = ?', [owner_username]);
+        if (!targetUser) return res.status(404).json({ error: 'Target user not found.' });
+
+        await dbRun(
+            'UPDATE Restaurants SET owner_username = ? WHERE id = ?',
+            [owner_username, id]
+        );
+
+        return res.json({
+            message: `Restaurant "${restaurant.name}" (ID: ${id}) re-assigned to user "${owner_username}".`,
+            restaurant_id: parseInt(id),
+            new_owner: owner_username
+        });
+    } catch (err) {
+        console.error('Re-assign restaurant owner error:', err.message);
         return res.status(500).json({ error: 'Server error.' });
     }
 });
