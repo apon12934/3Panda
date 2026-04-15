@@ -386,7 +386,7 @@ function initCustomDropdowns() {
 // small helper functions
 
 const getToken = () => localStorage.getItem('token');
-const getRole  = () => localStorage.getItem('role');
+const getRole  = () => (localStorage.getItem('role') || '').trim().toLowerCase();
 const getUserId = () => localStorage.getItem('userId');
 const getUserName = () => localStorage.getItem('userName');
 
@@ -1168,7 +1168,8 @@ async function loadRestaurantReviews(restaurantId) {
 function refreshReviewWriteVisibility() {
     const wrap = $('#review-form-wrap');
     if (!wrap) return;
-    const isCustomer = !!getToken() && getRole() === 'customer';
+    const role = getRole();
+    const isCustomer = !!getToken() && role === 'customer';
     wrap.classList.toggle('hidden', !isCustomer);
 }
 
