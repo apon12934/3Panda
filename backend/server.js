@@ -187,7 +187,7 @@ app.post('/api/register', async (req, res) => {
         const userRole = allowedRoles.includes(role) ? role : 'customer';
 
         const existing = await dbGet(
-            'SELECT id FROM Users WHERE lower(email) = lower(?) OR lower(username) = lower(?)',
+            'SELECT username FROM Users WHERE lower(email) = lower(?) OR lower(username) = lower(?)',
             [trimmedEmail, trimmedUsername]
         );
         if (existing) {
@@ -202,7 +202,7 @@ app.post('/api/register', async (req, res) => {
         );
 
         const token = jwt.sign(
-            { id: result.insertId, role: userRole },
+            { username: trimmedUsername, role: userRole },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
@@ -211,7 +211,7 @@ app.post('/api/register', async (req, res) => {
             message: 'Registration successful.',
             token,
             role: userRole,
-            userId: result.insertId,
+            userId: trimmedUsername,
             username: trimmedUsername
         });
     } catch (err) {
@@ -244,7 +244,7 @@ app.post('/api/login', async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: user.id, role: user.role },
+            { username: user.username, role: user.role },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
@@ -253,7 +253,7 @@ app.post('/api/login', async (req, res) => {
             message: 'Login successful.',
             token,
             role: user.role,
-            userId: user.id,
+            userId: user.username,
             username: user.username
         });
     } catch (err) {
@@ -291,7 +291,7 @@ app.post('/api/restaurants', verifyToken, requireAdmin, upload.single('banner'),
             [name, description || null, address || null, phone || null, image]
         );
 
-        return res.status(201).json({ message: 'Restaurant created.', id: result.insertId });
+        return res.status(201).json({ message: 'Restaurant created.', username: trimmedUsername });
     } catch (err) {
         console.error('Create restaurant error:', err.message);
         return res.status(500).json({ error: 'Server error.' });
@@ -304,7 +304,7 @@ app.put('/api/restaurants/:id', verifyToken, requireAdmin, upload.single('banner
         const { name, description, address, phone } = req.body;
         const { id } = req.params;
 
-        const existing = await dbGet('SELECT * FROM Restaurants WHERE id = ?', [id]);
+        const existing = await dbGet('SELECT * FROM Restaurants WHERE username = ?', [id]);
         if (!existing) return res.status(404).json({ error: 'Restaurant not found.' });
 
         let image = existing.image;
@@ -313,7 +313,7 @@ app.put('/api/restaurants/:id', verifyToken, requireAdmin, upload.single('banner
         }
 
         await dbRun(
-            'UPDATE Restaurants SET name = ?, description = ?, address = ?, phone = ?, image = ? WHERE id = ?',
+            'UPDATE Restaurants SET name = ?, description = ?, address = ?, phone = ?, image = ? WHERE username = ?',
             [name || existing.name, description !== undefined ? description : existing.description, address !== undefined ? address : existing.address, phone !== undefined ? phone : existing.phone, image, id]
         );
 
@@ -328,7 +328,7 @@ app.put('/api/restaurants/:id', verifyToken, requireAdmin, upload.single('banner
 app.delete('/api/restaurants/:id', verifyToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await dbRun('DELETE FROM Restaurants WHERE id = ?', [id]);
+        const result = await dbRun('DELETE FROM Restaurants WHERE username = ?', [id]);
         if (result.affectedRows === 0) return res.status(404).json({ error: 'Restaurant not found.' });
         return res.json({ message: 'Restaurant deleted.' });
     } catch (err) {
@@ -387,7 +387,7 @@ app.post('/api/menu-items', verifyToken, requireAdmin, upload.single('banner'), 
             [restaurant_id, category_id || null, name, description || null, price, image]
         );
 
-        return res.status(201).json({ message: 'Menu item created.', id: result.insertId });
+        return res.status(201).json({ message: 'Menu item created.', username: trimmedUsername });
     } catch (err) {
         console.error('Create menu item error:', err.message);
         return res.status(500).json({ error: 'Server error.' });
@@ -400,7 +400,7 @@ app.put('/api/menu-items/:id', verifyToken, requireAdmin, upload.single('banner'
         const { id } = req.params;
         const { restaurant_id, category_id, name, description, price } = req.body;
 
-        const existing = await dbGet('SELECT * FROM MenuItems WHERE id = ?', [id]);
+        const existing = await dbGet('SELECT * FROM MenuItems WHERE username = ?', [id]);
         if (!existing) return res.status(404).json({ error: 'Menu item not found.' });
 
         let image = existing.image;
@@ -409,7 +409,7 @@ app.put('/api/menu-items/:id', verifyToken, requireAdmin, upload.single('banner'
         }
 
         await dbRun(
-            'UPDATE MenuItems SET restaurant_id = ?, category_id = ?, name = ?, description = ?, price = ?, image = ? WHERE id = ?',
+            'UPDATE MenuItems SET restaurant_id = ?, category_id = ?, name = ?, description = ?, price = ?, image = ? WHERE username = ?',
             [
                 restaurant_id || existing.restaurant_id,
                 category_id !== undefined ? category_id : existing.category_id,
@@ -432,7 +432,7 @@ app.put('/api/menu-items/:id', verifyToken, requireAdmin, upload.single('banner'
 app.delete('/api/menu-items/:id', verifyToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await dbRun('DELETE FROM MenuItems WHERE id = ?', [id]);
+        const result = await dbRun('DELETE FROM MenuItems WHERE username = ?', [id]);
         if (result.affectedRows === 0) return res.status(404).json({ error: 'Menu item not found.' });
         return res.json({ message: 'Menu item deleted.' });
     } catch (err) {
@@ -447,7 +447,7 @@ app.delete('/api/menu-items/:id', verifyToken, requireAdmin, async (req, res) =>
 app.get('/api/users/profile', verifyToken, async (req, res) => {
     try {
         const user = await dbGet(
-            'SELECT id, username, email, full_name, phone, address, role, profile_image FROM Users WHERE id = ?',
+            'SELECT username, email, full_name, phone, address, role, profile_image FROM Users WHERE username = ?',
             [req.user.id]
         );
         if (!user) return res.status(404).json({ error: 'User not found.' });
@@ -463,7 +463,7 @@ app.put('/api/users/profile', verifyToken, upload.single('profile_picture'), asy
     try {
         const { username, email, password, full_name, phone, address } = req.body;
 
-        const existing = await dbGet('SELECT * FROM Users WHERE id = ?', [req.user.id]);
+        const existing = await dbGet('SELECT * FROM Users WHERE username = ?', [req.user.id]);
         if (!existing) return res.status(404).json({ error: 'User not found.' });
 
         let profile_image = existing.profile_image;
@@ -477,7 +477,7 @@ app.put('/api/users/profile', verifyToken, upload.single('profile_picture'), asy
         }
 
         await dbRun(
-            'UPDATE Users SET username = ?, email = ?, password = ?, full_name = ?, phone = ?, address = ?, profile_image = ? WHERE id = ?',
+            'UPDATE Users SET username = ?, email = ?, password = ?, full_name = ?, phone = ?, address = ?, profile_image = ? WHERE username = ?',
             [username || existing.username, email || existing.email, hashedPassword, full_name !== undefined ? full_name : existing.full_name, phone !== undefined ? phone : existing.phone, address !== undefined ? address : existing.address, profile_image, req.user.id]
         );
 
@@ -494,7 +494,7 @@ app.put('/api/users/profile', verifyToken, upload.single('profile_picture'), asy
 app.get('/api/users', verifyToken, requireAdmin, async (_req, res) => {
     try {
         const rows = await dbAll(
-            'SELECT id, username, email, full_name, phone, address, role, profile_image, created_at FROM Users'
+            'SELECT username, email, full_name, phone, address, role, profile_image, created_at FROM Users'
         );
         return res.json(rows);
     } catch (err) {
@@ -504,16 +504,16 @@ app.get('/api/users', verifyToken, requireAdmin, async (_req, res) => {
 });
 
 // update any user (admin only)
-app.put('/api/users/:id', verifyToken, requireAdmin, async (req, res) => {
+app.put('/api/users/:username', verifyToken, requireAdmin, async (req, res) => {
     try {
-        const { id } = req.params;
+        const { username: id } = req.params;
         const { username, email, role } = req.body;
 
-        const existing = await dbGet('SELECT * FROM Users WHERE id = ?', [id]);
+        const existing = await dbGet('SELECT * FROM Users WHERE username = ?', [id]);
         if (!existing) return res.status(404).json({ error: 'User not found.' });
 
         await dbRun(
-            'UPDATE Users SET username = ?, email = ?, role = ? WHERE id = ?',
+            'UPDATE Users SET username = ?, email = ?, role = ? WHERE username = ?',
             [username || existing.username, email || existing.email, role || existing.role, id]
         );
 
@@ -525,10 +525,10 @@ app.put('/api/users/:id', verifyToken, requireAdmin, async (req, res) => {
 });
 
 // delete user (admin only)
-app.delete('/api/users/:id', verifyToken, requireAdmin, async (req, res) => {
+app.delete('/api/users/:username', verifyToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await dbRun('DELETE FROM Users WHERE id = ?', [id]);
+        const result = await dbRun('DELETE FROM Users WHERE username = ?', [id]);
         if (result.affectedRows === 0) return res.status(404).json({ error: 'User not found.' });
         return res.json({ message: 'User deleted.' });
     } catch (err) {
@@ -554,7 +554,7 @@ app.post('/api/orders', verifyToken, async (req, res) => {
         let restaurant_id = null;
         const itemDetails = [];
         for (const item of items) {
-            const mi = await dbGet('SELECT id, price, restaurant_id FROM MenuItems WHERE id = ?', [item.menu_item_id]);
+            const mi = await dbGet('SELECT id, price, restaurant_id FROM MenuItems WHERE username = ?', [item.menu_item_id]);
             if (!mi) return res.status(400).json({ error: 'Menu item ' + item.menu_item_id + ' not found.' });
             const subtotal = mi.price * item.quantity;
             total_amount += subtotal;
@@ -563,7 +563,7 @@ app.post('/api/orders', verifyToken, async (req, res) => {
         }
 
         const orderResult = await dbRun(
-            'INSERT INTO Orders (user_id, restaurant_id, total_amount, status, delivery_address, payment_method, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO Orders (user_username, restaurant_id, total_amount, status, delivery_address, payment_method, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [req.user.id, restaurant_id, total_amount, 'pending', delivery_address || null, payment_method || 'cash', notes || null]
         );
 
@@ -590,8 +590,8 @@ app.get('/api/orders/mine', verifyToken, async (req, res) => {
             `SELECT o.id, o.status, o.delivery_address, o.total_amount, o.payment_method, o.notes,
                     o.created_at, u.username AS delivery_person
              FROM Orders o
-             LEFT JOIN Users u ON o.delivery_person_id = u.id
-             WHERE o.user_id = ?
+             LEFT JOIN Users u ON o.delivery_person_username = u.id
+             WHERE o.user_username = ?
              ORDER BY o.id DESC`,
             [req.user.id]
         );
@@ -620,9 +620,9 @@ app.get('/api/delivery/pending', verifyToken, async (req, res) => {
             `SELECT o.id, o.status, o.delivery_address, o.total_amount,
                     c.username AS customer_name
              FROM Orders o
-             JOIN Users c ON o.user_id = c.id
+             JOIN Users c ON o.user_username = c.id
              WHERE o.status IN ('pending', 'confirmed', 'preparing')
-               AND (o.delivery_person_id IS NULL OR o.delivery_person_id = ?)
+               AND (o.delivery_person_username IS NULL OR o.delivery_person_username = ?)
              ORDER BY o.id DESC`,
             [req.user.id]
         );
@@ -651,8 +651,8 @@ app.get('/api/delivery/history', verifyToken, async (req, res) => {
             `SELECT o.id, o.status, o.delivery_address, o.total_amount,
                     c.username AS customer_name
              FROM Orders o
-             JOIN Users c ON o.user_id = c.id
-             WHERE o.delivery_person_id = ?
+             JOIN Users c ON o.user_username = c.id
+             WHERE o.delivery_person_username = ?
                AND o.status IN ('delivered', 'cancelled')
              ORDER BY o.id DESC`,
             [req.user.id]
@@ -686,26 +686,26 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
             return res.status(400).json({ error: 'Invalid status.' });
         }
 
-        const order = await dbGet('SELECT * FROM Orders WHERE id = ?', [id]);
+        const order = await dbGet('SELECT * FROM Orders WHERE username = ?', [id]);
         if (!order) return res.status(404).json({ error: 'Order not found.' });
 
         // Authorization: only admin or the assigned delivery person can update
         if (req.user.role !== 'admin' && req.user.role !== 'delivery') {
             return res.status(403).json({ error: 'Not authorized to update this order.' });
         }
-        if (req.user.role === 'delivery' && order.delivery_person_id && order.delivery_person_id !== req.user.id) {
+        if (req.user.role === 'delivery' && order.delivery_person_username && order.delivery_person_username !== req.user.id) {
             return res.status(403).json({ error: 'You can only update orders assigned to you.' });
         }
 
         // if a delivery user takes this order, save their id
-        let delivery_person_id = order.delivery_person_id;
-        if (req.user.role === 'delivery' && !order.delivery_person_id) {
-            delivery_person_id = req.user.id;
+        let delivery_person_username = order.delivery_person_username;
+        if (req.user.role === 'delivery' && !order.delivery_person_username) {
+            delivery_person_username = req.user.id;
         }
 
         await dbRun(
-            'UPDATE Orders SET status = ?, delivery_person_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-            [status, delivery_person_id, id]
+            'UPDATE Orders SET status = ?, delivery_person_username = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?',
+            [status, delivery_person_username, id]
         );
 
         return res.json({ message: 'Order status updated.' });
@@ -725,8 +725,8 @@ app.get('/api/orders', verifyToken, requireAdmin, async (_req, res) => {
                     c.username AS customer_name,
                     d.username AS delivery_person
              FROM Orders o
-             JOIN Users c ON o.user_id = c.id
-             LEFT JOIN Users d ON o.delivery_person_id = d.id
+             JOIN Users c ON o.user_username = c.id
+             LEFT JOIN Users d ON o.delivery_person_username = d.id
              ORDER BY o.id DESC`
         );
 
@@ -766,7 +766,7 @@ app.post('/api/categories', verifyToken, requireAdmin, async (req, res) => {
         const { name, description } = req.body;
         if (!name) return res.status(400).json({ error: 'Category name is required.' });
         const result = await dbRun('INSERT INTO Categories (name, description) VALUES (?, ?)', [name, description || null]);
-        return res.status(201).json({ message: 'Category created.', id: result.insertId });
+        return res.status(201).json({ message: 'Category created.', username: trimmedUsername });
     } catch (err) {
         console.error('Create category error:', err.message);
         return res.status(500).json({ error: 'Server error.' });
@@ -778,9 +778,9 @@ app.put('/api/categories/:id', verifyToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const { name, description } = req.body;
-        const existing = await dbGet('SELECT * FROM Categories WHERE id = ?', [id]);
+        const existing = await dbGet('SELECT * FROM Categories WHERE username = ?', [id]);
         if (!existing) return res.status(404).json({ error: 'Category not found.' });
-        await dbRun('UPDATE Categories SET name = ?, description = ? WHERE id = ?',
+        await dbRun('UPDATE Categories SET name = ?, description = ? WHERE username = ?',
             [name || existing.name, description !== undefined ? description : existing.description, id]);
         return res.json({ message: 'Category updated.' });
     } catch (err) {
@@ -793,7 +793,7 @@ app.put('/api/categories/:id', verifyToken, requireAdmin, async (req, res) => {
 app.delete('/api/categories/:id', verifyToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await dbRun('DELETE FROM Categories WHERE id = ?', [id]);
+        const result = await dbRun('DELETE FROM Categories WHERE username = ?', [id]);
         if (result.affectedRows === 0) return res.status(404).json({ error: 'Category not found.' });
         return res.json({ message: 'Category deleted.' });
     } catch (err) {
@@ -811,11 +811,11 @@ app.get('/api/reviews', async (req, res) => {
         let rows;
         if (restaurant_id) {
             rows = await dbAll(
-                `SELECT r.*, u.username FROM Reviews r JOIN Users u ON r.user_id = u.id WHERE r.restaurant_id = ? ORDER BY r.created_at DESC`,
+                `SELECT r.*, u.username FROM Reviews r JOIN Users u ON r.user_username = u.id WHERE r.restaurant_id = ? ORDER BY r.created_at DESC`,
                 [restaurant_id]
             );
         } else {
-            rows = await dbAll('SELECT r.*, u.username FROM Reviews r JOIN Users u ON r.user_id = u.id ORDER BY r.created_at DESC');
+            rows = await dbAll('SELECT r.*, u.username FROM Reviews r JOIN Users u ON r.user_username = u.id ORDER BY r.created_at DESC');
         }
         return res.json(rows);
     } catch (err) {
@@ -832,10 +832,10 @@ app.post('/api/reviews', verifyToken, async (req, res) => {
             return res.status(400).json({ error: 'restaurant_id and rating are required.' });
         }
         const result = await dbRun(
-            'INSERT INTO Reviews (user_id, restaurant_id, order_id, rating, comment) VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO Reviews (user_username, restaurant_id, order_id, rating, comment) VALUES (?, ?, ?, ?, ?)',
             [req.user.id, restaurant_id, order_id || null, rating, comment || null]
         );
-        return res.status(201).json({ message: 'Review submitted.', id: result.insertId });
+        return res.status(201).json({ message: 'Review submitted.', username: trimmedUsername });
     } catch (err) {
         console.error('Create review error:', err.message);
         return res.status(500).json({ error: 'Server error.' });
@@ -846,12 +846,12 @@ app.post('/api/reviews', verifyToken, async (req, res) => {
 app.delete('/api/reviews/:id', verifyToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const review = await dbGet('SELECT * FROM Reviews WHERE id = ?', [id]);
+        const review = await dbGet('SELECT * FROM Reviews WHERE username = ?', [id]);
         if (!review) return res.status(404).json({ error: 'Review not found.' });
-        if (req.user.role !== 'admin' && review.user_id !== req.user.id) {
+        if (req.user.role !== 'admin' && review.user_username !== req.user.id) {
             return res.status(403).json({ error: 'Not authorized.' });
         }
-        await dbRun('DELETE FROM Reviews WHERE id = ?', [id]);
+        await dbRun('DELETE FROM Reviews WHERE username = ?', [id]);
         return res.json({ message: 'Review deleted.' });
     } catch (err) {
         console.error('Delete review error:', err.message);

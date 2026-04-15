@@ -5,8 +5,7 @@
 
 -- ---------------- users table ----------------
 CREATE TABLE IF NOT EXISTS Users (
-    id              INT              PRIMARY KEY AUTO_INCREMENT,
-    username        VARCHAR(100)     NOT NULL,
+    username        VARCHAR(100)     PRIMARY KEY,
     email           VARCHAR(255)     NOT NULL UNIQUE,
     password        VARCHAR(255)     NOT NULL,
     full_name       VARCHAR(200)     DEFAULT NULL,
@@ -59,9 +58,9 @@ CREATE TABLE IF NOT EXISTS MenuItems (
 -- ---------------- orders table ----------------
 CREATE TABLE IF NOT EXISTS Orders (
     id                 INT              PRIMARY KEY AUTO_INCREMENT,
-    user_id            INT              NOT NULL,
+    user_username      VARCHAR(100)     NOT NULL,
     restaurant_id      INT              DEFAULT NULL,
-    delivery_person_id INT              DEFAULT NULL,
+    delivery_person_username VARCHAR(100) DEFAULT NULL,
     total_amount       DECIMAL(10,2)    NOT NULL DEFAULT 0,
     status             VARCHAR(30)      NOT NULL DEFAULT 'pending'
                                          CHECK (status IN ('pending', 'confirmed', 'preparing',
@@ -72,9 +71,9 @@ CREATE TABLE IF NOT EXISTS Orders (
     notes              TEXT             DEFAULT NULL,
     created_at         TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
     updated_at         TIMESTAMP        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id)            REFERENCES Users       (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (user_username)            REFERENCES Users       (username) ON UPDATE CASCADE ON DELETE CASCADE,
     FOREIGN KEY (restaurant_id)      REFERENCES Restaurants  (id) ON UPDATE CASCADE ON DELETE SET NULL,
-    FOREIGN KEY (delivery_person_id) REFERENCES Users        (id) ON UPDATE CASCADE ON DELETE SET NULL
+    FOREIGN KEY (delivery_person_username) REFERENCES Users        (username) ON UPDATE CASCADE ON DELETE SET NULL
 );
 
 -- ---------------- order details table ----------------
@@ -92,24 +91,26 @@ CREATE TABLE IF NOT EXISTS OrderDetails (
 -- ---------------- reviews table ----------------
 CREATE TABLE IF NOT EXISTS Reviews (
     id              INT              PRIMARY KEY AUTO_INCREMENT,
-    user_id         INT              NOT NULL,
+    user_username   VARCHAR(100)     NOT NULL,
     restaurant_id   INT              NOT NULL,
     order_id        INT              DEFAULT NULL,
     rating          INT              NOT NULL CHECK (rating >= 1 AND rating <= 5),
     comment         TEXT             DEFAULT NULL,
     created_at      TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id)       REFERENCES Users       (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (user_username)       REFERENCES Users       (username) ON UPDATE CASCADE ON DELETE CASCADE,
     FOREIGN KEY (restaurant_id) REFERENCES Restaurants  (id) ON UPDATE CASCADE ON DELETE CASCADE,
     FOREIGN KEY (order_id)      REFERENCES Orders       (id) ON UPDATE CASCADE ON DELETE SET NULL
 );
 
 -- ---------------- sample data for testing ----------------
+DELETE FROM Users WHERE email = 'admin@3panda.com';
+DELETE FROM Users WHERE username = 'Admin' AND email = 'admin@3panda.com';
 
 -- test admin user (password is admin123, already hashed)
 INSERT IGNORE INTO Users (username, email, password, full_name, role)
 VALUES (
     'Admin',
-    'admin@3panda.com',
+    'admin@3panda.ddns.net',
     '$2b$10$ZMF7VBOmreZlglKMV/nOz.WU7NYYS2WhlUPWOPojvfY2zF/2OQRkO',
     'System Admin',
     'admin'
@@ -126,11 +127,11 @@ CREATE INDEX idx_users_username ON Users(username);
 CREATE INDEX idx_users_role ON Users(role);
 CREATE INDEX idx_menu_restaurant ON MenuItems(restaurant_id);
 CREATE INDEX idx_menu_category ON MenuItems(category_id);
-CREATE INDEX idx_orders_user ON Orders(user_id);
+CREATE INDEX idx_orders_user_username ON Orders(user_username);
 CREATE INDEX idx_orders_status ON Orders(status);
-CREATE INDEX idx_orders_delivery ON Orders(delivery_person_id);
+CREATE INDEX idx_orders_delivery_username ON Orders(delivery_person_username);
 CREATE INDEX idx_orders_restaurant ON Orders(restaurant_id);
 CREATE INDEX idx_orderDet_order ON OrderDetails(order_id);
 CREATE INDEX idx_orderDet_item ON OrderDetails(menu_item_id);
-CREATE INDEX idx_reviews_user ON Reviews(user_id);
+CREATE INDEX idx_reviews_user_username ON Reviews(user_username);
 CREATE INDEX idx_reviews_rest ON Reviews(restaurant_id);
