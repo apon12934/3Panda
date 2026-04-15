@@ -837,7 +837,7 @@ app.post('/api/orders', verifyToken, async (req, res) => {
         let restaurant_id = null;
         const itemDetails = [];
         for (const item of items) {
-            const mi = await dbGet('SELECT id, price, restaurant_id FROM MenuItems WHERE username = ?', [item.menu_item_id]);
+            const mi = await dbGet('SELECT id, price, restaurant_id FROM MenuItems WHERE id = ?', [item.menu_item_id]);
             if (!mi) return res.status(400).json({ error: 'Menu item ' + item.menu_item_id + ' not found.' });
             const subtotal = mi.price * item.quantity;
             total_amount += subtotal;
