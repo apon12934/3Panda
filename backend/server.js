@@ -1002,7 +1002,8 @@ app.get('/api/delivery/pending', verifyToken, async (req, res) => {
                 const customerJoinKey = getUserJoinKeyForOrderColumn(compat.ordersUserColumn);
         const orders = await dbAll(
             `SELECT o.id, o.status, o.delivery_address, o.total_amount,
-                                        COALESCE(c.username, CAST(o.${compat.ordersUserColumn} AS CHAR)) AS customer_name
+                                        COALESCE(c.username, CAST(o.${compat.ordersUserColumn} AS CHAR)) AS customer_name,
+                                        c.profile_image AS customer_profile_image
              FROM Orders o
                          LEFT JOIN Users c ON o.${compat.ordersUserColumn} = c.${customerJoinKey}
              WHERE o.status IN ('pending', 'confirmed', 'preparing')
@@ -1040,7 +1041,8 @@ app.get('/api/delivery/history', verifyToken, async (req, res) => {
         const customerJoinKey = getUserJoinKeyForOrderColumn(compat.ordersUserColumn);
         const orders = await dbAll(
             `SELECT o.id, o.status, o.delivery_address, o.total_amount,
-                    COALESCE(c.username, CAST(o.${compat.ordersUserColumn} AS CHAR)) AS customer_name
+                                        COALESCE(c.username, CAST(o.${compat.ordersUserColumn} AS CHAR)) AS customer_name,
+                                        c.profile_image AS customer_profile_image
              FROM Orders o
              LEFT JOIN Users c ON o.${compat.ordersUserColumn} = c.${customerJoinKey}
              WHERE o.${compat.ordersDeliveryColumn} = ?

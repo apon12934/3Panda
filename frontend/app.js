@@ -597,6 +597,76 @@ let selectedAddressLabel = '';
 let mapSearchDebounce = null;
 let activeRestaurantIdForReviews = null;
 let selectedReviewRating = 0;
+let currentUserProfileImage = null;
+let currentUserProfileRequested = false;
+
+function escapeHtmlAttr(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function getNameInitials(name) {
+    const safe = String(name || '').trim();
+    if (!safe) return 'U';
+    const parts = safe.split(/\s+/).slice(0, 2);
+    return parts.map((p) => p.charAt(0).toUpperCase()).join('') || 'U';
+}
+
+function buildProfilePinIcon({ imageUrl, name }) {
+    const hasImage = !!(imageUrl && String(imageUrl).trim());
+    const safeName = escapeHtmlAttr(name || 'User');
+    const fallback = `<span class="profile-pin-avatar-fallback">${getNameInitials(name)}</span>`;
+    const imageMarkup = hasImage
+        ? `<img src="${escapeHtmlAttr(imageUrl)}" alt="${safeName}" class="profile-pin-avatar-img" loading="lazy">`
+        : fallback;
+
+    const html = `
+        <div class="profile-pin-wrap" title="${safeName}">
+            <div class="profile-pin-avatar">${imageMarkup}</div>
+            <div class="profile-pin-tail" aria-hidden="true"></div>
+        </div>
+    `;
+
+    return L.divIcon({
+        className: 'profile-pin-icon',
+        html,
+        iconSize: [74, 102],
+        iconAnchor: [37, 102],
+        popupAnchor: [0, -96]
+    });
+}
+
+function createProfilePinMarker(map, lat, lng, { imageUrl, name, popupText, openPopup = false } = {}) {
+    if (!map || typeof L === 'undefined') return null;
+    const marker = L.marker([lat, lng], {
+        icon: buildProfilePinIcon({ imageUrl, name })
+    }).addTo(map);
+
+    if (popupText) marker.bindPopup(popupText);
+    if (openPopup && popupText) marker.openPopup();
+    return marker;
+}
+
+async function getCurrentUserProfileImage() {
+    if (!getToken()) return null;
+    if (currentUserProfileImage) return currentUserProfileImage;
+    if (currentUserProfileRequested) return null;
+
+    currentUserProfileRequested = true;
+    try {
+        const res = await fetch(API + '/users/profile', { headers: authHeaders() });
+        if (!res.ok) return null;
+        const user = await res.json();
+        currentUserProfileImage = user && user.profile_image ? user.profile_image : null;
+        return currentUserProfileImage;
+    } catch (err) {
+        console.error(err);
+        return null;
+    }
+}
 
 function initHome() {
     loadRestaurants();
@@ -930,9 +1000,17 @@ function setCheckoutLocation(lat, lng, label = 'Delivery here') {
     if (!mapInstance) return;
 
     if (mapMarker) mapInstance.removeLayer(mapMarker);
-    mapMarker = L.marker([selectedLat, selectedLng]).addTo(mapInstance)
-        .bindPopup(label)
-        .openPopup();
+    mapMarker = createProfilePinMarker(mapInstance, selectedLat, selectedLng, {
+        name: getUserName() || 'You',
+        popupText: label,
+        openPopup: true
+    });
+
+    const markerRef = mapMarker;
+    getCurrentUserProfileImage().then((imageUrl) => {
+        if (!imageUrl || !markerRef || markerRef !== mapMarker) return;
+        markerRef.setIcon(buildProfilePinIcon({ imageUrl, name: getUserName() || 'You' }));
+    });
 
     mapInstance.setView([selectedLat, selectedLng], Math.max(mapInstance.getZoom(), 15));
 }
@@ -1938,9 +2016,12 @@ function showSelectedPendingOrderOnMap(order, selectedCardEl, opts = {}) {
         selectedOrderMarker = null;
     }
 
-    selectedOrderMarker = L.marker([coords.lat, coords.lng]).addTo(selectedOrderMap)
-        .bindPopup(`Order #${order.id} - ${order.customer_name || 'Customer'}`)
-        .openPopup();
+    selectedOrderMarker = createProfilePinMarker(selectedOrderMap, coords.lat, coords.lng, {
+        imageUrl: order.customer_profile_image,
+        name: order.customer_name || 'Customer',
+        popupText: `Order #${order.id} - ${order.customer_name || 'Customer'}`,
+        openPopup: true
+    });
 
     selectedOrderMap.setView([coords.lat, coords.lng], 15);
     setTimeout(() => selectedOrderMap.invalidateSize(), 180);
@@ -2088,8 +2169,11 @@ function initDeliveryMap() {
         if (o.delivery_address) {
             const parts = o.delivery_address.split(',').map(s => parseFloat(s.trim()));
             if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-                const m = L.marker([parts[0], parts[1]]).addTo(deliveryMap)
-                    .bindPopup(`Order #${o.id} — ${o.customer_name || 'Customer'}`);
+                const m = createProfilePinMarker(deliveryMap, parts[0], parts[1], {
+                    imageUrl: o.customer_profile_image,
+                    name: o.customer_name || 'Customer',
+                    popupText: `Order #${o.id} — ${o.customer_name || 'Customer'}`
+                });
                 deliveryMarkers.push(m);
             }
         }
@@ -2289,10 +2373,11 @@ async function buildMultiStopRoute() {
         }).addTo(deliveryMap);
         deliveryRouteLayers.push(line);
 
-        const stopMarker = L.marker([stop.coords.lat, stop.coords.lng], {
-            title: `Stop ${i + 1}`
-        }).addTo(deliveryMap)
-            .bindPopup(`Stop ${i + 1}: Order #${stop.order.id} - ${stop.order.customer_name || 'Customer'}`);
+        const stopMarker = createProfilePinMarker(deliveryMap, stop.coords.lat, stop.coords.lng, {
+            imageUrl: stop.order.customer_profile_image,
+            name: stop.order.customer_name || 'Customer',
+            popupText: `Stop ${i + 1}: Order #${stop.order.id} - ${stop.order.customer_name || 'Customer'}`
+        });
         deliveryRouteStopMarkers.push(stopMarker);
 
         const legSteps = (route.legs && route.legs[0] && route.legs[0].steps) ? route.legs[0].steps : [];

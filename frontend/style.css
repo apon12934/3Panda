@@ -1442,6 +1442,60 @@ tbody tr:last-child {
     background: var(--bg-warm);
 }
 
+/* Custom profile-photo map pins (customer + rider maps) */
+.profile-pin-icon {
+    background: transparent;
+    border: 0;
+}
+
+.profile-pin-wrap {
+    position: relative;
+    width: 74px;
+    height: 102px;
+}
+
+.profile-pin-avatar {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    border: 5px solid #FF1010;
+    overflow: hidden;
+    background: #E5E7EB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+    position: relative;
+    z-index: 2;
+}
+
+.profile-pin-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-pin-avatar-fallback {
+    font-family: var(--font-heading);
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #1A1A2E;
+}
+
+.profile-pin-tail {
+    position: absolute;
+    left: 50%;
+    top: 57px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 24px solid transparent;
+    border-right: 24px solid transparent;
+    border-top: 40px solid #FF1010;
+    z-index: 1;
+}
+
 .route-builder-controls {
     display: flex;
     flex-wrap: wrap;
