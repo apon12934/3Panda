@@ -899,6 +899,130 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     color: var(--text-secondary);
 }
 
+/* Custom animated dropdown */
+.custom-dropdown-group {
+    margin-bottom: 1.25rem;
+}
+
+.custom-dropdown-group > label {
+    display: block;
+    margin-bottom: .4rem;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: .72rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text);
+}
+
+.custom-dropdown {
+    position: relative;
+}
+
+.custom-dropdown-native {
+    display: none;
+}
+
+.custom-dropdown-trigger {
+    width: 100%;
+    min-height: 3rem;
+    padding: .75rem 1rem;
+    border: 1.5px solid var(--charcoal);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    font-family: var(--font-body);
+    font-size: .95rem;
+    cursor: pointer;
+    transition: border-color .15s ease-out, background .15s ease-out, color .15s ease-out;
+}
+
+.custom-dropdown-trigger:hover,
+.custom-dropdown-trigger:focus-visible,
+.custom-dropdown.is-open .custom-dropdown-trigger {
+    border-color: var(--red);
+}
+
+.custom-dropdown-value {
+    min-width: 0;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.custom-dropdown-icon {
+    width: .7rem;
+    height: .7rem;
+    border-right: 2px solid var(--charcoal);
+    border-bottom: 2px solid var(--charcoal);
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform .15s ease-out, border-color .15s ease-out;
+    flex: 0 0 auto;
+}
+
+.custom-dropdown.is-open .custom-dropdown-icon {
+    transform: rotate(-135deg) translateY(2px);
+    border-color: var(--red);
+}
+
+.custom-dropdown-menu {
+    position: absolute;
+    top: calc(100% + .35rem);
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: var(--surface);
+    border: 1.5px solid var(--charcoal);
+    border-radius: var(--radius);
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-8px) scaleY(.94);
+    transform-origin: top;
+    pointer-events: none;
+    transition: transform .15s ease-out, opacity .15s ease-out;
+}
+
+.custom-dropdown.is-open .custom-dropdown-menu {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    pointer-events: auto;
+}
+
+.custom-dropdown-option {
+    width: 100%;
+    border: 0;
+    background: var(--surface);
+    color: var(--text);
+    padding: .8rem 1rem;
+    text-align: left;
+    font-family: var(--font-body);
+    font-size: .92rem;
+    cursor: pointer;
+    transition: background .12s ease-out, color .12s ease-out;
+}
+
+.custom-dropdown-option:hover,
+.custom-dropdown-option:focus-visible {
+    background: var(--red-subtle);
+    color: var(--charcoal);
+    outline: none;
+}
+
+.custom-dropdown-option.is-selected {
+    background: #F5F5F5;
+    color: var(--charcoal);
+    font-weight: 600;
+}
+
+.custom-dropdown-option + .custom-dropdown-option {
+    border-top: 1px solid var(--border-light);
+}
+
 /* ============================================================
    AUTH CARD (Identity Portal)
    ============================================================ */

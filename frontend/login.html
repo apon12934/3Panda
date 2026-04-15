@@ -79,13 +79,24 @@
                 <input type="password" id="reg-password" class="form-control" placeholder=" " required>
                 <label for="reg-password">Password</label>
             </div>
-            <div class="form-group floating-group floating-group--select">
-                <select id="reg-role" class="form-control">
-                    <option value="customer">Customer</option>
-                    <option value="delivery">Delivery Rider</option>
-                    <option value="vendor">Restaurant Vendor</option>
-                </select>
+            <div class="form-group custom-dropdown-group">
                 <label for="reg-role">Account Type</label>
+                <div class="custom-dropdown" data-custom-dropdown>
+                    <select id="reg-role" class="custom-dropdown-native" aria-hidden="true" tabindex="-1">
+                        <option value="customer">Customer</option>
+                        <option value="delivery">Delivery Rider</option>
+                        <option value="vendor">Restaurant Vendor</option>
+                    </select>
+                    <button type="button" class="custom-dropdown-trigger" aria-haspopup="listbox" aria-expanded="false">
+                        <span class="custom-dropdown-value">Customer</span>
+                        <span class="custom-dropdown-icon" aria-hidden="true"></span>
+                    </button>
+                    <div class="custom-dropdown-menu" role="listbox" aria-label="Account Type options">
+                        <button type="button" class="custom-dropdown-option is-selected" data-value="customer" role="option" aria-selected="true">Customer</button>
+                        <button type="button" class="custom-dropdown-option" data-value="delivery" role="option" aria-selected="false">Delivery Rider</button>
+                        <button type="button" class="custom-dropdown-option" data-value="vendor" role="option" aria-selected="false">Restaurant Vendor</button>
+                    </div>
+                </div>
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%;padding:.8rem;">Create Account →</button>
         </form>

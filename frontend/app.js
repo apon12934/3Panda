@@ -172,6 +172,69 @@ function initFileUploadPlaceholders() {
     });
 }
 
+function initCustomDropdowns() {
+    const dropdowns = document.querySelectorAll('[data-custom-dropdown]');
+    if (!dropdowns.length) return;
+
+    const closeDropdown = (dropdown) => {
+        if (!dropdown) return;
+        dropdown.classList.remove('is-open');
+        const trigger = dropdown.querySelector('.custom-dropdown-trigger');
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    };
+
+    const closeAllDropdowns = (except) => {
+        dropdowns.forEach((dropdown) => {
+            if (dropdown !== except) closeDropdown(dropdown);
+        });
+    };
+
+    dropdowns.forEach((dropdown) => {
+        const nativeSelect = dropdown.querySelector('select');
+        const trigger = dropdown.querySelector('.custom-dropdown-trigger');
+        const valueEl = dropdown.querySelector('.custom-dropdown-value');
+        const options = Array.from(dropdown.querySelectorAll('.custom-dropdown-option'));
+
+        if (!nativeSelect || !trigger || !valueEl || !options.length) return;
+
+        const syncSelection = (value) => {
+            nativeSelect.value = value;
+            const selectedOption = options.find(option => option.dataset.value === value) || options[0];
+            const selectedLabel = selectedOption ? selectedOption.textContent.trim() : nativeSelect.options[nativeSelect.selectedIndex]?.textContent?.trim() || '';
+            valueEl.textContent = selectedLabel;
+
+            options.forEach((option) => {
+                const isSelected = option.dataset.value === value;
+                option.classList.toggle('is-selected', isSelected);
+                option.setAttribute('aria-selected', String(isSelected));
+            });
+        };
+
+        syncSelection(nativeSelect.value || options[0].dataset.value);
+
+        trigger.addEventListener('click', (e) => {
+            e.preventDefault();
+            const willOpen = !dropdown.classList.contains('is-open');
+            closeAllDropdowns(dropdown);
+            dropdown.classList.toggle('is-open', willOpen);
+            trigger.setAttribute('aria-expanded', String(willOpen));
+        });
+
+        options.forEach((option) => {
+            option.addEventListener('click', () => {
+                syncSelection(option.dataset.value);
+                closeDropdown(dropdown);
+            });
+        });
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!event.target.closest('[data-custom-dropdown]')) {
+            closeAllDropdowns();
+        }
+    });
+}
+
 // small helper functions
 
 const getToken = () => localStorage.getItem('token');
@@ -307,6 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initNavbarScroll();
     initHamburger();
     initFileUploadPlaceholders();
+    initCustomDropdowns();
     initCommonButtonLogic();
     initLazyLoading();
 
