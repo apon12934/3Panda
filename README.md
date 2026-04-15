@@ -1,8 +1,55 @@
-# 3 Panda - DBMS Lab Project
+<p align="center">
+  <img src="frontend/images/logo/3panda.png" alt="3 Panda Logo" width="120" />
+</p>
 
-A full-stack, role-based food delivery platform built for a University DBMS Lab course project.
+<h1 align="center">3 Panda</h1>
+<p align="center"><strong>University DBMS Lab Course Project</strong></p>
 
-3 Panda demonstrates practical database design, relational integrity, role-based workflows, and real deployment with a cloud database.
+<p align="center">
+  <img src="https://img.shields.io/badge/Node.js-Express-1f2937?style=for-the-badge&logo=node.js" alt="Node Express" />
+  <img src="https://img.shields.io/badge/Database-TiDB%20(MySQL)-1f2937?style=for-the-badge&logo=mysql" alt="TiDB MySQL" />
+  <img src="https://img.shields.io/badge/Auth-JWT%20%2B%20bcrypt-1f2937?style=for-the-badge" alt="JWT bcrypt" />
+  <img src="https://img.shields.io/badge/Deploy-Render-1f2937?style=for-the-badge&logo=render" alt="Render" />
+</p>
+
+<p align="center">
+  A full-stack, role-based food delivery platform demonstrating practical database design,
+  relational integrity, role-based workflows, and real deployment with a cloud database.
+</p>
+
+---
+
+## Quick Overview
+
+| Item | Details |
+|---|---|
+| Project Name | 3 Panda |
+| Course Context | DBMS Lab Project |
+| Architecture | Monolithic Web Application |
+| Backend | Node.js + Express |
+| Frontend | HTML + CSS + Vanilla JavaScript |
+| Database | TiDB Serverless (MySQL-compatible) |
+| Media Storage | Cloudinary |
+| Deployment | Render |
+
+## Table of Contents
+
+- [Project Highlights](#project-highlights)
+- [Tech Stack](#tech-stack)
+- [DBMS Concepts Demonstrated](#dbms-concepts-demonstrated)
+- [Roles and Main Workflows](#roles-and-main-workflows)
+- [Database Schema (Core Tables)](#database-schema-core-tables)
+- [API Overview](#api-overview)
+- [Project Structure](#project-structure)
+- [Setup Instructions (Local)](#setup-instructions-local)
+- [Demo Credentials (Lab)](#demo-credentials-lab)
+- [URL Routing](#url-routing)
+- [Deployment (Render)](#deployment-render)
+- [Performance Notes](#performance-notes)
+- [Security and Validation](#security-and-validation)
+- [Known Limitations (Academic Scope)](#known-limitations-academic-scope)
+- [Team](#team)
+- [License](#license)
 
 ## Project Highlights
 
@@ -125,14 +172,14 @@ Main route groups:
 
 ## Setup Instructions (Local)
 
-## 1) Install dependencies
+### 1) Install dependencies
 
 ```bash
 cd backend
 npm install
 ```
 
-## 2) Configure environment variables
+### 2) Configure environment variables
 
 Create `backend/.env` with:
 
@@ -148,7 +195,7 @@ CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 ```
 
-## 3) Run the server
+### 3) Run the server
 
 ```bash
 npm run dev
@@ -166,7 +213,7 @@ Server default:
 
 The backend serves frontend static files directly, so no separate frontend build step is required.
 
-## 4) First run behavior
+### 4) First run behavior
 
 On startup, the app loads and executes `database/schema.sql` statements (safe `IF NOT EXISTS` / compatible behavior), creates tables/indexes, and seeds default records where needed.
 
