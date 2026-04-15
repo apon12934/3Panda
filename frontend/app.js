@@ -2574,31 +2574,31 @@ async function adminLoadUsers() {
         const tbody = $('#users-tbody');
         tbody.innerHTML = users.map(u => `
             <tr>
-                <td>${u.id}</td>
+                <td>${u.id || u.username}</td>
                 <td>${u.username}</td>
                 <td>${u.email}</td>
                 <td><span class="${badgeCls(u.role)}">${u.role}</span></td>
                 <td class="gap-row">
-                    <button class="btn btn-sm btn-primary" onclick="adminEditUser(${u.id}, '${u.username.replace(/'/g,"\\'") }', '${u.email.replace(/'/g,"\\'") }', '${u.role}')">Edit</button>
-                    <button class="btn btn-sm btn-danger" onclick="adminDeleteUser(${u.id})">Del</button>
+                    <button class="btn btn-sm btn-primary" onclick="adminEditUser('${u.username.replace(/'/g,"\\'") }', '${u.username.replace(/'/g,"\\'") }', '${u.email.replace(/'/g,"\\'") }', '${u.role}')">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="adminDeleteUser('${u.username.replace(/'/g,"\\'") }')">Del</button>
                 </td>
             </tr>
         `).join('');
     } catch (err) { console.error(err); }
 }
 
-window.adminEditUser = (id, username, email, role) => {
+window.adminEditUser = (userKey, username, email, role) => {
     $('#edit-user-card').classList.remove('hidden');
-    $('#edit-user-id').value = id;
+    $('#edit-user-id').value = userKey;
     $('#edit-user-name').value = username;
     $('#edit-user-email').value = email;
     $('#edit-user-role').value = role;
 };
 
-window.adminDeleteUser = async (id) => {
-    if (!confirm('Delete user #' + id + '?')) return;
+window.adminDeleteUser = async (userKey) => {
+    if (!confirm('Delete user ' + userKey + '?')) return;
     try {
-        const res = await fetch(API + '/users/' + id, { method: 'DELETE', headers: authHeaders() });
+        const res = await fetch(API + '/users/' + encodeURIComponent(userKey), { method: 'DELETE', headers: authHeaders() });
         const data = await res.json();
         if (!res.ok) return showMsg(data.error);
         showMsg('User deleted.', 'success');

@@ -870,15 +870,15 @@ app.get('/api/users', verifyToken, requireAdmin, async (_req, res) => {
 // update any user (admin only)
 app.put('/api/users/:username', verifyToken, requireAdmin, async (req, res) => {
     try {
-        const { username: id } = req.params;
+        const { username: targetUsername } = req.params;
         const { username, email, role } = req.body;
 
-        const existing = await dbGet('SELECT * FROM Users WHERE username = ?', [id]);
+        const existing = await dbGet('SELECT * FROM Users WHERE username = ?', [targetUsername]);
         if (!existing) return res.status(404).json({ error: 'User not found.' });
 
         await dbRun(
             'UPDATE Users SET username = ?, email = ?, role = ? WHERE username = ?',
-            [username || existing.username, email || existing.email, role || existing.role, id]
+            [username || existing.username, email || existing.email, role || existing.role, targetUsername]
         );
 
         return res.json({ message: 'User updated.' });
@@ -891,8 +891,8 @@ app.put('/api/users/:username', verifyToken, requireAdmin, async (req, res) => {
 // delete user (admin only)
 app.delete('/api/users/:username', verifyToken, requireAdmin, async (req, res) => {
     try {
-        const { id } = req.params;
-        const result = await dbRun('DELETE FROM Users WHERE username = ?', [id]);
+        const { username: targetUsername } = req.params;
+        const result = await dbRun('DELETE FROM Users WHERE username = ?', [targetUsername]);
         if (result.affectedRows === 0) return res.status(404).json({ error: 'User not found.' });
         return res.json({ message: 'User deleted.' });
     } catch (err) {
