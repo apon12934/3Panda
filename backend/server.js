@@ -1053,6 +1053,7 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
+        let nextStatus = status;
 
         const validStatuses = ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'];
         if (!status || !validStatuses.includes(status)) {
@@ -1076,16 +1077,30 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
             return res.status(403).json({ error: 'You can only update orders assigned to you.' });
         }
 
+        // Rider "cancel" means releasing assignment back to pending pool.
+        if (req.user.role === 'delivery' && status === 'cancelled') {
+            nextStatus = 'pending';
+        }
+
         // if a delivery user takes this order, save their id
         let deliveryPersonValue = order[compat.ordersDeliveryColumn];
         if (req.user.role === 'delivery' && !order[compat.ordersDeliveryColumn]) {
             deliveryPersonValue = deliveryAssigneeValue;
         }
 
+        // Releasing an order clears current assignee so another rider can pick it.
+        if (req.user.role === 'delivery' && nextStatus === 'pending') {
+            deliveryPersonValue = null;
+        }
+
         await dbRun(
             `UPDATE Orders SET status = ?, ${compat.ordersDeliveryColumn} = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-            [status, deliveryPersonValue, id]
+            [nextStatus, deliveryPersonValue, id]
         );
+
+        if (req.user.role === 'delivery' && status === 'cancelled') {
+            return res.json({ message: 'Order released for other riders.' });
+        }
 
         return res.json({ message: 'Order status updated.' });
     } catch (err) {
