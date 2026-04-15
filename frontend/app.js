@@ -2680,7 +2680,7 @@ async function adminLoadOrders() {
                 <td><span class="${badgeCls(o.status)}">${formatStatus(o.status)}</span></td>
                 <td>${o.delivery_address || '—'}</td>
                 <td>
-                    <select class="form-control" style="width:auto;display:inline;font-size:.8rem;" onchange="adminUpdateOrderStatus(${o.id}, this.value)">
+                    <select class="form-control admin-order-status-select" style="width:auto;display:inline;font-size:.8rem;" onchange="adminUpdateOrderStatus(${o.id}, this.value)">
                         <option value="">Change…</option>
                         <option value="pending">Pending</option>
                         <option value="confirmed">Confirmed</option>
@@ -2692,6 +2692,12 @@ async function adminLoadOrders() {
                 </td>
             </tr>
         `).join('');
+
+        if (typeof window.refreshCustomDropdown === 'function') {
+            tbody.querySelectorAll('.admin-order-status-select').forEach((selectEl) => {
+                window.refreshCustomDropdown(selectEl);
+            });
+        }
     } catch (err) { console.error(err); }
 }
 
