@@ -1092,7 +1092,9 @@ function setupReviewStarPicker() {
 function renderReviewList(container, reviews, opts = {}) {
     if (!container) return;
     const showReplyEditor = !!opts.showReplyEditor;
-    const currentUser = getToken() ? localStorage.getItem('username') : null;
+    const currentUser = getToken()
+        ? String(getUserName() || localStorage.getItem('username') || '').trim().toLowerCase()
+        : '';
 
     const escapeHtml = (value) => String(value || '')
         .replace(/&/g, '&amp;')
@@ -1114,8 +1116,9 @@ function renderReviewList(container, reviews, opts = {}) {
             ? `<div class="review-vendor-reply"><strong>Vendor reply:</strong><p>${escapeHtml(review.vendor_reply)}</p></div>`
             : '';
 
-        const safeReviewer = escapeHtml(review.user_username || review.username || 'Customer');
-        const isOwner = currentUser === (review.user_username || review.username);
+        const reviewerRaw = String(review.user_username || review.username || '').trim();
+        const safeReviewer = escapeHtml(reviewerRaw || 'Customer');
+        const isOwner = !!currentUser && currentUser === reviewerRaw.toLowerCase();
 
         const actionButtons = isOwner && !showReplyEditor
             ? `<div class="review-actions gap-row" style="gap:.5rem;margin-top:0.5rem;">
