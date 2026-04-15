@@ -21,6 +21,7 @@
     --bg-warm:      #FFF8F6;
     --surface:      #FFFFFF;
     --surface-hover:#FEFEFE;
+    --surface-soft: #FCFCFD;
 
     --charcoal:     #1A1A2E;
     --charcoal-mid: #2D2D44;
@@ -33,6 +34,7 @@
 
     --border:       #E5E7EB;
     --border-light: #F3F4F6;
+    --focus-ring:   rgba(198, 40, 40, 0.22);
 
     /* Shadows */
     --shadow-xs:    0 1px 2px rgba(0,0,0,.04);
@@ -74,6 +76,9 @@ body {
     color: var(--text);
     line-height: 1.6;
     min-height: 100vh;
+    background-image:
+        radial-gradient(circle at 14% -5%, rgba(198, 40, 40, 0.055), transparent 34%),
+        radial-gradient(circle at 90% 18%, rgba(15, 23, 42, 0.035), transparent 30%);
 }
 
 /* Prefer Anek Bangla for Bengali content where language metadata is present */
@@ -171,7 +176,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: .75rem 2.5rem;
+    padding: .72rem 2rem;
     position: sticky;
     top: 0;
     z-index: 100;
@@ -311,9 +316,9 @@ body {
    ============================================================ */
 
 .container {
-    max-width: 1200px;
+    max-width: 1240px;
     margin: 0 auto;
-    padding: 2.5rem 2rem;
+    padding: 2.25rem 1.8rem;
 }
 
 .container-sm {
@@ -510,10 +515,14 @@ body {
     font-weight: 600;
     color: var(--red);
     letter-spacing: .02em;
+    padding: .32rem .62rem;
+    border-radius: var(--radius-full);
+    transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
 }
 
 .section-header .view-all:hover {
     color: var(--red-dark);
+    background: var(--red-subtle);
 }
 
 /* ============================================================
@@ -523,19 +532,19 @@ body {
 .card {
     background: var(--surface);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-xs);
+    box-shadow: var(--shadow-sm);
     overflow: hidden;
     display: flex;
     flex-direction: column;
     transition: transform var(--duration) var(--ease),
                 box-shadow var(--duration) var(--ease);
-    border: 1px solid var(--border-light);
+    border: 1px solid var(--border);
 }
 
 .card:hover {
-    transform: translateY(-6px);
-    box-shadow: var(--shadow-lg);
-    border-color: transparent;
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: #d7dbe3;
 }
 
 .card-img {
@@ -546,7 +555,7 @@ body {
 }
 
 .card-body {
-    padding: 1.15rem 1.35rem;
+    padding: 1.05rem 1.2rem;
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -626,11 +635,12 @@ body {
     gap: .45rem;
     padding: .65rem 1.5rem;
     border-radius: var(--radius-full);
-    border: none;
+    border: 1px solid transparent;
     cursor: pointer;
     font-family: var(--font-body);
     font-size: .92rem;
     font-weight: 600;
+    min-height: 2.55rem;
     transition: all var(--duration) var(--ease);
     letter-spacing: .01em;
 }
@@ -647,17 +657,19 @@ body {
 }
 
 .btn-secondary {
-    background: var(--border-light);
+    background: var(--surface-soft);
     color: var(--text);
+    border-color: var(--border);
 }
 
 .btn-secondary:hover {
-    background: var(--border);
+    background: #F3F5F8;
 }
 
 .btn-sm {
     padding: .4rem 1rem;
     font-size: .84rem;
+    min-height: 2.1rem;
 }
 
 .btn-danger {
@@ -710,13 +722,13 @@ body {
 .form-control {
     width: 100%;
     padding: .75rem 1rem;
-    border: 1.5px solid var(--border);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
     font-size: .95rem;
     font-family: var(--font-body);
     line-height: 1.4;
-    height: 3rem;
-    background: var(--bg);
+    height: 2.9rem;
+    background: var(--surface-soft);
     transition: border-color var(--duration) var(--ease),
                 box-shadow var(--duration) var(--ease),
                 background var(--duration) var(--ease);
@@ -730,7 +742,7 @@ body {
 .form-control:focus {
     outline: none;
     border-color: var(--red);
-    box-shadow: 0 0 0 4px var(--red-glow);
+    box-shadow: 0 0 0 4px var(--focus-ring);
     background: var(--surface);
 }
 
@@ -1194,12 +1206,15 @@ table {
     min-width: 760px;
     border-collapse: collapse;
     background: var(--surface);
-    font-size: .88rem;
+    font-size: .875rem;
 }
 
 thead {
     background: var(--charcoal);
     color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }
 
 th {
@@ -1223,6 +1238,10 @@ tbody tr {
 
 tbody tr:hover {
     background: var(--bg-warm);
+}
+
+tbody tr:nth-child(even) {
+    background: #FCFCFD;
 }
 
 tbody tr:last-child {
@@ -1263,33 +1282,35 @@ tbody tr:last-child {
 
 .tabs {
     display: flex;
-    gap: .25rem;
+    gap: .3rem;
     margin-bottom: 2rem;
-    border-bottom: 2px solid var(--border-light);
-    padding-bottom: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    padding: .25rem;
+    background: var(--surface);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }
 
 .tab-btn {
-    padding: .6rem 1.3rem;
-    border: none;
+    padding: .58rem 1.2rem;
+    border: 1px solid transparent;
     background: none;
     font-family: var(--font-heading);
     font-size: .88rem;
     font-weight: 600;
     color: var(--text-light);
     cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-    transition: color var(--duration) var(--ease), border-color var(--duration) var(--ease);
+    border-radius: var(--radius-full);
+    transition: color var(--duration) var(--ease), background var(--duration) var(--ease), border-color var(--duration) var(--ease);
     white-space: nowrap;
     flex: 0 0 auto;
 }
 
 .tab-btn.active {
     color: var(--red);
-    border-bottom-color: var(--red);
+    background: var(--red-subtle);
+    border-color: #FECACA;
 }
 
 .tab-btn:hover { color: var(--text); }
@@ -2154,8 +2175,11 @@ tbody tr:last-child {
 
 .empty-state {
     text-align: center;
-    padding: 3.5rem 1.5rem;
+    padding: 2.6rem 1.2rem;
     color: var(--text-light);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-soft);
 }
 
 .empty-state svg {
