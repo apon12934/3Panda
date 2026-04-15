@@ -639,20 +639,64 @@ async function filterMenuBySearch(query) {
 
 async function loadRestaurants() {
     try {
-        const res = await fetch(API + '/restaurants');
-        if (!res.ok) return showMsg('Failed to load restaurants.');
-        const data = await res.json();
+        const [restaurantsRes, reviewsRes] = await Promise.all([
+            fetch(API + '/restaurants'),
+            fetch(API + '/reviews')
+        ]);
+
+        if (!restaurantsRes.ok) return showMsg('Failed to load restaurants.');
+        const data = await restaurantsRes.json();
+        const allReviews = reviewsRes.ok ? await reviewsRes.json() : [];
+
+        const reviewStatsByRestaurant = (Array.isArray(allReviews) ? allReviews : []).reduce((acc, review) => {
+            const restaurantId = Number(review.restaurant_id);
+            const rating = Number(review.rating);
+            if (!restaurantId || Number.isNaN(rating)) return acc;
+
+            if (!acc[restaurantId]) acc[restaurantId] = { sum: 0, count: 0 };
+            acc[restaurantId].sum += rating;
+            acc[restaurantId].count += 1;
+            return acc;
+        }, {});
+
         const container = $('#restaurant-list');
         if (!data.length) {
             container.innerHTML = '<div class="empty-state"><p>No restaurants available.</p></div>';
             return;
         }
+
+        const renderRatingSummary = (restaurantId) => {
+            const stats = reviewStatsByRestaurant[Number(restaurantId)];
+            if (!stats || !stats.count) {
+                return `
+                    <div class="restaurant-rating-summary no-reviews">
+                        <span class="restaurant-rating-stars">☆☆☆☆☆</span>
+                        <span class="restaurant-rating-text">No reviews yet</span>
+                    </div>
+                `;
+            }
+
+            const avg = stats.sum / stats.count;
+            const rounded = Math.round(avg * 2) / 2;
+            const fullStars = Math.floor(rounded);
+            const halfStar = rounded % 1 !== 0;
+            const stars = '★'.repeat(fullStars) + (halfStar ? '⯪' : '') + '☆'.repeat(5 - fullStars - (halfStar ? 1 : 0));
+
+            return `
+                <div class="restaurant-rating-summary" title="Average rating">
+                    <span class="restaurant-rating-stars">${stars}</span>
+                    <span class="restaurant-rating-text">${avg.toFixed(1)} (${stats.count})</span>
+                </div>
+            `;
+        };
+
         container.innerHTML = data.map(r => `
             <div class="card" onclick="filterByRestaurant(${r.id}, '${r.name.replace(/'/g, "\\\'")}')" style="cursor:pointer;">
                 <img class="card-img" src="${r.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${r.name}">
                 <div class="card-body">
                     <h3>${r.name}</h3>
                     <p>${r.description || 'Click to view menu'}</p>
+                    ${renderRatingSummary(r.id)}
                 </div>
             </div>
         `).join('');

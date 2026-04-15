@@ -1567,6 +1567,35 @@ tbody tr:last-child {
 .review-reply-editor {
     margin-top: .45rem;
     padding-top: .45rem;
+
+.restaurant-rating-summary {
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.86rem;
+}
+
+.restaurant-rating-stars {
+    color: #F59E0B;
+    letter-spacing: 0.04em;
+    font-size: 0.92rem;
+    line-height: 1;
+}
+
+.restaurant-rating-text {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.restaurant-rating-summary.no-reviews .restaurant-rating-stars {
+    color: #D1D5DB;
+}
+
+.restaurant-rating-summary.no-reviews .restaurant-rating-text {
+    color: var(--text-light);
+    font-weight: 500;
+}
     border-top: 1px dashed var(--border);
 }
 
