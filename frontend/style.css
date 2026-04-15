@@ -56,8 +56,8 @@
     --duration-slow:.5s;
 
     /* Typography */
-    --font-heading: 'Poppins', system-ui, sans-serif;
-    --font-body:    'Poppins', system-ui, sans-serif;
+    --font-heading: 'Poppins', 'Anek Bangla', system-ui, sans-serif;
+    --font-body:    'Poppins', 'Anek Bangla', system-ui, sans-serif;
 }
 
 /* Base */
