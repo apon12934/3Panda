@@ -730,7 +730,7 @@ async function filterMenuBySearch(query) {
         }
         container.innerHTML = data.map(item => `
             <div class="card">
-                <img class="card-img" src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}">
+                <img class="card-img" src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}" loading="lazy" decoding="async">
                 <div class="card-body">
                     <h3>${item.name}</h3>
                     ${item.description ? '<p class="card-desc">' + item.description + '</p>' : ''}
@@ -800,8 +800,8 @@ async function loadRestaurants() {
         };
 
         container.innerHTML = data.map(r => `
-            <div class="card" onclick="filterByRestaurant(${r.id}, '${r.name.replace(/'/g, "\\\'")}')" style="cursor:pointer;">
-                <img class="card-img" src="${r.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${r.name}">
+            <div class="card restaurant-click-card" data-restaurant-id="${r.id}" data-restaurant-name="${escapeHtmlAttr(r.name)}" style="cursor:pointer;">
+                <img class="card-img" src="${r.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${r.name}" loading="lazy" decoding="async">
                 <div class="card-body">
                     <h3>${r.name}</h3>
                     <p>${r.description || 'Click to view menu'}</p>
@@ -809,6 +809,19 @@ async function loadRestaurants() {
                 </div>
             </div>
         `).join('');
+
+        if (container && container.dataset.restaurantClickBound !== '1') {
+            container.addEventListener('click', (event) => {
+                const card = event.target.closest('.restaurant-click-card');
+                if (!card || !container.contains(card)) return;
+
+                const id = Number(card.dataset.restaurantId);
+                const name = card.dataset.restaurantName || '';
+                if (!id) return;
+                filterByRestaurant(id, name);
+            });
+            container.dataset.restaurantClickBound = '1';
+        }
     } catch (err) {
         console.error(err);
     }
@@ -828,7 +841,7 @@ async function loadMenuItems(restaurantId) {
         }
         container.innerHTML = data.map(item => `
             <div class="card">
-                <img class="card-img" src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}">
+                <img class="card-img" src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}" loading="lazy" decoding="async">
                 <div class="card-body">
                     <h3>${item.name}</h3>
                     ${item.description ? '<p class="card-desc">' + item.description + '</p>' : ''}
@@ -1178,7 +1191,7 @@ async function openRestaurantPopup(restaurantId, restaurantName) {
 
         carousel.innerHTML = items.map(item => `
             <div class="carousel-card">
-                <img src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22250%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22250%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}">
+                <img src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22250%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22250%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}" loading="lazy" decoding="async">
                 <div class="carousel-card-body">
                     <h4>${item.name}</h4>
                     ${item.description ? '<p class="card-desc">' + item.description + '</p>' : ''}
@@ -2902,7 +2915,7 @@ async function adminLoadPendingApprovals() {
 
         container.innerHTML = pending.map(r => `
             <div class="vendor-rest-card is-pending">
-                <img class="card-img" src="${r.image || noImagePlaceholder}" alt="${r.name}">
+                <img class="card-img" src="${r.image || noImagePlaceholder}" alt="${r.name}" loading="lazy" decoding="async">
                 <div class="card-body">
                     <h3>${r.name} <span class="status-badge status-badge--pending">Pending</span></h3>
                     <div class="approval-card-owner">
@@ -3092,7 +3105,7 @@ async function vendorLoadRestaurants() {
             }
 
             return '<div class="vendor-rest-card ' + statusClass + '">' +
-                '<img class="card-img" src="' + (r.image || noImagePlaceholder) + '" alt="' + r.name + '">' +
+                '<img class="card-img" src="' + (r.image || noImagePlaceholder) + '" alt="' + r.name + '" loading="lazy" decoding="async">' +
                 '<div class="card-body">' +
                 '<h3>' + r.name + ' ' + statusBadge + '</h3>' +
                 '<p>' + (r.description || 'No description.') + '</p>' +

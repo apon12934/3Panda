@@ -541,6 +541,16 @@ body {
     border: 1px solid var(--border);
 }
 
+@supports (content-visibility: auto) {
+    /* Skip rendering work for off-screen cards on low-end/mobile devices. */
+    .card,
+    .rest-carousel .carousel-card,
+    .vendor-rest-card {
+        content-visibility: auto;
+        contain-intrinsic-size: 360px;
+    }
+}
+
 .card:hover {
     transform: translateY(-3px);
     box-shadow: var(--shadow-md);
