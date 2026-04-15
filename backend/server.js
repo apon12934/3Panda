@@ -48,6 +48,46 @@ const dbAll = async (sql, params = []) => {
     return rows;
 };
 
+// runtime schema compatibility for deployments that still use legacy column names
+const schemaCompat = {
+    checked: false,
+    ordersUserColumn: 'user_username',
+    usersHasId: false
+};
+
+const ensureSchemaCompat = async () => {
+    if (schemaCompat.checked) return schemaCompat;
+
+    try {
+        const orderCols = await dbAll('SHOW COLUMNS FROM Orders');
+        const orderColNames = new Set(orderCols.map(col => col.Field));
+        if (orderColNames.has('user_id')) {
+            schemaCompat.ordersUserColumn = 'user_id';
+        } else if (orderColNames.has('user_username')) {
+            schemaCompat.ordersUserColumn = 'user_username';
+        }
+
+        const userCols = await dbAll('SHOW COLUMNS FROM Users');
+        const userColNames = new Set(userCols.map(col => col.Field));
+        schemaCompat.usersHasId = userColNames.has('id');
+    } catch (err) {
+        console.warn('Schema compatibility check warning:', err.message);
+    } finally {
+        schemaCompat.checked = true;
+    }
+
+    return schemaCompat;
+};
+
+const resolveOrderUserValue = async (username) => {
+    const compat = await ensureSchemaCompat();
+    if (compat.ordersUserColumn === 'user_username') return username;
+
+    if (!compat.usersHasId) return username;
+    const userRow = await dbGet('SELECT id FROM Users WHERE username = ?', [username]);
+    return userRow ? userRow.id : null;
+};
+
 // run schema.sql when server starts (execute each statement separately)
 const initDB = async () => {
     try {
@@ -845,9 +885,15 @@ app.post('/api/orders', verifyToken, async (req, res) => {
             itemDetails.push({ menu_item_id: mi.id, quantity: item.quantity, unit_price: mi.price, subtotal });
         }
 
+        const compat = await ensureSchemaCompat();
+        const orderUserValue = await resolveOrderUserValue(req.user.username);
+        if (orderUserValue === null || orderUserValue === undefined) {
+            return res.status(400).json({ error: 'User account not found for order placement.' });
+        }
+
         const orderResult = await dbRun(
-            'INSERT INTO Orders (user_username, restaurant_id, total_amount, status, delivery_address, payment_method, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [req.user.username, restaurant_id, total_amount, 'pending', delivery_address || null, payment_method || 'cash', notes || null]
+            `INSERT INTO Orders (${compat.ordersUserColumn}, restaurant_id, total_amount, status, delivery_address, payment_method, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [orderUserValue, restaurant_id, total_amount, 'pending', delivery_address || null, payment_method || 'cash', notes || null]
         );
 
         const orderId = orderResult.insertId;
