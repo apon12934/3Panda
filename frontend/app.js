@@ -401,6 +401,43 @@ const authJSON = () => ({
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
+
+const EDIT_POPUP_IDS = ['edit-user-card', 'edit-restaurant-card', 'edit-item-card', 'vendor-edit-item-card'];
+
+function syncEditPopupBodyLock() {
+    const anyOpen = EDIT_POPUP_IDS.some((id) => {
+        const el = document.getElementById(id);
+        return el && !el.classList.contains('hidden');
+    });
+
+    document.body.classList.toggle('edit-popup-open', anyOpen);
+}
+
+function initEditPopupBehavior() {
+    const onEsc = (e) => {
+        if (e.key !== 'Escape') return;
+        let closedAny = false;
+        EDIT_POPUP_IDS.forEach((id) => {
+            const el = document.getElementById(id);
+            if (el && !el.classList.contains('hidden')) {
+                el.classList.add('hidden');
+                closedAny = true;
+            }
+        });
+        if (closedAny) syncEditPopupBodyLock();
+    };
+    document.addEventListener('keydown', onEsc);
+
+    EDIT_POPUP_IDS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        const observer = new MutationObserver(syncEditPopupBodyLock);
+        observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
+
+    syncEditPopupBodyLock();
+}
 // Performance: Lazy loading for images
 function initLazyLoading() {
     if ('IntersectionObserver' in window) {
@@ -520,6 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initFileUploadPlaceholders();
     initCustomDropdowns();
     initCommonButtonLogic();
+    initEditPopupBehavior();
     initLazyLoading();
 
     if (page === 'index.html' || page === '') initHome();

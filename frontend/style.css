@@ -3053,6 +3053,39 @@ tbody tr:last-child {
     padding: 1rem;
 }
 
+/* Inline edit cards shown on admin/vendor pages should open as modal popups */
+#edit-user-card,
+#edit-restaurant-card,
+#edit-item-card,
+#vendor-edit-item-card {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(960px, 92vw);
+    max-height: 88vh;
+    overflow-y: auto;
+    z-index: 21000;
+    margin: 0 !important;
+    box-shadow: 0 22px 56px rgba(17, 24, 39, .22), 0 0 0 100vmax rgba(17, 24, 39, .45);
+    border: 1px solid rgba(255, 255, 255, .6);
+}
+
+body.edit-popup-open {
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    #edit-user-card,
+    #edit-restaurant-card,
+    #edit-item-card,
+    #vendor-edit-item-card {
+        width: 96vw;
+        max-height: 92vh;
+        border-radius: var(--radius-lg);
+    }
+}
+
 .modal-content {
     position: relative;
     z-index: 20001;
