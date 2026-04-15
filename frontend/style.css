@@ -1325,6 +1325,28 @@ tbody tr:last-child {
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
+/* Ensure dropdown menus in Orders tab can render above nearby sections */
+#tab-orders {
+    position: relative;
+    z-index: 20;
+}
+
+#tab-orders .table-wrap {
+    overflow: visible;
+}
+
+#tab-orders .custom-dropdown {
+    z-index: auto;
+}
+
+#tab-orders .custom-dropdown.is-open {
+    z-index: 2500;
+}
+
+#tab-orders .custom-dropdown-menu {
+    z-index: 2600;
+}
+
 /* ============================================================
    CART PANEL
    ============================================================ */
