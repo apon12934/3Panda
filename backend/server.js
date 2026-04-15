@@ -709,7 +709,7 @@ app.get('/api/users/profile', verifyToken, async (req, res) => {
     try {
         const user = await dbGet(
             'SELECT username, email, full_name, phone, address, role, profile_image FROM Users WHERE username = ?',
-            [req.user.id]
+            [req.user.username]
         );
         if (!user) return res.status(404).json({ error: 'User not found.' });
         return res.json(user);
@@ -724,7 +724,7 @@ app.put('/api/users/profile', verifyToken, upload.single('profile_picture'), asy
     try {
         const { username, email, password, full_name, phone, address } = req.body;
 
-        const existing = await dbGet('SELECT * FROM Users WHERE username = ?', [req.user.id]);
+        const existing = await dbGet('SELECT * FROM Users WHERE username = ?', [req.user.username]);
         if (!existing) return res.status(404).json({ error: 'User not found.' });
 
         let profile_image = existing.profile_image;
@@ -739,7 +739,7 @@ app.put('/api/users/profile', verifyToken, upload.single('profile_picture'), asy
 
         await dbRun(
             'UPDATE Users SET username = ?, email = ?, password = ?, full_name = ?, phone = ?, address = ?, profile_image = ? WHERE username = ?',
-            [username || existing.username, email || existing.email, hashedPassword, full_name !== undefined ? full_name : existing.full_name, phone !== undefined ? phone : existing.phone, address !== undefined ? address : existing.address, profile_image, req.user.id]
+            [username || existing.username, email || existing.email, hashedPassword, full_name !== undefined ? full_name : existing.full_name, phone !== undefined ? phone : existing.phone, address !== undefined ? address : existing.address, profile_image, req.user.username]
         );
 
         return res.json({ message: 'Profile updated.' });
@@ -825,7 +825,7 @@ app.post('/api/orders', verifyToken, async (req, res) => {
 
         const orderResult = await dbRun(
             'INSERT INTO Orders (user_username, restaurant_id, total_amount, status, delivery_address, payment_method, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [req.user.id, restaurant_id, total_amount, 'pending', delivery_address || null, payment_method || 'cash', notes || null]
+            [req.user.username, restaurant_id, total_amount, 'pending', delivery_address || null, payment_method || 'cash', notes || null]
         );
 
         const orderId = orderResult.insertId;
@@ -851,10 +851,10 @@ app.get('/api/orders/mine', verifyToken, async (req, res) => {
             `SELECT o.id, o.status, o.delivery_address, o.total_amount, o.payment_method, o.notes,
                     o.created_at, u.username AS delivery_person
              FROM Orders o
-             LEFT JOIN Users u ON o.delivery_person_username = u.id
+             LEFT JOIN Users u ON o.delivery_person_username = u.username
              WHERE o.user_username = ?
              ORDER BY o.id DESC`,
-            [req.user.id]
+            [req.user.username]
         );
 
         for (const order of orders) {
@@ -1072,11 +1072,11 @@ app.get('/api/reviews', async (req, res) => {
         let rows;
         if (restaurant_id) {
             rows = await dbAll(
-                `SELECT r.*, u.username FROM Reviews r JOIN Users u ON r.user_username = u.id WHERE r.restaurant_id = ? ORDER BY r.created_at DESC`,
+                `SELECT r.*, u.username FROM Reviews r JOIN Users u ON r.user_username = u.username WHERE r.restaurant_id = ? ORDER BY r.created_at DESC`,
                 [restaurant_id]
             );
         } else {
-            rows = await dbAll('SELECT r.*, u.username FROM Reviews r JOIN Users u ON r.user_username = u.id ORDER BY r.created_at DESC');
+            rows = await dbAll('SELECT r.*, u.username FROM Reviews r JOIN Users u ON r.user_username = u.username ORDER BY r.created_at DESC');
         }
         return res.json(rows);
     } catch (err) {
