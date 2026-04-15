@@ -302,7 +302,9 @@ app.post('/api/restaurants', verifyToken, requireAdmin, upload.single('banner'),
         if (owner_username) {
             const ownerUser = await dbGet('SELECT username, role FROM Users WHERE username = ?', [owner_username]);
             if (!ownerUser) return res.status(400).json({ error: 'Specified owner user not found.' });
-            if (ownerUser.role !== 'vendor') return res.status(400).json({ error: 'Restaurant owner must be a vendor account.' });
+            if (!['vendor', 'admin'].includes(ownerUser.role)) {
+                return res.status(400).json({ error: 'Restaurant owner must be a vendor or admin account.' });
+            }
             assignedOwner = owner_username;
         }
 
@@ -340,7 +342,9 @@ app.put('/api/restaurants/:id', verifyToken, requireAdmin, upload.single('banner
             } else {
                 const ownerUser = await dbGet('SELECT username, role FROM Users WHERE username = ?', [trimmedOwner]);
                 if (!ownerUser) return res.status(400).json({ error: 'Specified owner user not found.' });
-                if (ownerUser.role !== 'vendor') return res.status(400).json({ error: 'Restaurant owner must be a vendor account.' });
+                if (!['vendor', 'admin'].includes(ownerUser.role)) {
+                    return res.status(400).json({ error: 'Restaurant owner must be a vendor or admin account.' });
+                }
                 resolvedOwner = trimmedOwner;
             }
         }
@@ -392,8 +396,8 @@ app.patch('/api/restaurants/:id/owner', verifyToken, requireAdmin, async (req, r
         // verify the target user exists
         const targetUser = await dbGet('SELECT username, role FROM Users WHERE username = ?', [owner_username]);
         if (!targetUser) return res.status(404).json({ error: 'Target user not found.' });
-        if (targetUser.role !== 'vendor') {
-            return res.status(400).json({ error: 'Restaurant owner must be a vendor account.' });
+        if (!['vendor', 'admin'].includes(targetUser.role)) {
+            return res.status(400).json({ error: 'Restaurant owner must be a vendor or admin account.' });
         }
 
         await dbRun(

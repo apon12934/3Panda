@@ -1470,9 +1470,9 @@ async function adminRefreshVendorSelects() {
         const res = await fetch(API + '/users', { headers: authHeaders() });
         if (!res.ok) return;
         const users = await res.json();
-        const vendors = users.filter(user => user.role === 'vendor');
+        const owners = users.filter(user => user.role === 'vendor' || user.role === 'admin');
         const opts = '<option value="">Unassigned</option>' +
-            vendors.map(user => `<option value="${user.username}">${user.username}${user.full_name ? ' — ' + user.full_name : ''}</option>`).join('');
+            owners.map(user => `<option value="${user.username}">${user.username} (${user.role})${user.full_name ? ' — ' + user.full_name : ''}</option>`).join('');
 
         const addSelect = $('#rest-owner-username');
         const editSelect = $('#edit-rest-owner-username');
