@@ -1343,6 +1343,139 @@ tbody tr:last-child {
     margin-top: .5rem;
 }
 
+.map-search-row {
+    display: flex;
+    gap: .5rem;
+    margin-bottom: .55rem;
+}
+
+.map-search-row .form-control {
+    margin: 0;
+}
+
+.map-search-results {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    margin-bottom: .65rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.map-search-result {
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid var(--border-light);
+    background: transparent;
+    text-align: left;
+    padding: .65rem .75rem;
+    color: var(--text);
+    cursor: pointer;
+    font-size: .88rem;
+}
+
+.map-search-result:last-child {
+    border-bottom: 0;
+}
+
+.map-search-result:hover {
+    background: var(--bg-warm);
+}
+
+.route-builder-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .65rem;
+    align-items: end;
+    justify-content: space-between;
+    margin-bottom: .75rem;
+}
+
+.route-summary {
+    background: var(--bg-warm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: .55rem .75rem;
+    font-size: .86rem;
+    color: var(--text-secondary);
+    margin-bottom: .65rem;
+}
+
+.route-summary strong {
+    color: var(--text);
+}
+
+.route-orders-list {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    margin-bottom: .7rem;
+}
+
+.route-order-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .5rem .7rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.route-order-row:last-child {
+    border-bottom: 0;
+}
+
+.route-order-row .route-order-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.route-order-row .route-order-meta strong {
+    font-family: var(--font-heading);
+    font-size: .86rem;
+}
+
+.route-order-row .route-order-meta span {
+    color: var(--text-light);
+    font-size: .78rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 320px;
+}
+
+.route-order-actions {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+}
+
+.route-order-actions .btn {
+    padding: .2rem .52rem;
+}
+
+.route-steps {
+    margin: .75rem 0 0;
+    padding: .7rem .95rem .7rem 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.route-steps li {
+    margin-bottom: .4rem;
+    font-size: .86rem;
+    color: var(--text-secondary);
+}
+
+.route-steps li strong {
+    color: var(--text);
+}
+
 /* ============================================================
    FAB (Floating Cart Button)
    ============================================================ */
@@ -2066,6 +2199,23 @@ tbody tr:last-child {
 
     .hero-search .btn {
         width: 100%;
+    }
+
+    .map-search-row {
+        flex-direction: column;
+    }
+
+    .map-search-row .btn {
+        width: 100%;
+    }
+
+    .route-builder-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .route-order-row .route-order-meta span {
+        max-width: 180px;
     }
 
     .tabs {

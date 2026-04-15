@@ -164,7 +164,12 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:.2rem;"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 Delivery Location
             </h3>
-            <p class="text-muted mb-1" style="font-size:.85rem;">Click on the map to drop a pin.</p>
+            <p class="text-muted mb-1" style="font-size:.85rem;">Search your area, then fine-tune by clicking the map.</p>
+            <div class="map-search-row">
+                <input type="text" id="map-search-input" class="form-control" placeholder="Search address, road, landmark" autocomplete="off">
+                <button class="btn btn-secondary" id="map-search-btn" type="button">Search</button>
+            </div>
+            <div id="map-search-results" class="map-search-results hidden"></div>
             <div id="map"></div>
             <input type="hidden" id="lat" />
             <input type="hidden" id="lng" />

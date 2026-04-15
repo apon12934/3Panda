@@ -7,6 +7,9 @@ if (window.location.protocol === 'file:' || (window.location.hostname.match(/loc
     API = window.location.origin + '/api';
 }
 
+const NOMINATIM_SEARCH_URL = 'https://nominatim.openstreetmap.org/search';
+const OSRM_ROUTE_URL = 'https://router.project-osrm.org/route/v1/driving';
+
 // ============================================================
 // SCROLL ANIMATION SYSTEM (IntersectionObserver)
 // ============================================================
@@ -551,11 +554,14 @@ let mapInstance = null;
 let mapMarker = null;
 let selectedLat = null;
 let selectedLng = null;
+let selectedAddressLabel = '';
+let mapSearchDebounce = null;
 
 function initHome() {
     loadRestaurants();
     loadMenuItems();
     initRestaurantPopup();
+    initMapSearchHandlers();
 
     // hero search functionality
     const searchInput = $('#hero-search-input');
@@ -736,6 +742,116 @@ function renderCart() {
 
 // checkout map (user drops pin)
 
+function initMapSearchHandlers() {
+    const input = $('#map-search-input');
+    const btn = $('#map-search-btn');
+    const resultBox = $('#map-search-results');
+    if (!input || !btn || !resultBox) return;
+
+    const runSearch = () => {
+        const query = input.value.trim();
+        if (!query) {
+            resultBox.classList.add('hidden');
+            resultBox.innerHTML = '';
+            return;
+        }
+        searchDeliveryPlace(query);
+    };
+
+    btn.addEventListener('click', runSearch);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            runSearch();
+        }
+    });
+
+    input.addEventListener('input', () => {
+        const query = input.value.trim();
+        if (mapSearchDebounce) clearTimeout(mapSearchDebounce);
+        mapSearchDebounce = setTimeout(() => {
+            if (query.length < 3) {
+                resultBox.classList.add('hidden');
+                resultBox.innerHTML = '';
+                return;
+            }
+            searchDeliveryPlace(query);
+        }, 260);
+    });
+}
+
+async function searchDeliveryPlace(query) {
+    const resultBox = $('#map-search-results');
+    if (!resultBox) return;
+
+    resultBox.classList.remove('hidden');
+    resultBox.innerHTML = '<button type="button" class="map-search-result" disabled>Searching...</button>';
+
+    try {
+        const url = `${NOMINATIM_SEARCH_URL}?format=jsonv2&limit=6&q=${encodeURIComponent(query)}`;
+        const res = await fetch(url, {
+            headers: {
+                Accept: 'application/json'
+            }
+        });
+
+        if (!res.ok) throw new Error('Search failed');
+        const places = await res.json();
+
+        if (!Array.isArray(places) || !places.length) {
+            resultBox.innerHTML = '<button type="button" class="map-search-result" disabled>No locations found</button>';
+            return;
+        }
+
+        resultBox.innerHTML = '';
+
+        places.forEach((place) => {
+            const lat = Number(place.lat);
+            const lon = Number(place.lon);
+            if (Number.isNaN(lat) || Number.isNaN(lon)) return;
+
+            const label = place.display_name || 'Selected location';
+            const itemBtn = document.createElement('button');
+            itemBtn.type = 'button';
+            itemBtn.className = 'map-search-result';
+            itemBtn.textContent = label;
+            itemBtn.addEventListener('click', () => {
+                setCheckoutLocation(lat, lon, label);
+                resultBox.classList.add('hidden');
+            });
+
+            resultBox.appendChild(itemBtn);
+        });
+
+        if (!resultBox.children.length) {
+            resultBox.innerHTML = '<button type="button" class="map-search-result" disabled>No locations found</button>';
+        }
+    } catch (err) {
+        console.error(err);
+        resultBox.innerHTML = '<button type="button" class="map-search-result" disabled>Search unavailable. Drop pin manually.</button>';
+    }
+}
+
+function setCheckoutLocation(lat, lng, label = 'Delivery here') {
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+
+    selectedLat = lat;
+    selectedLng = lng;
+    selectedAddressLabel = label;
+
+    if ($('#lat')) $('#lat').value = selectedLat;
+    if ($('#lng')) $('#lng').value = selectedLng;
+
+    if (!mapInstance) return;
+
+    if (mapMarker) mapInstance.removeLayer(mapMarker);
+    mapMarker = L.marker([selectedLat, selectedLng]).addTo(mapInstance)
+        .bindPopup(label)
+        .openPopup();
+
+    mapInstance.setView([selectedLat, selectedLng], Math.max(mapInstance.getZoom(), 15));
+}
+
 function initCheckoutMap() {
     const mapEl = document.getElementById('map');
     if (!mapEl || typeof L === 'undefined') return;
@@ -746,14 +862,7 @@ function initCheckoutMap() {
     }).addTo(mapInstance);
 
     mapInstance.on('click', (e) => {
-        selectedLat = e.latlng.lat;
-        selectedLng = e.latlng.lng;
-        if ($('#lat')) $('#lat').value = selectedLat;
-        if ($('#lng')) $('#lng').value = selectedLng;
-
-        if (mapMarker) mapInstance.removeLayer(mapMarker);
-        mapMarker = L.marker([selectedLat, selectedLng]).addTo(mapInstance)
-            .bindPopup('Delivery here').openPopup();
+        setCheckoutLocation(e.latlng.lat, e.latlng.lng, 'Delivery pin');
     });
 }
 
@@ -1159,10 +1268,50 @@ let deliveryMap = null;
 let deliveryMarkers = [];
 let selectedOrderMap = null;
 let selectedOrderMarker = null;
+let selectedOrderRouteLayer = null;
+let selectedRiderMarker = null;
+let deliveryRouteLayers = [];
+let deliveryRouteStopMarkers = [];
+let deliveryRiderMarker = null;
+let riderCurrentLocation = null;
 
 function initDelivery() {
     if (!getToken()) return window.location.href = 'login.html';
     window._deliveryMapNeedsInit = true;
+
+    const selectedUseLocationBtn = $('#selected-route-use-location');
+    if (selectedUseLocationBtn) {
+        selectedUseLocationBtn.addEventListener('click', async () => {
+            const pos = await getRiderLocation();
+            if (pos && window._selectedPendingOrderForMap) {
+                const coords = parseDeliveryCoords(window._selectedPendingOrderForMap.delivery_address);
+                if (coords) drawSelectedOrderRoute(coords, window._selectedPendingOrderForMap);
+            }
+        });
+    }
+
+    const useLocationBtn = $('#multi-route-use-location');
+    if (useLocationBtn) {
+        useLocationBtn.addEventListener('click', async () => {
+            const pos = await getRiderLocation();
+            if (pos) showMsg('Rider location updated.', 'success');
+        });
+    }
+
+    const buildRouteBtn = $('#multi-route-build');
+    if (buildRouteBtn) {
+        buildRouteBtn.addEventListener('click', () => {
+            buildMultiStopRoute();
+        });
+    }
+
+    const routeModeSelect = $('#multi-route-mode');
+    if (routeModeSelect) {
+        routeModeSelect.addEventListener('change', () => {
+            renderMultiRouteOrderList();
+        });
+    }
+
     loadPendingOrders();
     loadDeliveryHistory();
 }
@@ -1231,6 +1380,19 @@ async function loadPendingOrders() {
 
         // save order coordinates for map tab
         window._pendingOrders = orders;
+
+        const ids = orders
+            .filter((o) => parseDeliveryCoords(o.delivery_address))
+            .map((o) => o.id);
+        if (!Array.isArray(window._manualRouteOrderIds) || !window._manualRouteOrderIds.length) {
+            window._manualRouteOrderIds = ids;
+        } else {
+            const kept = window._manualRouteOrderIds.filter((id) => ids.includes(id));
+            const missing = ids.filter((id) => !kept.includes(id));
+            window._manualRouteOrderIds = kept.concat(missing);
+        }
+
+        renderMultiRouteOrderList();
     } catch (err) {
         console.error(err);
     }
@@ -1243,6 +1405,72 @@ function parseDeliveryCoords(deliveryAddress) {
     return { lat: parts[0], lng: parts[1] };
 }
 
+function formatDistanceMeters(meters) {
+    if (!Number.isFinite(meters)) return '0 km';
+    const km = meters / 1000;
+    return km < 1 ? `${Math.round(meters)} m` : `${km.toFixed(1)} km`;
+}
+
+function formatDurationSeconds(seconds) {
+    if (!Number.isFinite(seconds)) return '0 min';
+    const mins = Math.round(seconds / 60);
+    if (mins < 60) return `${mins} min`;
+    const hours = Math.floor(mins / 60);
+    const rem = mins % 60;
+    return rem ? `${hours}h ${rem}m` : `${hours}h`;
+}
+
+function summarizeRouteLine(distance, duration) {
+    return `<strong>Distance:</strong> ${formatDistanceMeters(distance)} &nbsp;•&nbsp; <strong>ETA:</strong> ${formatDurationSeconds(duration)}`;
+}
+
+function toLegInstruction(step) {
+    if (!step) return 'Continue';
+    if (step.maneuver && step.maneuver.instruction) return step.maneuver.instruction;
+
+    const type = step.maneuver && step.maneuver.type ? step.maneuver.type : 'continue';
+    const modifier = step.maneuver && step.maneuver.modifier ? ` ${step.maneuver.modifier}` : '';
+    const road = step.name ? ` on ${step.name}` : '';
+    return `${type}${modifier}${road}`.replace(/^./, (c) => c.toUpperCase());
+}
+
+async function fetchOsrmRoute(points, includeSteps = true) {
+    if (!Array.isArray(points) || points.length < 2) return null;
+
+    const coordStr = points.map((p) => `${p.lng},${p.lat}`).join(';');
+    const url = `${OSRM_ROUTE_URL}/${coordStr}?overview=full&geometries=geojson&steps=${includeSteps ? 'true' : 'false'}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (!data || data.code !== 'Ok' || !data.routes || !data.routes.length) return null;
+    return data.routes[0];
+}
+
+async function getRiderLocation() {
+    if (!navigator.geolocation) {
+        showMsg('Geolocation is not supported on this browser.');
+        return null;
+    }
+
+    return new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            riderCurrentLocation = {
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude
+            };
+            resolve(riderCurrentLocation);
+        }, () => {
+            showMsg('Could not read your current location. Allow location permission.');
+            resolve(null);
+        }, {
+            enableHighAccuracy: true,
+            timeout: 12000,
+            maximumAge: 40000
+        });
+    });
+}
+
 function showSelectedPendingOrderOnMap(order, selectedCardEl) {
     const mapWrap = $('#selected-order-map-wrap');
     const mapEl = document.getElementById('selected-order-map');
@@ -1253,6 +1481,8 @@ function showSelectedPendingOrderOnMap(order, selectedCardEl) {
         mapWrap.classList.add('hidden');
         return;
     }
+
+    window._selectedPendingOrderForMap = order;
 
     mapWrap.classList.remove('hidden');
 
@@ -1279,6 +1509,75 @@ function showSelectedPendingOrderOnMap(order, selectedCardEl) {
 
     selectedOrderMap.setView([coords.lat, coords.lng], 15);
     setTimeout(() => selectedOrderMap.invalidateSize(), 180);
+
+    drawSelectedOrderRoute(coords, order);
+}
+
+async function drawSelectedOrderRoute(destination, order) {
+    const summaryEl = $('#selected-route-summary');
+    const stepsEl = $('#selected-route-steps');
+    if (!selectedOrderMap || !summaryEl || !stepsEl || !destination) return;
+
+    if (!riderCurrentLocation) {
+        const pos = await getRiderLocation();
+        if (!pos) {
+            summaryEl.classList.remove('hidden');
+            summaryEl.innerHTML = '<strong>Tip:</strong> Tap <em>Use My Location</em> to draw route + ETA.';
+            stepsEl.classList.add('hidden');
+            stepsEl.innerHTML = '';
+            return;
+        }
+    }
+
+    const route = await fetchOsrmRoute([riderCurrentLocation, destination], true);
+    if (!route || !route.geometry || !Array.isArray(route.geometry.coordinates)) {
+        summaryEl.classList.remove('hidden');
+        summaryEl.innerHTML = '<strong>Route unavailable.</strong> You can still navigate using the delivery pin.';
+        stepsEl.classList.add('hidden');
+        stepsEl.innerHTML = '';
+        return;
+    }
+
+    if (selectedOrderRouteLayer) {
+        selectedOrderMap.removeLayer(selectedOrderRouteLayer);
+        selectedOrderRouteLayer = null;
+    }
+
+    if (selectedRiderMarker) {
+        selectedOrderMap.removeLayer(selectedRiderMarker);
+        selectedRiderMarker = null;
+    }
+
+    selectedRiderMarker = L.circleMarker([riderCurrentLocation.lat, riderCurrentLocation.lng], {
+        radius: 7,
+        color: '#0F766E',
+        weight: 2,
+        fillColor: '#14B8A6',
+        fillOpacity: 0.95
+    }).addTo(selectedOrderMap).bindPopup('Your current location');
+
+    const latLngs = route.geometry.coordinates.map((c) => [c[1], c[0]]);
+    selectedOrderRouteLayer = L.polyline(latLngs, {
+        color: '#C62828',
+        weight: 5,
+        opacity: 0.88
+    }).addTo(selectedOrderMap);
+
+    const group = L.featureGroup([selectedOrderMarker, selectedRiderMarker, selectedOrderRouteLayer]);
+    selectedOrderMap.fitBounds(group.getBounds().pad(0.14));
+
+    summaryEl.classList.remove('hidden');
+    summaryEl.innerHTML = `<strong>Order #${order.id} (${order.customer_name || 'Customer'})</strong><br>${summarizeRouteLine(route.distance, route.duration)}`;
+
+    const steps = (route.legs && route.legs[0] && route.legs[0].steps) ? route.legs[0].steps : [];
+    if (!steps.length) {
+        stepsEl.classList.add('hidden');
+        stepsEl.innerHTML = '';
+        return;
+    }
+
+    stepsEl.classList.remove('hidden');
+    stepsEl.innerHTML = steps.map((step) => `<li><strong>${toLegInstruction(step)}</strong> <span class="text-muted">(${formatDistanceMeters(step.distance)})</span></li>`).join('');
 }
 
 async function loadDeliveryHistory() {
@@ -1338,6 +1637,17 @@ function initDeliveryMap() {
     deliveryMarkers.forEach(m => deliveryMap.removeLayer(m));
     deliveryMarkers = [];
 
+    deliveryRouteLayers.forEach((layer) => deliveryMap.removeLayer(layer));
+    deliveryRouteLayers = [];
+
+    deliveryRouteStopMarkers.forEach((marker) => deliveryMap.removeLayer(marker));
+    deliveryRouteStopMarkers = [];
+
+    if (deliveryRiderMarker) {
+        deliveryMap.removeLayer(deliveryRiderMarker);
+        deliveryRiderMarker = null;
+    }
+
     const orders = window._pendingOrders || [];
     orders.forEach(o => {
         if (o.delivery_address) {
@@ -1355,7 +1665,228 @@ function initDeliveryMap() {
         deliveryMap.fitBounds(group.getBounds().pad(0.2));
     }
 
+    if (riderCurrentLocation) {
+        deliveryRiderMarker = L.circleMarker([riderCurrentLocation.lat, riderCurrentLocation.lng], {
+            radius: 7,
+            color: '#0F766E',
+            weight: 2,
+            fillColor: '#14B8A6',
+            fillOpacity: 0.95
+        }).addTo(deliveryMap).bindPopup('Your current location');
+    }
+
     setTimeout(() => deliveryMap.invalidateSize(), 200);
+}
+
+function renderMultiRouteOrderList() {
+    const listEl = $('#multi-route-orders');
+    const modeEl = $('#multi-route-mode');
+    if (!listEl || !modeEl) return;
+
+    const stops = (window._pendingOrders || [])
+        .map((order) => ({ order, coords: parseDeliveryCoords(order.delivery_address) }))
+        .filter((entry) => !!entry.coords);
+
+    if (!stops.length) {
+        listEl.classList.add('hidden');
+        listEl.innerHTML = '';
+        return;
+    }
+
+    const manualMode = modeEl.value === 'manual';
+    listEl.classList.remove('hidden');
+
+    if (!manualMode) {
+        listEl.innerHTML = `<div class="route-order-row"><div class="route-order-meta"><strong>${stops.length} stops ready</strong><span>Auto mode picks nearest next stop from your current location.</span></div></div>`;
+        return;
+    }
+
+    if (!Array.isArray(window._manualRouteOrderIds) || !window._manualRouteOrderIds.length) {
+        window._manualRouteOrderIds = stops.map((s) => s.order.id);
+    }
+
+    const orderedStops = window._manualRouteOrderIds
+        .map((id) => stops.find((entry) => entry.order.id === id))
+        .filter(Boolean);
+
+    listEl.innerHTML = orderedStops.map((entry, index) => {
+        const order = entry.order;
+        return `
+            <div class="route-order-row" data-order-id="${order.id}">
+                <div class="route-order-meta">
+                    <strong>${index + 1}. Order #${order.id} - ${order.customer_name || 'Customer'}</strong>
+                    <span>${order.delivery_address || 'N/A'}</span>
+                </div>
+                <div class="route-order-actions">
+                    <button class="btn btn-secondary btn-sm move-up" type="button" ${index === 0 ? 'disabled' : ''}>↑</button>
+                    <button class="btn btn-secondary btn-sm move-down" type="button" ${index === orderedStops.length - 1 ? 'disabled' : ''}>↓</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    listEl.querySelectorAll('.route-order-row').forEach((row, idx) => {
+        const orderId = Number(row.dataset.orderId);
+        const upBtn = row.querySelector('.move-up');
+        const downBtn = row.querySelector('.move-down');
+        if (upBtn) upBtn.addEventListener('click', () => moveManualRouteOrder(orderId, idx - 1));
+        if (downBtn) downBtn.addEventListener('click', () => moveManualRouteOrder(orderId, idx + 1));
+    });
+}
+
+function moveManualRouteOrder(orderId, newIndex) {
+    if (!Array.isArray(window._manualRouteOrderIds)) return;
+    const oldIndex = window._manualRouteOrderIds.indexOf(orderId);
+    if (oldIndex < 0 || newIndex < 0 || newIndex >= window._manualRouteOrderIds.length) return;
+
+    window._manualRouteOrderIds.splice(oldIndex, 1);
+    window._manualRouteOrderIds.splice(newIndex, 0, orderId);
+    renderMultiRouteOrderList();
+}
+
+function orderStopsByNearest(startPoint, stops) {
+    const remaining = stops.slice();
+    const ordered = [];
+    let current = startPoint;
+
+    while (remaining.length) {
+        let nearestIdx = 0;
+        let nearestDist = Number.POSITIVE_INFINITY;
+
+        remaining.forEach((stop, idx) => {
+            const dLat = current.lat - stop.coords.lat;
+            const dLng = current.lng - stop.coords.lng;
+            const dist = (dLat * dLat) + (dLng * dLng);
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearestIdx = idx;
+            }
+        });
+
+        const next = remaining.splice(nearestIdx, 1)[0];
+        ordered.push(next);
+        current = next.coords;
+    }
+
+    return ordered;
+}
+
+async function buildMultiStopRoute() {
+    const modeEl = $('#multi-route-mode');
+    const summaryEl = $('#multi-route-summary');
+    const stepsEl = $('#multi-route-steps');
+    if (!modeEl || !summaryEl || !stepsEl) return;
+
+    if (!deliveryMap) initDeliveryMap();
+    if (!deliveryMap) return;
+
+    const allStops = (window._pendingOrders || [])
+        .map((order) => ({ order, coords: parseDeliveryCoords(order.delivery_address) }))
+        .filter((entry) => !!entry.coords);
+
+    if (!allStops.length) {
+        showMsg('No valid order coordinates found for route building.');
+        return;
+    }
+
+    if (!riderCurrentLocation) {
+        const pos = await getRiderLocation();
+        if (!pos) return;
+    }
+
+    const manualMode = modeEl.value === 'manual';
+    let orderedStops = [];
+
+    if (manualMode) {
+        if (!Array.isArray(window._manualRouteOrderIds) || !window._manualRouteOrderIds.length) {
+            window._manualRouteOrderIds = allStops.map((s) => s.order.id);
+        }
+        orderedStops = window._manualRouteOrderIds
+            .map((id) => allStops.find((entry) => entry.order.id === id))
+            .filter(Boolean);
+    } else {
+        orderedStops = orderStopsByNearest(riderCurrentLocation, allStops);
+    }
+
+    if (!orderedStops.length) {
+        showMsg('No stops available for route building.');
+        return;
+    }
+
+    deliveryRouteLayers.forEach((layer) => deliveryMap.removeLayer(layer));
+    deliveryRouteLayers = [];
+    deliveryRouteStopMarkers.forEach((marker) => deliveryMap.removeLayer(marker));
+    deliveryRouteStopMarkers = [];
+    deliveryMarkers.forEach((marker) => deliveryMap.removeLayer(marker));
+    deliveryMarkers = [];
+
+    if (deliveryRiderMarker) {
+        deliveryMap.removeLayer(deliveryRiderMarker);
+    }
+
+    deliveryRiderMarker = L.circleMarker([riderCurrentLocation.lat, riderCurrentLocation.lng], {
+        radius: 7,
+        color: '#0F766E',
+        weight: 2,
+        fillColor: '#14B8A6',
+        fillOpacity: 0.95
+    }).addTo(deliveryMap).bindPopup('Start: your current location');
+
+    const colors = ['#C62828', '#B91C1C', '#0F766E', '#1D4ED8', '#7C3AED', '#D97706'];
+    let totalDistance = 0;
+    let totalDuration = 0;
+    const allStepItems = [];
+
+    let currentPoint = riderCurrentLocation;
+    for (let i = 0; i < orderedStops.length; i++) {
+        const stop = orderedStops[i];
+        const route = await fetchOsrmRoute([currentPoint, stop.coords], true);
+        if (!route || !route.geometry || !Array.isArray(route.geometry.coordinates)) continue;
+
+        totalDistance += Number(route.distance || 0);
+        totalDuration += Number(route.duration || 0);
+
+        const latLngs = route.geometry.coordinates.map((c) => [c[1], c[0]]);
+        const line = L.polyline(latLngs, {
+            color: colors[i % colors.length],
+            weight: 5,
+            opacity: 0.9
+        }).addTo(deliveryMap);
+        deliveryRouteLayers.push(line);
+
+        const stopMarker = L.marker([stop.coords.lat, stop.coords.lng], {
+            title: `Stop ${i + 1}`
+        }).addTo(deliveryMap)
+            .bindPopup(`Stop ${i + 1}: Order #${stop.order.id} - ${stop.order.customer_name || 'Customer'}`);
+        deliveryRouteStopMarkers.push(stopMarker);
+
+        const legSteps = (route.legs && route.legs[0] && route.legs[0].steps) ? route.legs[0].steps : [];
+        allStepItems.push(`<li><strong>Leg ${i + 1} - Order #${stop.order.id}</strong> <span class="text-muted">(${formatDistanceMeters(route.distance)} / ${formatDurationSeconds(route.duration)})</span></li>`);
+        legSteps.forEach((step) => {
+            allStepItems.push(`<li>${toLegInstruction(step)} <span class="text-muted">(${formatDistanceMeters(step.distance)})</span></li>`);
+        });
+
+        currentPoint = stop.coords;
+    }
+
+    const allLayers = [deliveryRiderMarker].concat(deliveryRouteLayers, deliveryRouteStopMarkers).filter(Boolean);
+    if (allLayers.length) {
+        const group = L.featureGroup(allLayers);
+        deliveryMap.fitBounds(group.getBounds().pad(0.18));
+    }
+
+    summaryEl.classList.remove('hidden');
+    summaryEl.innerHTML = `<strong>${manualMode ? 'Manual' : 'Auto'} route ready:</strong> ${orderedStops.length} stops<br>${summarizeRouteLine(totalDistance, totalDuration)}`;
+
+    if (allStepItems.length) {
+        stepsEl.classList.remove('hidden');
+        stepsEl.innerHTML = allStepItems.join('');
+    } else {
+        stepsEl.classList.add('hidden');
+        stepsEl.innerHTML = '';
+    }
+
+    setTimeout(() => deliveryMap.invalidateSize(), 150);
 }
 
 async function updateOrderStatus(orderId, status) {

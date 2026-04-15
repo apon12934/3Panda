@@ -64,8 +64,13 @@
         <div id="selected-order-map-wrap" class="card mt-2 hidden">
             <div class="card-body">
                 <h3 style="margin:0 0 .45rem 0;font-family:var(--font-heading);font-weight:700;">Selected Order Location</h3>
-                <p class="text-muted mb-1" style="font-size:.85rem;">Tap an order card above to view its delivery pin.</p>
+                <p class="text-muted mb-1" style="font-size:.85rem;">Tap an order card to view pin, route, ETA, and turn-by-turn directions.</p>
+                <div class="gap-row mb-1">
+                    <button class="btn btn-secondary btn-sm" id="selected-route-use-location" type="button">Use My Location</button>
+                </div>
+                <div id="selected-route-summary" class="route-summary hidden"></div>
                 <div id="selected-order-map" style="height:300px;border-radius:var(--radius);overflow:hidden;"></div>
+                <ol id="selected-route-steps" class="route-steps hidden"></ol>
             </div>
         </div>
     </div>
@@ -82,8 +87,24 @@
 
     <!-- map tab -->
     <div class="tab-panel" id="map-tab">
-        <p class="text-muted mb-1" style="font-size:.85rem;">Delivery locations are shown on the map.</p>
+        <p class="text-muted mb-1" style="font-size:.85rem;">Build one-by-one route for same-area deliveries with manual or automatic order.</p>
+        <div class="route-builder-controls">
+            <div class="form-group" style="margin-bottom:0;">
+                <label for="multi-route-mode">Route Mode</label>
+                <select id="multi-route-mode" class="form-control">
+                    <option value="auto">Auto (nearest next stop)</option>
+                    <option value="manual">Manual (your chosen sequence)</option>
+                </select>
+            </div>
+            <div class="gap-row">
+                <button class="btn btn-secondary btn-sm" id="multi-route-use-location" type="button">Use My Location</button>
+                <button class="btn btn-primary btn-sm" id="multi-route-build" type="button">Build Route</button>
+            </div>
+        </div>
+        <div id="multi-route-orders" class="route-orders-list hidden"></div>
+        <div id="multi-route-summary" class="route-summary hidden"></div>
         <div id="delivery-map" class="map-box" style="height:450px;"></div>
+        <ol id="multi-route-steps" class="route-steps hidden"></ol>
     </div>
 
     <!-- System status bar -->
