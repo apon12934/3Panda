@@ -544,8 +544,8 @@ function buildNav() {
 // find which page is currently open
 
 const page = (() => {
-    const p = window.location.pathname.split('/').pop() || 'index.html';
-    return p;
+    const p = window.location.pathname.split('/').pop() || 'index';
+    return p.replace(/\.html$/i, '').toLowerCase();
 })();
 
 // app start
@@ -561,13 +561,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initEditPopupBehavior();
     initLazyLoading();
 
-    if (page === 'index.html' || page === '') initHome();
-    if (page === 'login.html') initLogin();
-    if (page === 'profile.html') initProfile();
-    if (page === 'my-orders.html') initMyOrders();
-    if (page === 'delivery.html') initDelivery();
-    if (page === 'admin.html') initAdmin();
-    if (page === 'vendor.html') initVendor();
+    if (page === 'index' || page === '') initHome();
+    if (page === 'login') initLogin();
+    if (page === 'profile') initProfile();
+    if (page === 'my-orders') initMyOrders();
+    if (page === 'delivery') initDelivery();
+    if (page === 'admin') initAdmin();
+    if (page === 'vendor') initVendor();
 
     // tab switch click handlers
     $$('.tab-btn').forEach(btn => {

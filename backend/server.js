@@ -207,8 +207,37 @@ app.use((req, res, next) => {
     next();
 });
 
+const FRONTEND_DIR = path.join(__dirname, '..', 'frontend');
+const CLEAN_PAGE_TO_FILE = {
+    index: 'index.html',
+    login: 'login.html',
+    profile: 'profile.html',
+    'my-orders': 'my-orders.html',
+    delivery: 'delivery.html',
+    admin: 'admin.html',
+    vendor: 'vendor.html'
+};
+
+// Canonicalize legacy .html page URLs to clean paths.
+app.get(/^\/([a-z0-9-]+)\.html$/i, (req, res, next) => {
+    const page = String(req.params[0] || '').toLowerCase();
+    if (!CLEAN_PAGE_TO_FILE[page]) return next();
+
+    if (page === 'index') {
+        return res.redirect(301, '/');
+    }
+    return res.redirect(301, '/' + page);
+});
+
 // this serves the frontend folder
-app.use(express.static(path.join(__dirname, '..', 'frontend')));
+app.use(express.static(FRONTEND_DIR));
+
+// Serve known frontend pages on extensionless paths.
+app.get(['/', '/login', '/profile', '/my-orders', '/delivery', '/admin', '/vendor'], (req, res) => {
+    const key = req.path === '/' ? 'index' : req.path.slice(1).toLowerCase();
+    const fileName = CLEAN_PAGE_TO_FILE[key] || CLEAN_PAGE_TO_FILE.index;
+    return res.sendFile(path.join(FRONTEND_DIR, fileName));
+});
 
 // fast health endpoint for Render keepalive checks
 app.get('/api/health', (_req, res) => {
