@@ -3,7 +3,7 @@
 -- migrated from SQLite – made from the ER diagram we drew in class
 -- ============================================================
 
--- ---------------- users table ----------------
+-- --------------- users table ---------------
 CREATE TABLE IF NOT EXISTS Users (
     username        VARCHAR(100)     PRIMARY KEY,
     email           VARCHAR(255)     NOT NULL UNIQUE,
