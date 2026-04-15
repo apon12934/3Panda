@@ -2680,7 +2680,7 @@ async function adminLoadOrders() {
                 <td><span class="${badgeCls(o.status)}">${formatStatus(o.status)}</span></td>
                 <td>${o.delivery_address || '—'}</td>
                 <td>
-                    <select class="form-control admin-order-status-select" style="width:auto;display:inline;font-size:.8rem;" onchange="adminUpdateOrderStatus(${o.id}, this.value)">
+                    <select class="form-control admin-order-status-select" style="width:auto;font-size:.8rem;" onchange="adminUpdateOrderStatus(${o.id}, this.value)">
                         <option value="">Change…</option>
                         <option value="pending">Pending</option>
                         <option value="confirmed">Confirmed</option>

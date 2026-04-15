@@ -951,7 +951,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 }
 
 .custom-dropdown-native {
-    display: none;
+    display: none !important;
 }
 
 .custom-dropdown-trigger {
