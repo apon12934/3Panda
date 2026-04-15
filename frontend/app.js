@@ -2737,7 +2737,18 @@ async function adminPopulateStats() {
         if (ordersRes.ok) {
             const orders = await ordersRes.json();
             const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
-            const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+            const totalRevenue = orders.reduce((sum, o) => {
+                // Revenue should count only for restaurants that have an owner assigned.
+                if (!o.restaurant_owner_username) return sum;
+
+                // Prefer item-level subtotal sum for correctness.
+                const itemSubtotal = Array.isArray(o.items)
+                    ? o.items.reduce((s, it) => s + Number(it.subtotal || 0), 0)
+                    : 0;
+
+                const orderTotal = itemSubtotal > 0 ? itemSubtotal : Number(o.total_amount || 0);
+                return sum + orderTotal;
+            }, 0);
 
             const ordersEl = $('#stat-orders');
             if (ordersEl) animateCounter(ordersEl, activeOrders.length);

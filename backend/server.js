@@ -1136,12 +1136,14 @@ app.get('/api/orders', verifyToken, requireAdmin, async (_req, res) => {
         const deliveryJoinKey = getUserJoinKeyForOrderColumn(compat.ordersDeliveryColumn);
         const orders = await dbAll(
             `SELECT o.id, o.status, o.delivery_address, o.total_amount, o.payment_method,
-                    o.notes, o.created_at,
+                    o.notes, o.created_at, o.restaurant_id,
                     c.username AS customer_name,
-                    d.username AS delivery_person
+                    d.username AS delivery_person,
+                    r.owner_username AS restaurant_owner_username
              FROM Orders o
              LEFT JOIN Users c ON o.${compat.ordersUserColumn} = c.${customerJoinKey}
              LEFT JOIN Users d ON o.${compat.ordersDeliveryColumn} = d.${deliveryJoinKey}
+             LEFT JOIN Restaurants r ON o.restaurant_id = r.id
              ORDER BY o.id DESC`
         );
 
