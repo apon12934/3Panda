@@ -1567,6 +1567,8 @@ tbody tr:last-child {
 .review-reply-editor {
     margin-top: .45rem;
     padding-top: .45rem;
+    border-top: 1px dashed var(--border);
+}
 
 .restaurant-rating-summary {
     margin-top: 0.5rem;
@@ -1579,7 +1581,7 @@ tbody tr:last-child {
 .restaurant-rating-stars {
     color: #F59E0B;
     letter-spacing: 0.04em;
-    font-size: 0.92rem;
+    font-size: 1.08rem;
     line-height: 1;
 }
 
@@ -1590,13 +1592,13 @@ tbody tr:last-child {
 
 .restaurant-rating-summary.no-reviews .restaurant-rating-stars {
     color: #D1D5DB;
+    font-size: 1.12rem;
 }
 
 .restaurant-rating-summary.no-reviews .restaurant-rating-text {
     color: var(--text-light);
-    font-weight: 500;
-}
-    border-top: 1px dashed var(--border);
+    font-weight: 400;
+    font-size: 0.8rem;
 }
 
 /* ============================================================
