@@ -52,6 +52,7 @@ const dbAll = async (sql, params = []) => {
 const schemaCompat = {
     checked: false,
     ordersUserColumn: 'user_username',
+    ordersDeliveryColumn: 'delivery_person_username',
     usersHasId: false
 };
 
@@ -65,6 +66,12 @@ const ensureSchemaCompat = async () => {
             schemaCompat.ordersUserColumn = 'user_id';
         } else if (orderColNames.has('user_username')) {
             schemaCompat.ordersUserColumn = 'user_username';
+        }
+
+        if (orderColNames.has('delivery_person_id')) {
+            schemaCompat.ordersDeliveryColumn = 'delivery_person_id';
+        } else if (orderColNames.has('delivery_person_username')) {
+            schemaCompat.ordersDeliveryColumn = 'delivery_person_username';
         }
 
         const userCols = await dbAll('SHOW COLUMNS FROM Users');
@@ -86,6 +93,22 @@ const resolveOrderUserValue = async (username) => {
     if (!compat.usersHasId) return username;
     const userRow = await dbGet('SELECT id FROM Users WHERE username = ?', [username]);
     return userRow ? userRow.id : null;
+};
+
+const resolveDeliveryPersonValue = async (username) => {
+    const compat = await ensureSchemaCompat();
+    if (compat.ordersDeliveryColumn === 'delivery_person_username') return username;
+
+    if (!compat.usersHasId) return null;
+    const userRow = await dbGet('SELECT id FROM Users WHERE username = ?', [username]);
+    return userRow ? userRow.id : null;
+};
+
+const getUserJoinKeyForOrderColumn = (orderColumn) => {
+    if (orderColumn === 'user_id' || orderColumn === 'delivery_person_id') {
+        return schemaCompat.usersHasId ? 'id' : 'username';
+    }
+    return 'username';
 };
 
 // run schema.sql when server starts (execute each statement separately)
@@ -915,14 +938,21 @@ app.post('/api/orders', verifyToken, async (req, res) => {
 // get my own orders
 app.get('/api/orders/mine', verifyToken, async (req, res) => {
     try {
+        const compat = await ensureSchemaCompat();
+        const orderUserValue = await resolveOrderUserValue(req.user.username);
+        if (orderUserValue === null || orderUserValue === undefined) {
+            return res.status(400).json({ error: 'User account mapping failed.' });
+        }
+
+        const deliveryJoinKey = getUserJoinKeyForOrderColumn(compat.ordersDeliveryColumn);
         const orders = await dbAll(
             `SELECT o.id, o.status, o.delivery_address, o.total_amount, o.payment_method, o.notes,
                     o.created_at, u.username AS delivery_person
              FROM Orders o
-             LEFT JOIN Users u ON o.delivery_person_username = u.username
-             WHERE o.user_username = ?
+             LEFT JOIN Users u ON o.${compat.ordersDeliveryColumn} = u.${deliveryJoinKey}
+             WHERE o.${compat.ordersUserColumn} = ?
              ORDER BY o.id DESC`,
-            [req.user.username]
+            [orderUserValue]
         );
 
         for (const order of orders) {
@@ -945,15 +975,22 @@ app.get('/api/orders/mine', verifyToken, async (req, res) => {
 // delivery page: pending or assigned to me
 app.get('/api/delivery/pending', verifyToken, async (req, res) => {
     try {
+                const compat = await ensureSchemaCompat();
+                const deliveryAssigneeValue = await resolveDeliveryPersonValue(req.user.username);
+                if (deliveryAssigneeValue === null || deliveryAssigneeValue === undefined) {
+                        return res.status(400).json({ error: 'Delivery account mapping failed.' });
+                }
+
+                const customerJoinKey = getUserJoinKeyForOrderColumn(compat.ordersUserColumn);
         const orders = await dbAll(
             `SELECT o.id, o.status, o.delivery_address, o.total_amount,
-                    c.username AS customer_name
+                                        COALESCE(c.username, CAST(o.${compat.ordersUserColumn} AS CHAR)) AS customer_name
              FROM Orders o
-             JOIN Users c ON o.user_username = c.id
+                         LEFT JOIN Users c ON o.${compat.ordersUserColumn} = c.${customerJoinKey}
              WHERE o.status IN ('pending', 'confirmed', 'preparing')
-               AND (o.delivery_person_username IS NULL OR o.delivery_person_username = ?)
+                             AND (o.${compat.ordersDeliveryColumn} IS NULL OR o.${compat.ordersDeliveryColumn} = ?)
              ORDER BY o.id DESC`,
-            [req.user.id]
+                        [deliveryAssigneeValue]
         );
 
         for (const order of orders) {
@@ -976,15 +1013,22 @@ app.get('/api/delivery/pending', verifyToken, async (req, res) => {
 // delivery page: completed/cancelled history
 app.get('/api/delivery/history', verifyToken, async (req, res) => {
     try {
+        const compat = await ensureSchemaCompat();
+        const deliveryAssigneeValue = await resolveDeliveryPersonValue(req.user.username);
+        if (deliveryAssigneeValue === null || deliveryAssigneeValue === undefined) {
+            return res.status(400).json({ error: 'Delivery account mapping failed.' });
+        }
+
+        const customerJoinKey = getUserJoinKeyForOrderColumn(compat.ordersUserColumn);
         const orders = await dbAll(
             `SELECT o.id, o.status, o.delivery_address, o.total_amount,
-                    c.username AS customer_name
+                    COALESCE(c.username, CAST(o.${compat.ordersUserColumn} AS CHAR)) AS customer_name
              FROM Orders o
-             JOIN Users c ON o.user_username = c.id
-             WHERE o.delivery_person_username = ?
+             LEFT JOIN Users c ON o.${compat.ordersUserColumn} = c.${customerJoinKey}
+             WHERE o.${compat.ordersDeliveryColumn} = ?
                AND o.status IN ('delivered', 'cancelled')
              ORDER BY o.id DESC`,
-            [req.user.id]
+            [deliveryAssigneeValue]
         );
 
         for (const order of orders) {
@@ -1015,26 +1059,32 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
             return res.status(400).json({ error: 'Invalid status.' });
         }
 
-        const order = await dbGet('SELECT * FROM Orders WHERE username = ?', [id]);
+        const compat = await ensureSchemaCompat();
+        const order = await dbGet('SELECT * FROM Orders WHERE id = ?', [id]);
         if (!order) return res.status(404).json({ error: 'Order not found.' });
+
+        const deliveryAssigneeValue = await resolveDeliveryPersonValue(req.user.username);
+        if (req.user.role === 'delivery' && (deliveryAssigneeValue === null || deliveryAssigneeValue === undefined)) {
+            return res.status(400).json({ error: 'Delivery account mapping failed.' });
+        }
 
         // Authorization: only admin or the assigned delivery person can update
         if (req.user.role !== 'admin' && req.user.role !== 'delivery') {
             return res.status(403).json({ error: 'Not authorized to update this order.' });
         }
-        if (req.user.role === 'delivery' && order.delivery_person_username && order.delivery_person_username !== req.user.id) {
+        if (req.user.role === 'delivery' && order[compat.ordersDeliveryColumn] && order[compat.ordersDeliveryColumn] !== deliveryAssigneeValue) {
             return res.status(403).json({ error: 'You can only update orders assigned to you.' });
         }
 
         // if a delivery user takes this order, save their id
-        let delivery_person_username = order.delivery_person_username;
-        if (req.user.role === 'delivery' && !order.delivery_person_username) {
-            delivery_person_username = req.user.id;
+        let deliveryPersonValue = order[compat.ordersDeliveryColumn];
+        if (req.user.role === 'delivery' && !order[compat.ordersDeliveryColumn]) {
+            deliveryPersonValue = deliveryAssigneeValue;
         }
 
         await dbRun(
-            'UPDATE Orders SET status = ?, delivery_person_username = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?',
-            [status, delivery_person_username, id]
+            `UPDATE Orders SET status = ?, ${compat.ordersDeliveryColumn} = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+            [status, deliveryPersonValue, id]
         );
 
         return res.json({ message: 'Order status updated.' });
@@ -1048,14 +1098,17 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
 
 app.get('/api/orders', verifyToken, requireAdmin, async (_req, res) => {
     try {
+        const compat = await ensureSchemaCompat();
+        const customerJoinKey = getUserJoinKeyForOrderColumn(compat.ordersUserColumn);
+        const deliveryJoinKey = getUserJoinKeyForOrderColumn(compat.ordersDeliveryColumn);
         const orders = await dbAll(
             `SELECT o.id, o.status, o.delivery_address, o.total_amount, o.payment_method,
                     o.notes, o.created_at,
                     c.username AS customer_name,
                     d.username AS delivery_person
              FROM Orders o
-             JOIN Users c ON o.user_username = c.id
-             LEFT JOIN Users d ON o.delivery_person_username = d.id
+             LEFT JOIN Users c ON o.${compat.ordersUserColumn} = c.${customerJoinKey}
+             LEFT JOIN Users d ON o.${compat.ordersDeliveryColumn} = d.${deliveryJoinKey}
              ORDER BY o.id DESC`
         );
 
