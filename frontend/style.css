@@ -3,7 +3,7 @@
    ============================================================ */
 
 /* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@100..800&family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 
 /* Reset */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -56,8 +56,8 @@
     --duration-slow:.5s;
 
     /* Typography */
-    --font-heading: 'Outfit', system-ui, sans-serif;
-    --font-body:    'Inter', system-ui, sans-serif;
+    --font-heading: 'Poppins', system-ui, sans-serif;
+    --font-body:    'Poppins', system-ui, sans-serif;
 }
 
 /* Base */
@@ -74,6 +74,13 @@ body {
     color: var(--text);
     line-height: 1.6;
     min-height: 100vh;
+}
+
+/* Prefer Anek Bangla for Bengali content where language metadata is present */
+:lang(bn),
+[lang="bn"],
+[lang^="bn-"] {
+    font-family: 'Anek Bangla', var(--font-body);
 }
 
 a {
