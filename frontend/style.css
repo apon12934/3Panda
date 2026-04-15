@@ -1472,6 +1472,36 @@ tbody tr:last-child {
     color: var(--text-secondary);
 }
 
+/* ============================================================
+   DELIVERY HUB SPLIT LAYOUT
+   ============================================================ */
+
+.page-delivery #pending-tab .delivery-split-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(320px, .95fr);
+    gap: 1.1rem;
+    align-items: start;
+}
+
+.page-delivery #pending-tab .delivery-orders-column {
+    min-width: 0;
+}
+
+.page-delivery #pending-tab .delivery-map-column {
+    position: sticky;
+    top: 5.25rem;
+    align-self: start;
+}
+
+.page-delivery #pending-tab #selected-order-map-wrap {
+    margin-top: 0;
+}
+
+.page-delivery #pending-tab #selected-route-steps {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
 .route-steps li strong {
     color: var(--text);
 }
@@ -2169,6 +2199,15 @@ tbody tr:last-child {
     .sidebar-nav a {
         white-space: nowrap;
     }
+
+    .page-delivery #pending-tab .delivery-split-layout {
+        grid-template-columns: 1fr;
+        gap: .9rem;
+    }
+
+    .page-delivery #pending-tab .delivery-map-column {
+        position: static;
+    }
 }
 
 @media (max-width: 768px) {
@@ -2341,6 +2380,10 @@ tbody tr:last-child {
 
     .route-order-row .route-order-meta span {
         max-width: 180px;
+    }
+
+    .page-delivery #pending-tab #selected-order-map {
+        height: 300px !important;
     }
 
     .tabs {

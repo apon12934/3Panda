@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
-<body>
+<body class="page-delivery">
 
 <!-- top nav bar -->
 <nav class="navbar" id="main-navbar">
@@ -54,24 +54,28 @@
 
     <!-- pending orders tab -->
     <div class="tab-panel active" id="pending-tab" data-animate>
-        <div id="pending-orders">
-            <div class="empty-state">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <p>No pending orders right now.</p>
-            </div>
-        </div>
-
-        <div id="selected-order-map-wrap" class="card mt-2 hidden">
-            <div class="card-body">
-                <h3 style="margin:0 0 .45rem 0;font-family:var(--font-heading);font-weight:700;">Selected Order Location</h3>
-                <p class="text-muted mb-1" style="font-size:.85rem;">Tap an order card to view pin, route, ETA, and turn-by-turn directions.</p>
-                <div class="gap-row mb-1">
-                    <button class="btn btn-secondary btn-sm" id="selected-route-use-location" type="button">Use My Location</button>
+        <div class="delivery-split-layout">
+            <div id="pending-orders" class="delivery-orders-column">
+                <div class="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <p>No pending orders right now.</p>
                 </div>
-                <div id="selected-route-summary" class="route-summary hidden"></div>
-                <div id="selected-order-map" style="height:300px;border-radius:var(--radius);overflow:hidden;"></div>
-                <ol id="selected-route-steps" class="route-steps hidden"></ol>
             </div>
+
+            <aside class="delivery-map-column">
+                <div id="selected-order-map-wrap" class="card hidden">
+                    <div class="card-body">
+                        <h3 style="margin:0 0 .45rem 0;font-family:var(--font-heading);font-weight:700;">Selected Order Location</h3>
+                        <p class="text-muted mb-1" style="font-size:.85rem;">Tap an order card to view pin, route, ETA, and turn-by-turn directions.</p>
+                        <div class="gap-row mb-1">
+                            <button class="btn btn-secondary btn-sm" id="selected-route-use-location" type="button">Use My Location</button>
+                        </div>
+                        <div id="selected-route-summary" class="route-summary hidden"></div>
+                        <div id="selected-order-map" style="height:360px;border-radius:var(--radius);overflow:hidden;"></div>
+                        <ol id="selected-route-steps" class="route-steps hidden"></ol>
+                    </div>
+                </div>
+            </aside>
         </div>
     </div>
 
