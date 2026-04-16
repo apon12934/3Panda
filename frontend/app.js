@@ -686,11 +686,10 @@ function initHome() {
     const menuList = $('#menu-list');
     if (menuList && menuList.dataset.itemDetailsBound !== '1') {
         menuList.addEventListener('click', (event) => {
-            const detailsTrigger = event.target.closest('.item-details-trigger');
             const card = event.target.closest('.menu-item-card');
-            if (!detailsTrigger && (!card || event.target.closest('button'))) return;
+            if (!card || event.target.closest('button')) return;
 
-            const itemId = Number((detailsTrigger && detailsTrigger.dataset.itemId) || (card && card.dataset.itemId));
+            const itemId = Number(card.dataset.itemId);
             if (!itemId) return;
             openItemDetailsById(itemId);
         });
@@ -760,7 +759,6 @@ async function filterMenuBySearch(query) {
                     ${item.description ? '<p class="card-desc">' + item.description + '</p>' : ''}
                     <p class="price">${formatPrice(item.price)}</p>
                     <div class="item-card-actions mt-1">
-                        <button class="btn btn-sm item-details-trigger item-details-btn" data-item-id="${item.id}">View Details</button>
                         <button class="btn btn-primary btn-sm" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'") }', ${item.price})">Add to Cart</button>
                     </div>
                 </div>
@@ -924,7 +922,6 @@ async function loadMenuItems(restaurantId) {
                     ${item.description ? '<p class="card-desc">' + item.description + '</p>' : ''}
                     <p class="price">${formatPrice(item.price)}</p>
                     <div class="item-card-actions mt-1">
-                        <button class="btn btn-sm item-details-trigger item-details-btn" data-item-id="${item.id}">View Details</button>
                         <button class="btn btn-primary btn-sm" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price})">Add to Cart</button>
                     </div>
                 </div>
@@ -1233,11 +1230,10 @@ function initRestaurantPopup() {
         const addBtn = event.target.closest('.carousel-add-btn');
         if (addBtn) return;
 
-        const detailsTrigger = event.target.closest('.carousel-item-details-trigger');
         const card = event.target.closest('.carousel-card');
-        if (!detailsTrigger && !card) return;
+        if (!card) return;
 
-        const itemId = Number((detailsTrigger && detailsTrigger.dataset.itemId) || (card && card.dataset.itemId));
+        const itemId = Number(card.dataset.itemId);
         if (!itemId) return;
         openItemDetailsById(itemId);
     });
@@ -1292,7 +1288,6 @@ async function openRestaurantPopup(restaurantId, restaurantName) {
                     <div class="carousel-card-footer">
                         <span class="price">${formatPrice(item.price)}</span>
                         <div class="item-card-actions">
-                            <button class="btn btn-sm item-details-btn carousel-item-details-trigger" data-item-id="${item.id}">Details</button>
                             <button class="btn btn-primary btn-sm carousel-add-btn" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price})">Add to Cart</button>
                         </div>
                     </div>
