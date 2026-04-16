@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS Orders (
                                          CHECK (status IN ('pending', 'confirmed', 'preparing',
                                                            'out_for_delivery', 'delivered', 'cancelled')),
     delivery_address   TEXT             DEFAULT NULL,
+    delivery_otp       CHAR(4)          DEFAULT NULL,
     payment_method     VARCHAR(20)      DEFAULT 'cash'
                                          CHECK (payment_method IN ('cash', 'credit_card', 'online')),
     notes              TEXT             DEFAULT NULL,
@@ -111,6 +112,7 @@ CREATE TABLE IF NOT EXISTS Reviews (
 
 ALTER TABLE Reviews ADD COLUMN IF NOT EXISTS vendor_reply TEXT DEFAULT NULL;
 ALTER TABLE Reviews ADD COLUMN IF NOT EXISTS vendor_reply_at TIMESTAMP NULL DEFAULT NULL;
+ALTER TABLE Orders ADD COLUMN IF NOT EXISTS delivery_otp CHAR(4) DEFAULT NULL;
 
 -- ---------------- sample data for testing ----------------
 DELETE FROM Users WHERE email = 'admin@3panda.com';

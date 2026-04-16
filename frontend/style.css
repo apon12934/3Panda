@@ -3724,3 +3724,53 @@ body.edit-popup-open {
     }
 }
 
+
+/* ── Delivery OTP styles ─────────────────────────────────── */
+.otp-box {
+    margin: .75rem 0;
+    border-radius: var(--radius);
+    background: linear-gradient(135deg, #fef9c3 0%, #fef3c7 100%);
+    border: 1.5px solid #f59e0b;
+    overflow: hidden;
+}
+
+.otp-box-inner {
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+    padding: .85rem 1rem;
+    color: #92400e;
+}
+
+.otp-label {
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+}
+
+.otp-digits {
+    margin-left: auto;
+    font-family: var(--font-heading, monospace);
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: .25em;
+    color: #b45309;
+    background: #fff8e1;
+    border: 1.5px solid #f59e0b;
+    border-radius: calc(var(--radius) - 2px);
+    padding: .2rem .75rem;
+    min-width: 5.5rem;
+    text-align: center;
+    user-select: all;
+}
+
+.otp-input-row {
+    display: flex;
+    justify-content: center;
+}
+
+.otp-entry:focus {
+    outline: none;
+    border-color: var(--red, #e11d48);
+    box-shadow: 0 0 0 3px rgba(225,29,72,.15);
+}

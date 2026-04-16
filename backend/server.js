@@ -54,7 +54,8 @@ const schemaCompat = {
     ordersUserColumn: 'user_username',
     ordersDeliveryColumn: 'delivery_person_username',
     reviewsUserColumn: 'user_username',
-    usersHasId: false
+    usersHasId: false,
+    ordersHasOtp: true
 };
 
 const ensureSchemaCompat = async () => {
@@ -86,6 +87,7 @@ const ensureSchemaCompat = async () => {
         const userCols = await dbAll('SHOW COLUMNS FROM Users');
         const userColNames = new Set(userCols.map(col => col.Field));
         schemaCompat.usersHasId = userColNames.has('id');
+        schemaCompat.ordersHasOtp = orderColNames.has('delivery_otp');
     } catch (err) {
         console.warn('Schema compatibility check warning:', err.message);
     } finally {
@@ -973,9 +975,14 @@ app.post('/api/orders', verifyToken, async (req, res) => {
             return res.status(400).json({ error: 'User account not found for order placement.' });
         }
 
+        const deliveryOtp = String(Math.floor(1000 + Math.random() * 9000));
+        const otpColumn = compat.ordersHasOtp ? ', delivery_otp' : '';
+        const otpPlaceholder = compat.ordersHasOtp ? ', ?' : '';
+        const otpValues = compat.ordersHasOtp ? [deliveryOtp] : [];
+
         const orderResult = await dbRun(
-            `INSERT INTO Orders (${compat.ordersUserColumn}, restaurant_id, total_amount, status, delivery_address, payment_method, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [orderUserValue, restaurant_id, total_amount, 'pending', delivery_address || null, payment_method || 'cash', notes || null]
+            `INSERT INTO Orders (${compat.ordersUserColumn}, restaurant_id, total_amount, status, delivery_address, payment_method, notes${otpColumn}) VALUES (?, ?, ?, ?, ?, ?, ?${otpPlaceholder})`,
+            [orderUserValue, restaurant_id, total_amount, 'pending', delivery_address || null, payment_method || 'cash', notes || null, ...otpValues]
         );
 
         const orderId = orderResult.insertId;
@@ -1004,9 +1011,10 @@ app.get('/api/orders/mine', verifyToken, async (req, res) => {
         }
 
         const deliveryJoinKey = getUserJoinKeyForOrderColumn(compat.ordersDeliveryColumn);
+        const otpSelect = compat.ordersHasOtp ? ', o.delivery_otp' : '';
         const orders = await dbAll(
             `SELECT o.id, o.status, o.delivery_address, o.total_amount, o.payment_method, o.notes,
-                    o.created_at,
+                    o.created_at${otpSelect},
                     COALESCE(u.full_name, u.username, CAST(o.${compat.ordersDeliveryColumn} AS CHAR)) AS delivery_person
              FROM Orders o
              LEFT JOIN Users u ON o.${compat.ordersDeliveryColumn} = u.${deliveryJoinKey}
@@ -1114,7 +1122,7 @@ app.get('/api/delivery/history', verifyToken, async (req, res) => {
 app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
+        const { status, otp } = req.body;
         let nextStatus = status;
 
         const validStatuses = ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'];
@@ -1137,6 +1145,16 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
         }
         if (req.user.role === 'delivery' && order[compat.ordersDeliveryColumn] && order[compat.ordersDeliveryColumn] !== deliveryAssigneeValue) {
             return res.status(403).json({ error: 'You can only update orders assigned to you.' });
+        }
+
+        // OTP verification: delivery riders must provide the correct OTP to mark as delivered
+        if (req.user.role === 'delivery' && status === 'delivered' && compat.ordersHasOtp) {
+            if (!otp) {
+                return res.status(400).json({ error: 'Delivery OTP is required to mark as delivered.' });
+            }
+            if (String(otp).trim() !== String(order.delivery_otp)) {
+                return res.status(400).json({ error: 'Incorrect OTP. Please ask the customer for the correct code.' });
+            }
         }
 
         // Rider "cancel" means releasing assignment back to pending pool.

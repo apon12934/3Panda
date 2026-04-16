@@ -1998,6 +1998,14 @@ async function fetchMyOrders() {
             badge.className = badgeCls(order.status);
             clone.querySelector('.order-delivery').textContent = order.delivery_person || 'Not assigned';
 
+            // show OTP box when the order is out for delivery
+            const otpBox = clone.querySelector('.otp-box');
+            const otpEl = clone.querySelector('.order-otp');
+            if (otpBox && otpEl && order.delivery_otp && order.status === 'out_for_delivery') {
+                otpEl.textContent = order.delivery_otp;
+                otpBox.classList.remove('hidden');
+            }
+
             const tbody = clone.querySelector('.order-items');
             let total = 0;
             order.items.forEach(item => {
@@ -2654,6 +2662,13 @@ async function buildMultiStopRoute() {
 
 async function updateOrderStatus(orderId, status) {
     if (!status) return showMsg('Select a status first.');
+
+    // if marking as delivered, show OTP verification modal first
+    if (status === 'delivered') {
+        showOtpModal(orderId);
+        return;
+    }
+
     try {
         const res = await fetch(API + '/orders/' + orderId + '/status', {
             method: 'PUT',
@@ -2670,6 +2685,82 @@ async function updateOrderStatus(orderId, status) {
         console.error(err);
         showMsg('Update failed.');
     }
+}
+
+function showOtpModal(orderId) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+        <div class="modal-content" style="width:90%;max-width:420px;">
+            <div class="modal-header">
+                <h5 style="margin:0;display:flex;align-items:center;gap:.5rem;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Enter Delivery OTP
+                </h5>
+                <button type="button" class="close-modal" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-body" style="padding:1.25rem;">
+                <p style="margin:0 0 1rem 0;color:var(--text-muted,#666);font-size:.9rem;">Ask the customer for their 4-digit delivery code and enter it below to confirm delivery.</p>
+                <div class="otp-input-row">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="_ _ _ _" class="otp-entry form-control" style="text-align:center;font-size:1.75rem;letter-spacing:.4em;font-weight:700;width:100%;" autocomplete="off" />
+                </div>
+                <p class="otp-error-msg" style="color:#dc2626;font-size:.85rem;margin:.5rem 0 0 0;display:none;"></p>
+            </div>
+            <div class="modal-footer" style="padding:1rem;display:flex;gap:.5rem;justify-content:flex-end;border-top:1px solid #e5e7eb;">
+                <button class="btn btn-secondary cancel-otp-btn">Cancel</button>
+                <button class="btn btn-primary confirm-otp-btn">Confirm Delivery</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const input = modal.querySelector('.otp-entry');
+    const errorMsg = modal.querySelector('.otp-error-msg');
+    const confirmBtn = modal.querySelector('.confirm-otp-btn');
+
+    modal.querySelector('.close-modal').addEventListener('click', () => modal.remove());
+    modal.querySelector('.cancel-otp-btn').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+    input.focus();
+
+    confirmBtn.addEventListener('click', async () => {
+        const otp = input.value.trim();
+        if (otp.length !== 4 || !/^\d{4}$/.test(otp)) {
+            errorMsg.textContent = 'Please enter a valid 4-digit code.';
+            errorMsg.style.display = 'block';
+            return;
+        }
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Verifying…';
+        errorMsg.style.display = 'none';
+        try {
+            const res = await fetch(API + '/orders/' + orderId + '/status', {
+                method: 'PUT',
+                headers: authJSON(),
+                body: JSON.stringify({ status: 'delivered', otp })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                errorMsg.textContent = data.error || 'OTP verification failed.';
+                errorMsg.style.display = 'block';
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Confirm Delivery';
+                return;
+            }
+            modal.remove();
+            showMsg('Order #' + orderId + ' marked as delivered!', 'success');
+            loadPendingOrders();
+            loadDeliveryHistory();
+        } catch (err) {
+            console.error(err);
+            errorMsg.textContent = 'Request failed. Please try again.';
+            errorMsg.style.display = 'block';
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Confirm Delivery';
+        }
+    });
 }
 
 // admin page logic (admin.html)
