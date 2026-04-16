@@ -1924,10 +1924,15 @@ tbody tr:last-child {
 }
 
 .restaurant-owner-popup {
+    top: 50%;
+    bottom: auto;
     width: min(92vw, 480px);
+    max-height: 85vh;
+    border-radius: var(--radius-xl);
     right: auto;
     left: 50%;
     transform: translate(-50%, -50%);
+    animation: popupScaleIn .35s var(--ease);
 }
 
 .owner-info-grid {
@@ -1964,6 +1969,11 @@ tbody tr:last-child {
     .owner-info-row {
         grid-template-columns: 1fr;
         gap: .25rem;
+    }
+
+    .restaurant-owner-popup {
+        width: 94vw;
+        max-height: 88vh;
     }
 }
 
@@ -2541,6 +2551,14 @@ tbody tr:last-child {
     .auth-card { padding: 1.75rem 1.5rem; }
     .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
     .popup-panel { width: 100vw; }
+    .restaurant-owner-popup {
+        width: min(92vw, 480px);
+        left: 50%;
+        right: auto;
+        bottom: auto;
+        top: 50%;
+        transform: translate(-50%, -50%);
+    }
     #toast-container { left: 1rem; right: 1rem; max-width: none; }
 
     .footer-grid {
