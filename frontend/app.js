@@ -1320,6 +1320,8 @@ function setupReviewStarPicker() {
 function renderReviewList(container, reviews, opts = {}) {
     if (!container) return;
     const showReplyEditor = !!opts.showReplyEditor;
+    const currentRole = getRole();
+    const isAdmin = currentRole === 'admin';
     const currentUser = getToken()
         ? String(getUserName() || localStorage.getItem('username') || '').trim().toLowerCase()
         : '';
@@ -1348,11 +1350,18 @@ function renderReviewList(container, reviews, opts = {}) {
         const safeReviewer = escapeHtml(reviewerRaw || 'Customer');
         const isOwner = !!currentUser && currentUser === reviewerRaw.toLowerCase();
 
-        const actionButtons = isOwner && !showReplyEditor
-            ? `<div class="review-actions gap-row" style="gap:.5rem;margin-top:0.5rem;">
-                   <button class="btn btn-sm btn-outline-primary review-edit-btn" data-review-id="${review.id}" data-rating="${review.rating}" data-comment="${escapeHtml(review.comment || '')}">Edit</button>
-                   <button class="btn btn-sm btn-outline-danger review-delete-btn" data-review-id="${review.id}">Delete</button>
-               </div>`
+        const ownerActions = isOwner && !showReplyEditor
+            ? `<button class="btn btn-sm btn-outline-primary review-edit-btn" data-review-id="${review.id}" data-rating="${review.rating}" data-comment="${escapeHtml(review.comment || '')}">Edit</button>
+               <button class="btn btn-sm btn-outline-danger review-delete-btn" data-review-id="${review.id}">Delete</button>`
+            : '';
+
+        const adminActions = isAdmin && !showReplyEditor
+            ? `<button class="btn btn-sm btn-outline-danger review-delete-btn" data-review-id="${review.id}">Delete Review</button>
+               ${review.vendor_reply ? `<button class="btn btn-sm btn-outline-danger review-reply-delete-btn" data-review-id="${review.id}">Delete Reply</button>` : ''}`
+            : '';
+
+        const actionButtons = (ownerActions || adminActions)
+            ? `<div class="review-actions gap-row" style="gap:.5rem;margin-top:0.5rem;">${ownerActions}${adminActions}</div>`
             : '';
 
         const replyEditor = showReplyEditor
@@ -1384,6 +1393,9 @@ function renderReviewList(container, reviews, opts = {}) {
         });
         container.querySelectorAll('.review-delete-btn').forEach((btn) => {
             btn.addEventListener('click', () => deleteReview(btn.dataset.reviewId));
+        });
+        container.querySelectorAll('.review-reply-delete-btn').forEach((btn) => {
+            btn.addEventListener('click', () => deleteReviewReplyOnly(btn.dataset.reviewId));
         });
     }
 }
@@ -1574,6 +1586,28 @@ async function deleteReview(reviewId) {
     } catch (err) {
         console.error(err);
         showMsg('Failed to delete review.');
+    }
+}
+
+async function deleteReviewReplyOnly(reviewId) {
+    if (!confirm('Delete only the vendor reply from this review?')) return;
+
+    try {
+        const res = await fetch(API + '/reviews/' + reviewId + '/reply', {
+            method: 'DELETE',
+            headers: authJSON()
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            showMsg(data.error || 'Failed to delete reply.');
+            return;
+        }
+
+        showMsg('Reply deleted.', 'success');
+        loadRestaurantReviews(activeRestaurantIdForReviews);
+    } catch (err) {
+        console.error(err);
+        showMsg('Failed to delete reply.');
     }
 }
 
