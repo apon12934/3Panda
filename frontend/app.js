@@ -1281,7 +1281,7 @@ async function openRestaurantPopup(restaurantId, restaurantName) {
 
         carousel.innerHTML = items.map(item => `
             <div class="carousel-card" data-item-id="${item.id}">
-                <img src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22250%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22250%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}" loading="lazy" decoding="async">
+                <img src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}" loading="lazy" decoding="async">
                 <div class="carousel-card-body">
                     <h4>${item.name}</h4>
                     ${item.description ? '<p class="card-desc">' + item.description + '</p>' : ''}
@@ -1345,7 +1345,7 @@ function openItemDetailsById(itemId) {
     const addBtn = $('#item-details-add-btn');
     if (!overlay || !popup || !imageEl || !nameEl || !priceEl || !categoryEl || !restaurantEl || !descriptionEl || !addBtn) return;
 
-    const fallbackImage = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22250%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22250%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E';
+    const fallbackImage = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E';
 
     imageEl.src = item.image || fallbackImage;
     imageEl.alt = item.name || 'Menu item';
@@ -2853,7 +2853,7 @@ async function adminLoadRestaurants() {
                 <td>${r.name}</td>
                 <td>${r.owner_username || '\u2014'}</td>
                 <td><span class="status-badge status-badge--${r.status || 'approved'}">${(r.status || 'approved').charAt(0).toUpperCase() + (r.status || 'approved').slice(1)}</span></td>
-                <td>${r.image ? '<img src="' + r.image + '" style="height:40px;border-radius:4px;">' : '\u2014'}</td>
+                <td>${r.image ? '<img src="' + r.image + '" class="table-banner-thumb" alt="Restaurant banner">' : '\u2014'}</td>
                 <td class="gap-row">
                     <button class="btn btn-sm btn-primary" onclick="adminEditRestaurant(${r.id}, '${r.name.replace(/'/g,"\\'")}', '${(r.owner_username || '').replace(/'/g,"\\'")}')">Edit</button>
                     <button class="btn btn-sm btn-danger" onclick="adminDeleteRestaurant(${r.id})">Del</button>
@@ -2910,7 +2910,7 @@ async function adminLoadItems() {
                 <td title="${i.name}" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.name}</td>
                 <td title="${i.description||''}" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.description || '—'}</td>
                 <td>${formatPrice(i.price)}</td>
-                <td>${i.image ? '<img src="' + i.image + '" style="height:40px;border-radius:4px;">' : '—'}</td>
+                <td>${i.image ? '<img src="' + i.image + '" class="table-banner-thumb" alt="Item banner">' : '—'}</td>
                 <td class="gap-row">
                     <button class="btn btn-sm btn-primary" onclick="adminEditItem(${i.id}, ${i.restaurant_id}, '${i.name.replace(/'/g,"\\'")}', ${i.price}, '${(i.description||'').replace(/'/g,"\\'")}')">Edit</button>
                     <button class="btn btn-sm btn-danger" onclick="adminDeleteItem(${i.id})">Del</button>
