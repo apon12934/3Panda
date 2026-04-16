@@ -358,7 +358,6 @@ function initCustomDropdowns() {
 
     document.querySelectorAll('select.form-control').forEach((select) => {
         if (select.closest('[data-custom-dropdown]')) return;
-        if (select.classList.contains('admin-order-status-select')) return;
         enhanceSelect(select);
     });
 
