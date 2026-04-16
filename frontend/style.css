@@ -1748,19 +1748,28 @@ tbody tr:last-child {
     font-size: .86rem;
 }
 
+.review-vendor-reply strong {
+    display: inline-flex;
+    align-items: center;
+    gap: .28rem;
+    line-height: 1.05;
+}
+
 .review-vendor-tag {
-    display: inline-block;
-    margin-left: .35rem;
-    padding: .05rem .38rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0;
+    padding: .03rem .3rem;
     border-radius: 999px;
     border: 1px solid var(--red-light);
     color: var(--red-dark);
     background: rgba(248, 113, 113, 0.12);
-    font-size: .68rem;
+    font-size: .6rem;
     font-weight: 700;
-    letter-spacing: .02em;
+    letter-spacing: .015em;
     text-transform: uppercase;
-    vertical-align: middle;
+    line-height: 1;
 }
 
 .review-reply-editor {
