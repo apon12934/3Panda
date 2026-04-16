@@ -1360,6 +1360,7 @@ function renderReviewList(container, reviews, opts = {}) {
                     <textarea class="form-control vendor-reply-input" rows="2" placeholder="Write a reply to this review">${escapeHtml(review.vendor_reply || '')}</textarea>
                     <div class="gap-row mt-1" style="justify-content:flex-end;">
                         <button class="btn btn-primary btn-sm vendor-reply-btn" data-review-id="${review.id}">Save Reply</button>
+                        <button class="btn btn-danger btn-sm vendor-reply-delete-btn" data-review-id="${review.id}" ${review.vendor_reply ? '' : 'disabled'}>Delete Reply</button>
                     </div>
                </div>`
             : '';
@@ -1617,6 +1618,28 @@ async function vendorLoadReviews(restaurantId) {
                 } catch (err) {
                     console.error(err);
                     showMsg('Reply failed.');
+                }
+            });
+        });
+
+        listEl.querySelectorAll('.vendor-reply-delete-btn').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const reviewId = btn.dataset.reviewId;
+                if (!reviewId) return;
+                if (!confirm('Delete your reply from this review?')) return;
+
+                try {
+                    const delRes = await fetch(API + '/reviews/' + reviewId + '/reply', {
+                        method: 'DELETE',
+                        headers: authJSON()
+                    });
+                    const delData = await delRes.json();
+                    if (!delRes.ok) return showMsg(delData.error || 'Failed to delete reply.');
+                    showMsg('Reply deleted.', 'success');
+                    vendorLoadReviews(restaurantId);
+                } catch (err) {
+                    console.error(err);
+                    showMsg('Failed to delete reply.');
                 }
             });
         });

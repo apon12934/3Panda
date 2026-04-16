@@ -1437,6 +1437,43 @@ app.put('/api/reviews/:id/reply', verifyToken, async (req, res) => {
     }
 });
 
+// delete vendor reply only (keep customer review)
+app.delete('/api/reviews/:id/reply', verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const review = await dbGet('SELECT id, restaurant_id, vendor_reply FROM Reviews WHERE id = ?', [id]);
+        if (!review) {
+            return res.status(404).json({ error: 'Review not found.' });
+        }
+
+        if (!review.vendor_reply) {
+            return res.status(400).json({ error: 'No vendor reply exists for this review.' });
+        }
+
+        if (req.user.role === 'vendor') {
+            const ownedRestaurant = await dbGet(
+                'SELECT id FROM Restaurants WHERE id = ? AND owner_username = ?',
+                [review.restaurant_id, req.user.username]
+            );
+            if (!ownedRestaurant) {
+                return res.status(403).json({ error: 'You can only delete replies for your own restaurants.' });
+            }
+        } else if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Not authorized.' });
+        }
+
+        await dbRun(
+            'UPDATE Reviews SET vendor_reply = NULL, vendor_reply_at = NULL WHERE id = ?',
+            [id]
+        );
+
+        return res.json({ message: 'Vendor reply deleted.' });
+    } catch (err) {
+        console.error('Delete vendor reply error:', err.message);
+        return res.status(500).json({ error: 'Server error.' });
+    }
+});
+
 // delete review (admin or review owner)
 app.delete('/api/reviews/:id', verifyToken, async (req, res) => {
     try {
