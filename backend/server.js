@@ -1275,11 +1275,14 @@ app.get('/api/reviews', async (req, res) => {
                 `SELECT r.id,
                         COALESCE(u.username, CAST(r.${compat.reviewsUserColumn} AS CHAR)) AS user_username,
                         COALESCE(u.full_name, u.username, CAST(r.${compat.reviewsUserColumn} AS CHAR)) AS user_full_name,
+                        COALESCE(ou.full_name, ou.username, rest.owner_username, 'Vendor') AS vendor_full_name,
                         r.restaurant_id, r.order_id, r.rating, r.comment,
                         r.vendor_reply, r.vendor_reply_at, r.created_at,
                         u.username
                  FROM Reviews r
                  LEFT JOIN Users u ON r.${compat.reviewsUserColumn} = u.${reviewUserJoinKey}
+                 LEFT JOIN Restaurants rest ON r.restaurant_id = rest.id
+                 LEFT JOIN Users ou ON rest.owner_username = ou.username
                  WHERE r.restaurant_id = ?
                  ORDER BY r.created_at DESC`,
                 [restaurant_id]
@@ -1289,11 +1292,14 @@ app.get('/api/reviews', async (req, res) => {
                 `SELECT r.id,
                         COALESCE(u.username, CAST(r.${compat.reviewsUserColumn} AS CHAR)) AS user_username,
                         COALESCE(u.full_name, u.username, CAST(r.${compat.reviewsUserColumn} AS CHAR)) AS user_full_name,
+                        COALESCE(ou.full_name, ou.username, rest.owner_username, 'Vendor') AS vendor_full_name,
                         r.restaurant_id, r.order_id, r.rating, r.comment,
                         r.vendor_reply, r.vendor_reply_at, r.created_at,
                         u.username
                  FROM Reviews r
                  LEFT JOIN Users u ON r.${compat.reviewsUserColumn} = u.${reviewUserJoinKey}
+                 LEFT JOIN Restaurants rest ON r.restaurant_id = rest.id
+                 LEFT JOIN Users ou ON rest.owner_username = ou.username
                  ORDER BY r.created_at DESC`
             );
         }

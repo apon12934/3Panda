@@ -1748,6 +1748,21 @@ tbody tr:last-child {
     font-size: .86rem;
 }
 
+.review-vendor-tag {
+    display: inline-block;
+    margin-left: .35rem;
+    padding: .05rem .38rem;
+    border-radius: 999px;
+    border: 1px solid var(--red-light);
+    color: var(--red-dark);
+    background: rgba(248, 113, 113, 0.12);
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    vertical-align: middle;
+}
+
 .review-reply-editor {
     margin-top: .45rem;
     padding-top: .45rem;

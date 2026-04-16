@@ -1344,8 +1344,9 @@ function renderReviewList(container, reviews, opts = {}) {
         const score = Number(review.rating) || 0;
         const stars = '★'.repeat(Math.max(0, Math.min(5, score))) + '☆'.repeat(Math.max(0, 5 - score));
         const reviewText = review.comment ? escapeHtml(review.comment) : 'No written comment.';
+        const vendorDisplay = String(review.vendor_full_name || 'Vendor').trim();
         const vendorReply = review.vendor_reply
-            ? `<div class="review-vendor-reply"><strong>Vendor reply:</strong><p>${escapeHtml(review.vendor_reply)}</p></div>`
+            ? `<div class="review-vendor-reply"><strong>${escapeHtml(vendorDisplay)} <span class="review-vendor-tag">Vendor</span>:</strong><p>${escapeHtml(review.vendor_reply)}</p></div>`
             : '';
 
         const reviewerRaw = String(review.user_username || review.username || '').trim();
