@@ -1755,7 +1755,6 @@ tbody tr:last-child {
     color: var(--red-dark, #B91C1C);
     line-height: 1;
     letter-spacing: .02em;
-    text-transform: uppercase;
 }
 
 .review-stars-label {

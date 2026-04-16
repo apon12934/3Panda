@@ -1456,9 +1456,11 @@ function renderReviewList(container, reviews, opts = {}) {
         const isOwner = !!currentUser && currentUser === reviewerRaw.toLowerCase();
 
         const profileImgUrl = review.user_profile_image ? String(review.user_profile_image).trim() : '';
-        const initials = reviewerDisplay
-            ? reviewerDisplay.split(/\s+/).slice(0, 2).map((p) => p.charAt(0).toUpperCase()).join('')
-            : 'U';
+        const initials = escapeHtml(
+            reviewerDisplay
+                ? reviewerDisplay.split(/\s+/).filter((p) => p).slice(0, 2).map((p) => p.charAt(0).toUpperCase()).join('')
+                : 'U'
+        );
         const avatarInner = profileImgUrl
             ? `<img src="${escapeHtml(profileImgUrl)}" alt="${safeReviewer}" class="review-avatar-img" loading="lazy" onerror="this.parentElement.innerHTML='<span class=\\'review-avatar-initials\\'>${initials}</span>'">`
             : `<span class="review-avatar-initials">${initials}</span>`;
