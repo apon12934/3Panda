@@ -198,6 +198,36 @@
     </div>
 </div>
 
+<div class="popup-overlay hidden" id="item-details-overlay"></div>
+<div class="popup-panel hidden item-details-popup" id="item-details-popup">
+    <div class="popup-header">
+        <h2>Item Details</h2>
+        <button class="popup-close" id="item-details-close">&times;</button>
+    </div>
+    <div class="popup-body">
+        <div class="item-details-media-wrap">
+            <img id="item-details-image" class="item-details-image" src="" alt="Menu item" loading="lazy" decoding="async">
+        </div>
+        <div class="item-details-content">
+            <h3 id="item-details-name" class="item-details-name">-</h3>
+            <div class="item-details-meta">
+                <span id="item-details-price" class="item-details-price">-</span>
+                <span id="item-details-category" class="item-details-chip hidden">-</span>
+            </div>
+            <div class="item-details-grid">
+                <div class="item-details-row">
+                    <span class="item-details-label">Restaurant</span>
+                    <span class="item-details-value" id="item-details-restaurant">-</span>
+                </div>
+            </div>
+            <p id="item-details-description" class="item-details-description">No description provided.</p>
+            <div class="item-details-actions">
+                <button id="item-details-add-btn" type="button" class="btn btn-primary">Add to Cart</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="popup-overlay hidden" id="cart-popup-overlay"></div>
 <div class="popup-panel hidden" id="cart-popup">
     <div class="popup-header">

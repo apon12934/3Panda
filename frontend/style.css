@@ -1959,6 +1959,136 @@ tbody tr:last-child {
     animation: popupScaleIn .35s var(--ease);
 }
 
+.item-details-popup {
+    top: 50%;
+    bottom: auto;
+    width: min(94vw, 760px);
+    max-height: 88vh;
+    border-radius: var(--radius-xl);
+    right: auto;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: popupScaleIn .35s var(--ease);
+}
+
+.item-details-popup .popup-body {
+    display: grid;
+    grid-template-columns: minmax(230px, 40%) 1fr;
+    gap: 1rem;
+}
+
+.item-details-media-wrap {
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--surface-soft);
+    min-height: 210px;
+}
+
+.item-details-image {
+    width: 100%;
+    height: 100%;
+    min-height: 210px;
+    object-fit: cover;
+}
+
+.item-details-content {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+}
+
+.item-details-name {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.35rem;
+    color: var(--charcoal);
+    line-height: 1.2;
+}
+
+.item-details-meta {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    flex-wrap: wrap;
+}
+
+.item-details-price {
+    color: var(--red-dark);
+    font-family: var(--font-heading);
+    font-size: 1.04rem;
+}
+
+.item-details-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: .18rem .52rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface-soft);
+    color: var(--charcoal);
+    font-size: .73rem;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+}
+
+.item-details-grid {
+    display: grid;
+    gap: .5rem;
+}
+
+.item-details-row {
+    display: grid;
+    grid-template-columns: 95px 1fr;
+    gap: .5rem;
+    align-items: start;
+}
+
+.item-details-label {
+    color: var(--text-light);
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.item-details-value {
+    color: var(--text);
+    font-size: .92rem;
+}
+
+.item-details-description {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: .9rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.item-details-actions {
+    margin-top: .15rem;
+}
+
+.item-card-actions {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    flex-wrap: wrap;
+}
+
+.item-details-btn {
+    border: 1px solid var(--charcoal);
+    background: var(--surface);
+    color: var(--charcoal);
+    font-weight: 700;
+}
+
+.item-details-btn:hover {
+    background: var(--charcoal);
+    color: var(--text-inverse);
+}
+
 .owner-info-grid {
     display: grid;
     gap: .65rem;
@@ -1998,6 +2128,25 @@ tbody tr:last-child {
     .restaurant-owner-popup {
         width: 94vw;
         max-height: 88vh;
+    }
+
+    .item-details-popup {
+        width: 94vw;
+        max-height: 88vh;
+    }
+
+    .item-details-popup .popup-body {
+        grid-template-columns: 1fr;
+    }
+
+    .item-details-media-wrap,
+    .item-details-image {
+        min-height: 180px;
+    }
+
+    .item-details-row {
+        grid-template-columns: 1fr;
+        gap: .2rem;
     }
 }
 

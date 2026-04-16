@@ -605,6 +605,7 @@ let selectedReviewRating = 0;
 let currentUserProfileImage = null;
 let currentUserProfileRequested = false;
 let currentUserDisplayName = null;
+const menuItemById = new Map();
 
 function escapeHtmlAttr(value) {
     return String(value || '')
@@ -679,7 +680,22 @@ function initHome() {
     loadRestaurants();
     loadMenuItems();
     initRestaurantPopup();
+    initItemDetailsPopup();
     initMapSearchHandlers();
+
+    const menuList = $('#menu-list');
+    if (menuList && menuList.dataset.itemDetailsBound !== '1') {
+        menuList.addEventListener('click', (event) => {
+            const detailsTrigger = event.target.closest('.item-details-trigger');
+            const card = event.target.closest('.menu-item-card');
+            if (!detailsTrigger && (!card || event.target.closest('button'))) return;
+
+            const itemId = Number((detailsTrigger && detailsTrigger.dataset.itemId) || (card && card.dataset.itemId));
+            if (!itemId) return;
+            openItemDetailsById(itemId);
+        });
+        menuList.dataset.itemDetailsBound = '1';
+    }
 
     // hero search functionality
     const searchInput = $('#hero-search-input');
@@ -730,19 +746,23 @@ async function filterMenuBySearch(query) {
     try {
         const res = await fetch(API + '/menu-items?search=' + encodeURIComponent(query));
         const data = await res.json();
+        cacheMenuItems(data);
         const container = $('#menu-list');
         if (!data.length) {
             container.innerHTML = '<div class="empty-state"><p>No items match your search.</p></div>';
             return;
         }
         container.innerHTML = data.map(item => `
-            <div class="card">
+            <div class="card menu-item-card" data-item-id="${item.id}">
                 <img class="card-img" src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}" loading="lazy" decoding="async">
                 <div class="card-body">
                     <h3>${item.name}</h3>
                     ${item.description ? '<p class="card-desc">' + item.description + '</p>' : ''}
                     <p class="price">${formatPrice(item.price)}</p>
-                    <button class="btn btn-primary btn-sm mt-1" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'") }', ${item.price})">Add to Cart</button>
+                    <div class="item-card-actions mt-1">
+                        <button class="btn btn-sm item-details-trigger item-details-btn" data-item-id="${item.id}">View Details</button>
+                        <button class="btn btn-primary btn-sm" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'") }', ${item.price})">Add to Cart</button>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -890,19 +910,23 @@ async function loadMenuItems(restaurantId) {
         const res = await fetch(url);
         if (!res.ok) return showMsg('Failed to load menu items.');
         const data = await res.json();
+        cacheMenuItems(data);
         const container = $('#menu-list');
         if (!data.length) {
             container.innerHTML = '<div class="empty-state"><p>No menu items found.</p></div>';
             return;
         }
         container.innerHTML = data.map(item => `
-            <div class="card">
+            <div class="card menu-item-card" data-item-id="${item.id}">
                 <img class="card-img" src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}" loading="lazy" decoding="async">
                 <div class="card-body">
                     <h3>${item.name}</h3>
                     ${item.description ? '<p class="card-desc">' + item.description + '</p>' : ''}
                     <p class="price">${formatPrice(item.price)}</p>
-                    <button class="btn btn-primary btn-sm mt-1" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price})">Add to Cart</button>
+                    <div class="item-card-actions mt-1">
+                        <button class="btn btn-sm item-details-trigger item-details-btn" data-item-id="${item.id}">View Details</button>
+                        <button class="btn btn-primary btn-sm" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price})">Add to Cart</button>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -1205,6 +1229,19 @@ function initRestaurantPopup() {
         }
     }, true);
 
+    carousel.addEventListener('click', (event) => {
+        const addBtn = event.target.closest('.carousel-add-btn');
+        if (addBtn) return;
+
+        const detailsTrigger = event.target.closest('.carousel-item-details-trigger');
+        const card = event.target.closest('.carousel-card');
+        if (!detailsTrigger && !card) return;
+
+        const itemId = Number((detailsTrigger && detailsTrigger.dataset.itemId) || (card && card.dataset.itemId));
+        if (!itemId) return;
+        openItemDetailsById(itemId);
+    });
+
     // Update dots on scroll
 
     carousel.addEventListener('scroll', () => updateCarouselDots());
@@ -1239,6 +1276,7 @@ async function openRestaurantPopup(restaurantId, restaurantName) {
     try {
         const res = await fetch(API + '/menu-items?restaurant_id=' + restaurantId);
         const items = await res.json();
+        cacheMenuItems(items);
 
         if (!items.length) {
             carousel.innerHTML = '<p style="padding:1.5rem;color:var(--text-light);text-align:center">No items available yet.</p>';
@@ -1246,14 +1284,17 @@ async function openRestaurantPopup(restaurantId, restaurantName) {
         }
 
         carousel.innerHTML = items.map(item => `
-            <div class="carousel-card">
+            <div class="carousel-card" data-item-id="${item.id}">
                 <img src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22250%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22250%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}" loading="lazy" decoding="async">
                 <div class="carousel-card-body">
                     <h4>${item.name}</h4>
                     ${item.description ? '<p class="card-desc">' + item.description + '</p>' : ''}
                     <div class="carousel-card-footer">
                         <span class="price">${formatPrice(item.price)}</span>
-                        <button class="btn btn-primary btn-sm" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price})">Add to Cart</button>
+                        <div class="item-card-actions">
+                            <button class="btn btn-sm item-details-btn carousel-item-details-trigger" data-item-id="${item.id}">Details</button>
+                            <button class="btn btn-primary btn-sm carousel-add-btn" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price})">Add to Cart</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1268,6 +1309,71 @@ async function openRestaurantPopup(restaurantId, restaurantName) {
         console.error(err);
         carousel.innerHTML = '<p style="padding:1rem;color:var(--text-light)">Failed to load menu.</p>';
     }
+}
+
+function cacheMenuItems(items) {
+    if (!Array.isArray(items)) return;
+    items.forEach((item) => {
+        const id = Number(item && item.id);
+        if (!id) return;
+        menuItemById.set(id, item);
+    });
+}
+
+function initItemDetailsPopup() {
+    const overlay = $('#item-details-overlay');
+    const popup = $('#item-details-popup');
+    const closeBtn = $('#item-details-close');
+    if (!overlay || !popup || !closeBtn) return;
+
+    const closePopup = () => {
+        popup.classList.add('hidden');
+        overlay.classList.add('hidden');
+    };
+
+    overlay.addEventListener('click', closePopup);
+    closeBtn.addEventListener('click', closePopup);
+}
+
+function openItemDetailsById(itemId) {
+    const item = menuItemById.get(Number(itemId));
+    if (!item) return;
+
+    const overlay = $('#item-details-overlay');
+    const popup = $('#item-details-popup');
+    const imageEl = $('#item-details-image');
+    const nameEl = $('#item-details-name');
+    const priceEl = $('#item-details-price');
+    const categoryEl = $('#item-details-category');
+    const restaurantEl = $('#item-details-restaurant');
+    const descriptionEl = $('#item-details-description');
+    const addBtn = $('#item-details-add-btn');
+    if (!overlay || !popup || !imageEl || !nameEl || !priceEl || !categoryEl || !restaurantEl || !descriptionEl || !addBtn) return;
+
+    const fallbackImage = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22250%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22250%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E';
+
+    imageEl.src = item.image || fallbackImage;
+    imageEl.alt = item.name || 'Menu item';
+    nameEl.textContent = item.name || 'Unnamed item';
+    priceEl.textContent = formatPrice(item.price);
+    restaurantEl.textContent = item.restaurant_name || 'Unknown restaurant';
+    descriptionEl.textContent = item.description || 'No description provided.';
+
+    if (item.category_name) {
+        categoryEl.textContent = item.category_name;
+        categoryEl.classList.remove('hidden');
+    } else {
+        categoryEl.textContent = '';
+        categoryEl.classList.add('hidden');
+    }
+
+    addBtn.onclick = () => {
+        window.addToCart(item.id, item.name, item.price);
+        showMsg(`${item.name} added to cart.`, 'success');
+    };
+
+    popup.classList.remove('hidden');
+    overlay.classList.remove('hidden');
 }
 
 function updateCarouselDots() {

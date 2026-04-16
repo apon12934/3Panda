@@ -745,16 +745,19 @@ app.patch('/api/restaurants/:id/status', verifyToken, requireAdmin, async (req, 
 app.get('/api/menu-items', async (req, res) => {
     try {
         const { restaurant_id, search } = req.query;
-        let sql = 'SELECT * FROM MenuItems';
+        let sql = `SELECT m.*, r.name AS restaurant_name, c.name AS category_name
+                   FROM MenuItems m
+                   LEFT JOIN Restaurants r ON m.restaurant_id = r.id
+                   LEFT JOIN Categories c ON m.category_id = c.id`;
         const conditions = [];
         const params = [];
 
         if (restaurant_id) {
-            conditions.push('restaurant_id = ?');
+            conditions.push('m.restaurant_id = ?');
             params.push(restaurant_id);
         }
         if (search) {
-            conditions.push('(name LIKE ? OR description LIKE ?)');
+            conditions.push('(m.name LIKE ? OR m.description LIKE ?)');
             const term = `%${search}%`;
             params.push(term, term);
         }
