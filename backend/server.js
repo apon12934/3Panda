@@ -8,6 +8,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
@@ -975,7 +976,7 @@ app.post('/api/orders', verifyToken, async (req, res) => {
             return res.status(400).json({ error: 'User account not found for order placement.' });
         }
 
-        const deliveryOtp = String(Math.floor(1000 + Math.random() * 9000));
+        const deliveryOtp = String(crypto.randomInt(1000, 10000));
         const otpColumn = compat.ordersHasOtp ? ', delivery_otp' : '';
         const otpPlaceholder = compat.ordersHasOtp ? ', ?' : '';
         const otpValues = compat.ordersHasOtp ? [deliveryOtp] : [];
@@ -1152,7 +1153,13 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
             if (!otp) {
                 return res.status(400).json({ error: 'Delivery OTP is required to mark as delivered.' });
             }
-            if (String(otp).trim() !== String(order.delivery_otp)) {
+            const storedOtp = String(order.delivery_otp);
+            const providedOtp = String(otp).trim();
+            const storedBuf = Buffer.from(storedOtp.padEnd(4, '\0'));
+            const providedBuf = Buffer.from(providedOtp.padEnd(4, '\0'));
+            const match = storedBuf.length === providedBuf.length &&
+                crypto.timingSafeEqual(storedBuf, providedBuf);
+            if (!match) {
                 return res.status(400).json({ error: 'Incorrect OTP. Please ask the customer for the correct code.' });
             }
         }

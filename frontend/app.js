@@ -2703,7 +2703,7 @@ function showOtpModal(orderId) {
             <div class="modal-body" style="padding:1.25rem;">
                 <p style="margin:0 0 1rem 0;color:var(--text-muted,#666);font-size:.9rem;">Ask the customer for their 4-digit delivery code and enter it below to confirm delivery.</p>
                 <div class="otp-input-row">
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="_ _ _ _" class="otp-entry form-control" style="text-align:center;font-size:1.75rem;letter-spacing:.4em;font-weight:700;width:100%;" autocomplete="off" />
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="_ _ _ _" class="otp-entry form-control" style="text-align:center;font-size:1.75rem;letter-spacing:.4em;font-weight:700;width:100%;" autocomplete="off" aria-label="4-digit delivery OTP code" />
                 </div>
                 <p class="otp-error-msg" style="color:#dc2626;font-size:.85rem;margin:.5rem 0 0 0;display:none;"></p>
             </div>
