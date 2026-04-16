@@ -1003,7 +1003,8 @@ app.get('/api/orders/mine', verifyToken, async (req, res) => {
         const deliveryJoinKey = getUserJoinKeyForOrderColumn(compat.ordersDeliveryColumn);
         const orders = await dbAll(
             `SELECT o.id, o.status, o.delivery_address, o.total_amount, o.payment_method, o.notes,
-                    o.created_at, u.username AS delivery_person
+                    o.created_at,
+                    COALESCE(u.full_name, u.username, CAST(o.${compat.ordersDeliveryColumn} AS CHAR)) AS delivery_person
              FROM Orders o
              LEFT JOIN Users u ON o.${compat.ordersDeliveryColumn} = u.${deliveryJoinKey}
              WHERE o.${compat.ordersUserColumn} = ?
@@ -1040,7 +1041,7 @@ app.get('/api/delivery/pending', verifyToken, async (req, res) => {
                 const customerJoinKey = getUserJoinKeyForOrderColumn(compat.ordersUserColumn);
         const orders = await dbAll(
             `SELECT o.id, o.status, o.delivery_address, o.total_amount,
-                                        COALESCE(c.username, CAST(o.${compat.ordersUserColumn} AS CHAR)) AS customer_name,
+                                        COALESCE(c.full_name, c.username, CAST(o.${compat.ordersUserColumn} AS CHAR)) AS customer_name,
                                         c.profile_image AS customer_profile_image
              FROM Orders o
                          LEFT JOIN Users c ON o.${compat.ordersUserColumn} = c.${customerJoinKey}
@@ -1079,7 +1080,7 @@ app.get('/api/delivery/history', verifyToken, async (req, res) => {
         const customerJoinKey = getUserJoinKeyForOrderColumn(compat.ordersUserColumn);
         const orders = await dbAll(
             `SELECT o.id, o.status, o.delivery_address, o.total_amount,
-                                        COALESCE(c.username, CAST(o.${compat.ordersUserColumn} AS CHAR)) AS customer_name,
+                                        COALESCE(c.full_name, c.username, CAST(o.${compat.ordersUserColumn} AS CHAR)) AS customer_name,
                                         c.profile_image AS customer_profile_image
              FROM Orders o
              LEFT JOIN Users c ON o.${compat.ordersUserColumn} = c.${customerJoinKey}
@@ -1177,8 +1178,8 @@ app.get('/api/orders', verifyToken, requireAdmin, async (_req, res) => {
         const orders = await dbAll(
             `SELECT o.id, o.status, o.delivery_address, o.total_amount, o.payment_method,
                     o.notes, o.created_at, o.restaurant_id,
-                    c.username AS customer_name,
-                    d.username AS delivery_person,
+                    COALESCE(c.full_name, c.username, CAST(o.${compat.ordersUserColumn} AS CHAR)) AS customer_name,
+                    COALESCE(d.full_name, d.username, CAST(o.${compat.ordersDeliveryColumn} AS CHAR)) AS delivery_person,
                     r.owner_username AS restaurant_owner_username
              FROM Orders o
              LEFT JOIN Users c ON o.${compat.ordersUserColumn} = c.${customerJoinKey}
@@ -1273,6 +1274,7 @@ app.get('/api/reviews', async (req, res) => {
             rows = await dbAll(
                 `SELECT r.id,
                         COALESCE(u.username, CAST(r.${compat.reviewsUserColumn} AS CHAR)) AS user_username,
+                        COALESCE(u.full_name, u.username, CAST(r.${compat.reviewsUserColumn} AS CHAR)) AS user_full_name,
                         r.restaurant_id, r.order_id, r.rating, r.comment,
                         r.vendor_reply, r.vendor_reply_at, r.created_at,
                         u.username
@@ -1286,6 +1288,7 @@ app.get('/api/reviews', async (req, res) => {
             rows = await dbAll(
                 `SELECT r.id,
                         COALESCE(u.username, CAST(r.${compat.reviewsUserColumn} AS CHAR)) AS user_username,
+                        COALESCE(u.full_name, u.username, CAST(r.${compat.reviewsUserColumn} AS CHAR)) AS user_full_name,
                         r.restaurant_id, r.order_id, r.rating, r.comment,
                         r.vendor_reply, r.vendor_reply_at, r.created_at,
                         u.username

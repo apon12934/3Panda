@@ -604,6 +604,7 @@ let activeRestaurantIdForReviews = null;
 let selectedReviewRating = 0;
 let currentUserProfileImage = null;
 let currentUserProfileRequested = false;
+let currentUserDisplayName = null;
 
 function escapeHtmlAttr(value) {
     return String(value || '')
@@ -665,6 +666,7 @@ async function getCurrentUserProfileImage() {
         const res = await fetch(API + '/users/profile', { headers: authHeaders() });
         if (!res.ok) return null;
         const user = await res.json();
+        currentUserDisplayName = (user && (user.full_name || user.username)) ? String(user.full_name || user.username).trim() : null;
         currentUserProfileImage = user && user.profile_image ? user.profile_image : null;
         return currentUserProfileImage;
     } catch (err) {
@@ -1068,7 +1070,7 @@ function setCheckoutLocation(lat, lng, label = 'Delivery here') {
 
     if (mapMarker) mapInstance.removeLayer(mapMarker);
     mapMarker = createProfilePinMarker(mapInstance, selectedLat, selectedLng, {
-        name: getUserName() || 'You',
+        name: currentUserDisplayName || getUserName() || 'You',
         popupText: label,
         openPopup: true
     });
@@ -1076,7 +1078,7 @@ function setCheckoutLocation(lat, lng, label = 'Delivery here') {
     const markerRef = mapMarker;
     getCurrentUserProfileImage().then((imageUrl) => {
         if (!imageUrl || !markerRef || markerRef !== mapMarker) return;
-        markerRef.setIcon(buildProfilePinIcon({ imageUrl, name: getUserName() || 'You' }));
+        markerRef.setIcon(buildProfilePinIcon({ imageUrl, name: currentUserDisplayName || getUserName() || 'You' }));
     });
 
     mapInstance.setView([selectedLat, selectedLng], Math.max(mapInstance.getZoom(), 15));
@@ -1347,7 +1349,8 @@ function renderReviewList(container, reviews, opts = {}) {
             : '';
 
         const reviewerRaw = String(review.user_username || review.username || '').trim();
-        const safeReviewer = escapeHtml(reviewerRaw || 'Customer');
+        const reviewerDisplay = String(review.user_full_name || reviewerRaw || 'Customer').trim();
+        const safeReviewer = escapeHtml(reviewerDisplay || 'Customer');
         const isOwner = !!currentUser && currentUser === reviewerRaw.toLowerCase();
 
         const ownerActions = isOwner && !showReplyEditor
