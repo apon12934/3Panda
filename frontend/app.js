@@ -1455,6 +1455,15 @@ function renderReviewList(container, reviews, opts = {}) {
         const safeReviewer = escapeHtml(reviewerDisplay || 'Customer');
         const isOwner = !!currentUser && currentUser === reviewerRaw.toLowerCase();
 
+        const profileImgUrl = review.user_profile_image ? String(review.user_profile_image).trim() : '';
+        const initials = reviewerDisplay
+            ? reviewerDisplay.split(/\s+/).slice(0, 2).map((p) => p.charAt(0).toUpperCase()).join('')
+            : 'U';
+        const avatarInner = profileImgUrl
+            ? `<img src="${escapeHtml(profileImgUrl)}" alt="${safeReviewer}" class="review-avatar-img" loading="lazy" onerror="this.parentElement.innerHTML='<span class=\\'review-avatar-initials\\'>${initials}</span>'">`
+            : `<span class="review-avatar-initials">${initials}</span>`;
+        const avatar = `<div class="review-avatar" aria-hidden="true">${avatarInner}</div>`;
+
         const ownerActions = isOwner && !showReplyEditor
             ? `<button class="btn btn-sm btn-outline-primary review-edit-btn" data-review-id="${review.id}" data-rating="${review.rating}" data-comment="${escapeHtml(review.comment || '')}">Edit</button>
                <button class="btn btn-sm btn-outline-danger review-delete-btn" data-review-id="${review.id}">Delete</button>`
@@ -1481,7 +1490,10 @@ function renderReviewList(container, reviews, opts = {}) {
 
         return `<div class="review-item" data-review-id="${review.id}">
             <div class="review-item-head">
-                <strong>${safeReviewer}</strong>
+                <div class="review-author-info">
+                    ${avatar}
+                    <strong>${safeReviewer}</strong>
+                </div>
                 <span class="review-stars-label">${stars}</span>
             </div>
             <p class="review-item-text">${reviewText}</p>

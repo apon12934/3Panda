@@ -1281,7 +1281,7 @@ app.get('/api/reviews', async (req, res) => {
                         COALESCE(ou.full_name, ou.username, rest.owner_username, 'Vendor') AS vendor_full_name,
                         r.restaurant_id, r.order_id, r.rating, r.comment,
                         r.vendor_reply, r.vendor_reply_at, r.created_at,
-                        u.username
+                        u.username, u.profile_image AS user_profile_image
                  FROM Reviews r
                  LEFT JOIN Users u ON r.${compat.reviewsUserColumn} = u.${reviewUserJoinKey}
                  LEFT JOIN Restaurants rest ON r.restaurant_id = rest.id
@@ -1298,7 +1298,7 @@ app.get('/api/reviews', async (req, res) => {
                         COALESCE(ou.full_name, ou.username, rest.owner_username, 'Vendor') AS vendor_full_name,
                         r.restaurant_id, r.order_id, r.rating, r.comment,
                         r.vendor_reply, r.vendor_reply_at, r.created_at,
-                        u.username
+                        u.username, u.profile_image AS user_profile_image
                  FROM Reviews r
                  LEFT JOIN Users u ON r.${compat.reviewsUserColumn} = u.${reviewUserJoinKey}
                  LEFT JOIN Restaurants rest ON r.restaurant_id = rest.id
