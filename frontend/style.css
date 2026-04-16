@@ -2777,13 +2777,27 @@ tbody tr:last-child {
     #toast-container { left: 1rem; right: 1rem; max-width: none; }
 
     .footer-grid {
-        grid-template-columns: 1fr;
-        gap: 1.75rem;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .footer-brand-section {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: .6rem 1.25rem;
+    }
+
+    .footer-brand-section p {
+        flex-basis: 100%;
+        font-size: .82rem;
     }
 
     .footer-bottom {
         flex-direction: column;
-        gap: .75rem;
+        gap: .6rem;
         text-align: center;
     }
 
@@ -3662,11 +3676,21 @@ body.edit-popup-open {
     }
 
     .footer-inner {
-        padding: 2.2rem 1rem 1.15rem;
+        padding: 2rem 1.1rem 1rem;
     }
 
     .footer-brand-section p {
         max-width: 100%;
+        font-size: .82rem;
+    }
+
+    .footer-col h4 {
+        margin-bottom: .8rem;
+    }
+
+    .footer-col a {
+        font-size: .84rem;
+        margin-bottom: .45rem;
     }
 
     .modal-content {
