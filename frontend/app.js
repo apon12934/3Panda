@@ -561,6 +561,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initEditPopupBehavior();
     initLazyLoading();
 
+    const ownerInfoOverlay = $('#restaurant-owner-overlay');
+    const ownerInfoClose = $('#restaurant-owner-close');
+    if (ownerInfoOverlay) ownerInfoOverlay.addEventListener('click', closeRestaurantOwnerInfo);
+    if (ownerInfoClose) ownerInfoClose.addEventListener('click', closeRestaurantOwnerInfo);
+
     if (page === 'index' || page === '') initHome();
     if (page === 'login') initLogin();
     if (page === 'profile') initProfile();
@@ -800,10 +805,21 @@ async function loadRestaurants() {
         };
 
         container.innerHTML = data.map(r => `
-            <div class="card restaurant-click-card" data-restaurant-id="${r.id}" data-restaurant-name="${escapeHtmlAttr(r.name)}" style="cursor:pointer;">
+            <div class="card restaurant-click-card"
+                 data-restaurant-id="${r.id}"
+                 data-restaurant-name="${escapeHtmlAttr(r.name)}"
+                 data-owner-username="${escapeHtmlAttr(r.owner_username || '')}"
+                 data-owner-name="${escapeHtmlAttr(r.owner_name || '')}"
+                 data-owner-role="${escapeHtmlAttr(r.owner_role || '')}"
+                 data-owner-email="${escapeHtmlAttr(r.owner_email || '')}"
+                 data-owner-phone="${escapeHtmlAttr(r.owner_phone || '')}"
+                 style="cursor:pointer;">
                 <img class="card-img" src="${r.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${r.name}" loading="lazy" decoding="async">
                 <div class="card-body">
-                    <h3>${r.name}</h3>
+                    <div class="restaurant-card-head">
+                        <h3>${r.name}</h3>
+                        <button class="restaurant-info-btn" type="button" aria-label="Restaurant owner info" title="Restaurant owner info">i</button>
+                    </div>
                     <p>${r.description || 'Click to view menu'}</p>
                     ${renderRatingSummary(r.id)}
                 </div>
@@ -815,6 +831,13 @@ async function loadRestaurants() {
                 const card = event.target.closest('.restaurant-click-card');
                 if (!card || !container.contains(card)) return;
 
+                const infoBtn = event.target.closest('.restaurant-info-btn');
+                if (infoBtn) {
+                    event.preventDefault();
+                    openRestaurantOwnerInfo(card);
+                    return;
+                }
+
                 const id = Number(card.dataset.restaurantId);
                 const name = card.dataset.restaurantName || '';
                 if (!id) return;
@@ -825,6 +848,37 @@ async function loadRestaurants() {
     } catch (err) {
         console.error(err);
     }
+}
+
+function openRestaurantOwnerInfo(cardEl) {
+    const overlay = $('#restaurant-owner-overlay');
+    const popup = $('#restaurant-owner-popup');
+    if (!overlay || !popup || !cardEl) return;
+
+    const ownerRole = String(cardEl.dataset.ownerRole || '').trim().toLowerCase();
+    const roleLabel = ownerRole ? formatStatus(ownerRole) : 'Unassigned';
+
+    const setText = (selector, value) => {
+        const el = $(selector);
+        if (el) el.textContent = value || '-';
+    };
+
+    setText('#owner-info-restaurant', cardEl.dataset.restaurantName || '-');
+    setText('#owner-info-role', roleLabel);
+    setText('#owner-info-username', cardEl.dataset.ownerUsername || '-');
+    setText('#owner-info-name', cardEl.dataset.ownerName || '-');
+    setText('#owner-info-email', cardEl.dataset.ownerEmail || '-');
+    setText('#owner-info-phone', cardEl.dataset.ownerPhone || '-');
+
+    overlay.classList.remove('hidden');
+    popup.classList.remove('hidden');
+}
+
+function closeRestaurantOwnerInfo() {
+    const overlay = $('#restaurant-owner-overlay');
+    const popup = $('#restaurant-owner-popup');
+    if (overlay) overlay.classList.add('hidden');
+    if (popup) popup.classList.add('hidden');
 }
 
 async function loadMenuItems(restaurantId) {

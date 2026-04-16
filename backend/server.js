@@ -390,9 +390,18 @@ app.get('/api/restaurants', async (req, res) => {
         }
 
         if (isAdmin) {
-            rows = await dbAll('SELECT r.*, u.full_name AS owner_name FROM Restaurants r LEFT JOIN Users u ON r.owner_username = u.username');
+            rows = await dbAll(
+                `SELECT r.*, u.full_name AS owner_name, u.role AS owner_role, u.phone AS owner_phone, u.email AS owner_email
+                 FROM Restaurants r
+                 LEFT JOIN Users u ON r.owner_username = u.username`
+            );
         } else {
-            rows = await dbAll("SELECT * FROM Restaurants WHERE status = 'approved'");
+            rows = await dbAll(
+                `SELECT r.*, u.full_name AS owner_name, u.role AS owner_role, u.phone AS owner_phone, u.email AS owner_email
+                 FROM Restaurants r
+                 LEFT JOIN Users u ON r.owner_username = u.username
+                 WHERE r.status = 'approved'`
+            );
         }
         return res.json(rows);
     } catch (err) {

@@ -579,6 +579,37 @@ body {
     letter-spacing: -.01em;
 }
 
+.restaurant-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+}
+
+.restaurant-info-btn {
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface-soft);
+    color: var(--text-secondary);
+    font-family: var(--font-heading);
+    font-size: .86rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background var(--duration) var(--ease), color var(--duration) var(--ease), border-color var(--duration) var(--ease);
+    flex-shrink: 0;
+}
+
+.restaurant-info-btn:hover {
+    background: var(--red-subtle);
+    color: var(--red-dark);
+    border-color: #FECACA;
+}
+
 .card-body p {
     color: var(--text-secondary);
     font-size: .88rem;
@@ -1890,6 +1921,50 @@ tbody tr:last-child {
 
 .popup-body #map {
     height: 220px;
+}
+
+.restaurant-owner-popup {
+    width: min(92vw, 480px);
+    right: auto;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.owner-info-grid {
+    display: grid;
+    gap: .65rem;
+}
+
+.owner-info-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    align-items: start;
+    gap: .6rem;
+    padding: .5rem .65rem;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    background: var(--surface-soft);
+}
+
+.owner-info-label {
+    font-family: var(--font-heading);
+    font-size: .72rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-light);
+}
+
+.owner-info-value {
+    color: var(--text);
+    font-size: .9rem;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+    .owner-info-row {
+        grid-template-columns: 1fr;
+        gap: .25rem;
+    }
 }
 
 /* ============================================================
