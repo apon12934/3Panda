@@ -6,6 +6,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -17,8 +19,92 @@ const cloudinary = require('cloudinary').v2;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = 'threepanda_secret_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : crypto.randomBytes(64).toString('hex'));
 const SALT_ROUNDS = 10;
+
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET must be set in production.');
+}
+
+app.disable('x-powered-by');
+
+const allowedCorsOrigins = new Set(
+    String(process.env.CORS_ORIGIN || process.env.CORS_ORIGINS || '')
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean)
+);
+
+const isAllowedOrigin = (origin) => {
+    if (!origin || origin === 'null') return true;
+    if (allowedCorsOrigins.has(origin)) return true;
+    if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return true;
+    if (/^https:\/\/3panda\.ddns\.net$/i.test(origin)) return true;
+    if (/^https:\/\/[^/]+\.onrender\.com$/i.test(origin)) return true;
+    return false;
+};
+
+const normalizeText = (value, maxLength = 255) => {
+    if (value === undefined || value === null) return '';
+    return String(value).replace(/\0/g, '').trim().slice(0, maxLength);
+};
+
+const normalizeOptionalText = (value, maxLength = 255) => {
+    const text = normalizeText(value, maxLength);
+    return text ? text : null;
+};
+
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+const isValidUsername = (username) => {
+    const value = normalizeText(username, 32);
+    return value.length >= 3 && value.length <= 32 && !/\s/.test(value);
+};
+const parsePositiveInteger = (value) => {
+    const num = Number(value);
+    return Number.isInteger(num) && num > 0 ? num : null;
+};
+const parseMoneyValue = (value) => {
+    const num = Number(value);
+    return Number.isFinite(num) && num >= 0 ? Math.round(num * 100) / 100 : null;
+};
+const normalizePassword = (value) => String(value || '');
+const normalizeRole = (value, allowAdmin = false) => {
+    const roles = allowAdmin ? ['customer', 'delivery', 'vendor', 'admin'] : ['customer', 'delivery', 'vendor'];
+    const role = normalizeText(value, 16).toLowerCase();
+    return roles.includes(role) ? role : null;
+};
+const normalizePaymentMethod = (value) => {
+    const method = normalizeText(value, 24).toLowerCase();
+    return ['cash', 'card'].includes(method) ? method : null;
+};
+const normalizeOrderItems = (items) => {
+    if (!Array.isArray(items) || !items.length || items.length > 50) return null;
+    const normalized = [];
+    for (const item of items) {
+        if (!item || typeof item !== 'object') return null;
+        const menuItemId = parsePositiveInteger(item.menu_item_id);
+        const quantity = parsePositiveInteger(item.quantity);
+        if (!menuItemId || !quantity || quantity > 99) return null;
+        normalized.push({ menu_item_id: menuItemId, quantity });
+    }
+    return normalized;
+};
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many authentication attempts. Please try again later.' }
+});
+
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests. Please try again later.' }
+});
 
 // database setup stuff (TiDB Serverless / MySQL)
 
@@ -195,9 +281,22 @@ const uploadToCloudinary = (fileBuffer, folder) => {
 
 // global middlewares
 
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false
+}));
+app.use(cors({
+    origin(origin, callback) {
+        if (isAllowedOrigin(origin)) return callback(null, true);
+        return callback(new Error('CORS origin not allowed.'));
+    },
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
+    optionsSuccessStatus: 204
+}));
+app.use(express.json({ limit: '64kb' }));
+app.use(express.urlencoded({ extended: true, limit: '64kb' }));
 
 // Performance: add HTTP caching headers for static assets
 app.use((req, res, next) => {
@@ -247,6 +346,10 @@ app.get('/api/health', (_req, res) => {
     res.status(200).json({ ok: true, timestamp: new Date().toISOString() });
 });
 
+app.use('/api', apiLimiter);
+app.use('/api/register', authLimiter);
+app.use('/api/login', authLimiter);
+
 // auth middlewares
 
 const verifyToken = (req, res, next) => {
@@ -276,9 +379,10 @@ const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 }, // max upload size is 5 MB
     fileFilter: (_req, file, cb) => {
-        const allowed = /jpeg|jpg|png|gif|webp/;
-        const ok = allowed.test(path.extname(file.originalname).toLowerCase())
-                && allowed.test(file.mimetype.split('/')[1]);
+        const allowedExts = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp']);
+        const allowedMimes = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+        const ext = path.extname(String(file.originalname || '')).toLowerCase();
+        const ok = allowedExts.has(ext) && allowedMimes.has(String(file.mimetype || '').toLowerCase());
         cb(ok ? null : new Error('Only image files are allowed.'), ok);
     }
 });
@@ -289,15 +393,29 @@ const upload = multer({
 app.post('/api/register', async (req, res) => {
     try {
         const { username, email, password, role, full_name, phone, address } = req.body;
-        const trimmedUsername = (username || '').trim();
-        const trimmedEmail = (email || '').trim();
+        const trimmedUsername = normalizeText(username, 32);
+        const trimmedEmail = normalizeText(email, 254).toLowerCase();
+        const normalizedPassword = normalizePassword(password);
+        const normalizedFullName = normalizeOptionalText(full_name, 120);
+        const normalizedPhone = normalizeOptionalText(phone, 30);
+        const normalizedAddress = normalizeOptionalText(address, 300);
+        const normalizedRole = normalizeRole(role, false);
 
-        if (!trimmedUsername || !trimmedEmail || !password) {
+        if (!trimmedUsername || !trimmedEmail || !normalizedPassword) {
             return res.status(400).json({ error: 'Username, email, and password are required.' });
         }
 
-        const allowedRoles = ['customer', 'delivery', 'vendor'];
-        const userRole = allowedRoles.includes(role) ? role : 'customer';
+        if (!isValidUsername(trimmedUsername)) {
+            return res.status(400).json({ error: 'Username must be 3-32 characters with no spaces.' });
+        }
+        if (!isValidEmail(trimmedEmail)) {
+            return res.status(400).json({ error: 'Enter a valid email address.' });
+        }
+        if (normalizedPassword.length < 8 || normalizedPassword.length > 128) {
+            return res.status(400).json({ error: 'Password must be 8-128 characters long.' });
+        }
+
+        const userRole = normalizedRole || 'customer';
 
         const existing = await dbGet(
             'SELECT username FROM Users WHERE lower(email) = lower(?) OR lower(username) = lower(?)',
@@ -307,11 +425,11 @@ app.post('/api/register', async (req, res) => {
             return res.status(409).json({ error: 'Email or username already registered.' });
         }
 
-        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+        const hashedPassword = await bcrypt.hash(normalizedPassword, SALT_ROUNDS);
 
         const result = await dbRun(
             'INSERT INTO Users (username, email, password, role, full_name, phone, address) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [trimmedUsername, trimmedEmail, hashedPassword, userRole, full_name || null, phone || null, address || null]
+            [trimmedUsername, trimmedEmail, hashedPassword, userRole, normalizedFullName, normalizedPhone, normalizedAddress]
         );
 
         const token = jwt.sign(
@@ -337,10 +455,14 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     try {
         const { identifier, email, password } = req.body;
-        const loginIdentifier = (identifier || email || '').trim();
+        const loginIdentifier = normalizeText(identifier || email, 254);
+        const normalizedPassword = normalizePassword(password);
 
-        if (!loginIdentifier || !password) {
+        if (!loginIdentifier || !normalizedPassword) {
             return res.status(400).json({ error: 'Email/username and password are required.' });
+        }
+        if (loginIdentifier.length > 254) {
+            return res.status(400).json({ error: 'Login identifier is too long.' });
         }
 
         const user = await dbGet(
@@ -351,7 +473,7 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials.' });
         }
 
-        const match = await bcrypt.compare(password, user.password);
+        const match = await bcrypt.compare(normalizedPassword, user.password);
         if (!match) {
             return res.status(401).json({ error: 'Invalid credentials.' });
         }
@@ -417,17 +539,23 @@ app.get('/api/restaurants', async (req, res) => {
 app.post('/api/restaurants', verifyToken, requireAdmin, upload.single('banner'), async (req, res) => {
     try {
         const { name, description, address, phone, owner_username } = req.body;
-        if (!name) return res.status(400).json({ error: 'Restaurant name is required.' });
+        const sanitizedName = normalizeText(name, 120);
+        const sanitizedDescription = normalizeOptionalText(description, 1500);
+        const sanitizedAddress = normalizeOptionalText(address, 250);
+        const sanitizedPhone = normalizeOptionalText(phone, 30);
+        const sanitizedOwnerUsername = normalizeOptionalText(owner_username, 32);
+        if (!sanitizedName) return res.status(400).json({ error: 'Restaurant name is required.' });
+        if (sanitizedName.length < 2) return res.status(400).json({ error: 'Restaurant name is too short.' });
 
         // If an owner_username is provided, verify the user exists
         let assignedOwner = null;
-        if (owner_username) {
-            const ownerUser = await dbGet('SELECT username, role FROM Users WHERE username = ?', [owner_username]);
+        if (sanitizedOwnerUsername) {
+            const ownerUser = await dbGet('SELECT username, role FROM Users WHERE username = ?', [sanitizedOwnerUsername]);
             if (!ownerUser) return res.status(400).json({ error: 'Specified owner user not found.' });
             if (!['vendor', 'admin'].includes(ownerUser.role)) {
                 return res.status(400).json({ error: 'Restaurant owner must be a vendor or admin account.' });
             }
-            assignedOwner = owner_username;
+            assignedOwner = sanitizedOwnerUsername;
         }
 
         let image = null;
@@ -437,7 +565,7 @@ app.post('/api/restaurants', verifyToken, requireAdmin, upload.single('banner'),
 
         const result = await dbRun(
             'INSERT INTO Restaurants (name, description, address, phone, image, owner_username, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [name, description || null, address || null, phone || null, image, assignedOwner, 'approved']
+            [sanitizedName, sanitizedDescription, sanitizedAddress, sanitizedPhone, image, assignedOwner, 'approved']
         );
 
         return res.status(201).json({ message: 'Restaurant created.', id: result.insertId });
@@ -456,9 +584,14 @@ app.put('/api/restaurants/:id', verifyToken, requireAdmin, upload.single('banner
         const existing = await dbGet('SELECT * FROM Restaurants WHERE id = ?', [id]);
         if (!existing) return res.status(404).json({ error: 'Restaurant not found.' });
 
+        const sanitizedName = name !== undefined ? normalizeText(name, 120) : existing.name;
+        const sanitizedDescription = description !== undefined ? normalizeOptionalText(description, 1500) : existing.description;
+        const sanitizedAddress = address !== undefined ? normalizeOptionalText(address, 250) : existing.address;
+        const sanitizedPhone = phone !== undefined ? normalizeOptionalText(phone, 30) : existing.phone;
+
         let resolvedOwner = existing.owner_username;
         if (owner_username !== undefined) {
-            const trimmedOwner = String(owner_username).trim();
+            const trimmedOwner = normalizeText(owner_username, 32);
             if (!trimmedOwner) {
                 resolvedOwner = null;
             } else {
@@ -478,7 +611,7 @@ app.put('/api/restaurants/:id', verifyToken, requireAdmin, upload.single('banner
 
         await dbRun(
             'UPDATE Restaurants SET name = ?, description = ?, address = ?, phone = ?, image = ?, owner_username = ? WHERE id = ?',
-            [name || existing.name, description !== undefined ? description : existing.description, address !== undefined ? address : existing.address, phone !== undefined ? phone : existing.phone, image, resolvedOwner, id]
+            [sanitizedName || existing.name, sanitizedDescription, sanitizedAddress, sanitizedPhone, image, resolvedOwner, id]
         );
 
         return res.json({ message: 'Restaurant updated.' });
@@ -564,7 +697,11 @@ app.post('/api/vendor/restaurants', verifyToken, upload.single('banner'), async 
             return res.status(403).json({ error: 'Vendor access required.' });
         }
         const { name, description, address, phone } = req.body;
-        if (!name) return res.status(400).json({ error: 'Restaurant name is required.' });
+        const sanitizedName = normalizeText(name, 120);
+        const sanitizedDescription = normalizeOptionalText(description, 1500);
+        const sanitizedAddress = normalizeOptionalText(address, 250);
+        const sanitizedPhone = normalizeOptionalText(phone, 30);
+        if (!sanitizedName) return res.status(400).json({ error: 'Restaurant name is required.' });
 
         let image = null;
         if (req.file) {
@@ -573,7 +710,7 @@ app.post('/api/vendor/restaurants', verifyToken, upload.single('banner'), async 
 
         const result = await dbRun(
             'INSERT INTO Restaurants (name, description, address, phone, image, owner_username, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [name, description || null, address || null, phone || null, image, req.user.username, 'pending']
+            [sanitizedName, sanitizedDescription, sanitizedAddress, sanitizedPhone, image, req.user.username, 'pending']
         );
 
         return res.status(201).json({ message: 'Restaurant submitted for approval.', id: result.insertId });
@@ -619,14 +756,18 @@ app.post('/api/vendor/menu-items', verifyToken, upload.single('banner'), async (
             return res.status(403).json({ error: 'Vendor access required.' });
         }
         const { restaurant_id, name, description, price } = req.body;
-        if (!restaurant_id || !name || price == null) {
+        const sanitizedRestaurantId = parsePositiveInteger(restaurant_id);
+        const sanitizedName = normalizeText(name, 120);
+        const sanitizedDescription = normalizeOptionalText(description, 1500);
+        const sanitizedPrice = parseMoneyValue(price);
+        if (!sanitizedRestaurantId || !sanitizedName || sanitizedPrice === null) {
             return res.status(400).json({ error: 'restaurant_id, name, and price are required.' });
         }
 
         // verify ownership + approved status
         const restaurant = await dbGet(
             'SELECT * FROM Restaurants WHERE id = ? AND owner_username = ?',
-            [restaurant_id, req.user.username]
+            [sanitizedRestaurantId, req.user.username]
         );
         if (!restaurant) return res.status(404).json({ error: 'Restaurant not found or not owned by you.' });
         if (restaurant.status !== 'approved') {
@@ -640,7 +781,7 @@ app.post('/api/vendor/menu-items', verifyToken, upload.single('banner'), async (
 
         const result = await dbRun(
             'INSERT INTO MenuItems (restaurant_id, name, description, price, image) VALUES (?, ?, ?, ?, ?)',
-            [restaurant_id, name, description || null, price, image]
+            [sanitizedRestaurantId, sanitizedName, sanitizedDescription, sanitizedPrice, image]
         );
 
         return res.status(201).json({ message: 'Menu item created.', id: result.insertId });
@@ -658,8 +799,10 @@ app.put('/api/vendor/menu-items/:id', verifyToken, upload.single('banner'), asyn
         }
         const { id } = req.params;
         const { name, description, price } = req.body;
+        const menuItemId = parsePositiveInteger(id);
+        if (!menuItemId) return res.status(400).json({ error: 'Invalid menu item id.' });
 
-        const item = await dbGet('SELECT * FROM MenuItems WHERE id = ?', [id]);
+        const item = await dbGet('SELECT * FROM MenuItems WHERE id = ?', [menuItemId]);
         if (!item) return res.status(404).json({ error: 'Menu item not found.' });
 
         // verify ownership
@@ -669,6 +812,12 @@ app.put('/api/vendor/menu-items/:id', verifyToken, upload.single('banner'), asyn
         );
         if (!restaurant) return res.status(403).json({ error: 'Not authorized to edit this item.' });
 
+        const sanitizedName = name !== undefined ? normalizeText(name, 120) : item.name;
+        const sanitizedDescription = description !== undefined ? normalizeOptionalText(description, 1500) : item.description;
+        const sanitizedPrice = price !== undefined ? parseMoneyValue(price) : item.price;
+        if (name !== undefined && !sanitizedName) return res.status(400).json({ error: 'Item name is required.' });
+        if (price !== undefined && sanitizedPrice === null) return res.status(400).json({ error: 'Invalid price.' });
+
         let image = item.image;
         if (req.file) {
             image = await uploadToCloudinary(req.file.buffer, 'items');
@@ -676,7 +825,7 @@ app.put('/api/vendor/menu-items/:id', verifyToken, upload.single('banner'), asyn
 
         await dbRun(
             'UPDATE MenuItems SET name = ?, description = ?, price = ?, image = ? WHERE id = ?',
-            [name || item.name, description !== undefined ? description : item.description, price != null ? price : item.price, image, id]
+            [sanitizedName, sanitizedDescription, sanitizedPrice, image, menuItemId]
         );
 
         return res.json({ message: 'Menu item updated.' });
@@ -693,8 +842,10 @@ app.delete('/api/vendor/menu-items/:id', verifyToken, async (req, res) => {
             return res.status(403).json({ error: 'Vendor access required.' });
         }
         const { id } = req.params;
+        const menuItemId = parsePositiveInteger(id);
+        if (!menuItemId) return res.status(400).json({ error: 'Invalid menu item id.' });
 
-        const item = await dbGet('SELECT * FROM MenuItems WHERE id = ?', [id]);
+        const item = await dbGet('SELECT * FROM MenuItems WHERE id = ?', [menuItemId]);
         if (!item) return res.status(404).json({ error: 'Menu item not found.' });
 
         // verify ownership
@@ -704,7 +855,7 @@ app.delete('/api/vendor/menu-items/:id', verifyToken, async (req, res) => {
         );
         if (!restaurant) return res.status(403).json({ error: 'Not authorized to delete this item.' });
 
-        await dbRun('DELETE FROM MenuItems WHERE id = ?', [id]);
+        await dbRun('DELETE FROM MenuItems WHERE id = ?', [menuItemId]);
         return res.json({ message: 'Menu item deleted.' });
     } catch (err) {
         console.error('Vendor delete menu item error:', err.message);
@@ -756,12 +907,15 @@ app.get('/api/menu-items', async (req, res) => {
         const params = [];
 
         if (restaurant_id) {
+            const sanitizedRestaurantId = parsePositiveInteger(restaurant_id);
+            if (!sanitizedRestaurantId) return res.status(400).json({ error: 'Invalid restaurant_id.' });
             conditions.push('m.restaurant_id = ?');
-            params.push(restaurant_id);
+            params.push(sanitizedRestaurantId);
         }
         if (search) {
+            const sanitizedSearch = normalizeText(search, 120);
             conditions.push('(m.name LIKE ? OR m.description LIKE ?)');
-            const term = `%${search}%`;
+            const term = `%${sanitizedSearch}%`;
             params.push(term, term);
         }
 
@@ -781,8 +935,16 @@ app.get('/api/menu-items', async (req, res) => {
 app.post('/api/menu-items', verifyToken, requireAdmin, upload.single('banner'), async (req, res) => {
     try {
         const { restaurant_id, category_id, name, description, price } = req.body;
-        if (!restaurant_id || !name || price == null) {
+        const sanitizedRestaurantId = parsePositiveInteger(restaurant_id);
+        const sanitizedCategoryId = category_id ? parsePositiveInteger(category_id) : null;
+        const sanitizedName = normalizeText(name, 120);
+        const sanitizedDescription = normalizeOptionalText(description, 1500);
+        const sanitizedPrice = parseMoneyValue(price);
+        if (!sanitizedRestaurantId || !sanitizedName || sanitizedPrice === null) {
             return res.status(400).json({ error: 'restaurant_id, name, and price are required.' });
+        }
+        if (category_id && sanitizedCategoryId === null) {
+            return res.status(400).json({ error: 'Invalid category_id.' });
         }
 
         let image = null;
@@ -792,10 +954,10 @@ app.post('/api/menu-items', verifyToken, requireAdmin, upload.single('banner'), 
 
         const result = await dbRun(
             'INSERT INTO MenuItems (restaurant_id, category_id, name, description, price, image) VALUES (?, ?, ?, ?, ?, ?)',
-            [restaurant_id, category_id || null, name, description || null, price, image]
+            [sanitizedRestaurantId, sanitizedCategoryId, sanitizedName, sanitizedDescription, sanitizedPrice, image]
         );
 
-        return res.status(201).json({ message: 'Menu item created.', username: trimmedUsername });
+        return res.status(201).json({ message: 'Menu item created.', id: result.insertId });
     } catch (err) {
         console.error('Create menu item error:', err.message);
         return res.status(500).json({ error: 'Server error.' });
@@ -808,8 +970,21 @@ app.put('/api/menu-items/:id', verifyToken, requireAdmin, upload.single('banner'
         const { id } = req.params;
         const { restaurant_id, category_id, name, description, price } = req.body;
 
-        const existing = await dbGet('SELECT * FROM MenuItems WHERE username = ?', [id]);
+        const menuItemId = parsePositiveInteger(id);
+        if (!menuItemId) return res.status(400).json({ error: 'Invalid menu item id.' });
+
+        const existing = await dbGet('SELECT * FROM MenuItems WHERE id = ?', [menuItemId]);
         if (!existing) return res.status(404).json({ error: 'Menu item not found.' });
+
+        const sanitizedRestaurantId = restaurant_id !== undefined ? parsePositiveInteger(restaurant_id) : existing.restaurant_id;
+        const sanitizedCategoryId = category_id !== undefined ? (category_id ? parsePositiveInteger(category_id) : null) : existing.category_id;
+        const sanitizedName = name !== undefined ? normalizeText(name, 120) : existing.name;
+        const sanitizedDescription = description !== undefined ? normalizeOptionalText(description, 1500) : existing.description;
+        const sanitizedPrice = price !== undefined ? parseMoneyValue(price) : existing.price;
+        if (restaurant_id !== undefined && !sanitizedRestaurantId) return res.status(400).json({ error: 'Invalid restaurant_id.' });
+        if (category_id !== undefined && category_id && sanitizedCategoryId === null) return res.status(400).json({ error: 'Invalid category_id.' });
+        if (name !== undefined && !sanitizedName) return res.status(400).json({ error: 'Item name is required.' });
+        if (price !== undefined && sanitizedPrice === null) return res.status(400).json({ error: 'Invalid price.' });
 
         let image = existing.image;
         if (req.file) {
@@ -817,15 +992,15 @@ app.put('/api/menu-items/:id', verifyToken, requireAdmin, upload.single('banner'
         }
 
         await dbRun(
-            'UPDATE MenuItems SET restaurant_id = ?, category_id = ?, name = ?, description = ?, price = ?, image = ? WHERE username = ?',
+            'UPDATE MenuItems SET restaurant_id = ?, category_id = ?, name = ?, description = ?, price = ?, image = ? WHERE id = ?',
             [
-                restaurant_id || existing.restaurant_id,
-                category_id !== undefined ? category_id : existing.category_id,
-                name || existing.name,
-                description !== undefined ? description : existing.description,
-                price != null ? price : existing.price,
+                sanitizedRestaurantId,
+                sanitizedCategoryId,
+                sanitizedName,
+                sanitizedDescription,
+                sanitizedPrice,
                 image,
-                id
+                menuItemId
             ]
         );
 
@@ -840,7 +1015,9 @@ app.put('/api/menu-items/:id', verifyToken, requireAdmin, upload.single('banner'
 app.delete('/api/menu-items/:id', verifyToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await dbRun('DELETE FROM MenuItems WHERE username = ?', [id]);
+        const menuItemId = parsePositiveInteger(id);
+        if (!menuItemId) return res.status(400).json({ error: 'Invalid menu item id.' });
+        const result = await dbRun('DELETE FROM MenuItems WHERE id = ?', [menuItemId]);
         if (result.affectedRows === 0) return res.status(404).json({ error: 'Menu item not found.' });
         return res.json({ message: 'Menu item deleted.' });
     } catch (err) {
@@ -870,9 +1047,33 @@ app.get('/api/users/profile', verifyToken, async (req, res) => {
 app.put('/api/users/profile', verifyToken, upload.single('profile_picture'), async (req, res) => {
     try {
         const { username, email, password, full_name, phone, address } = req.body;
+        const sanitizedUsername = username !== undefined ? normalizeText(username, 32) : undefined;
+        const sanitizedEmail = email !== undefined ? normalizeText(email, 254).toLowerCase() : undefined;
+        const sanitizedPassword = password ? normalizePassword(password) : '';
+        const sanitizedFullName = full_name !== undefined ? normalizeOptionalText(full_name, 120) : undefined;
+        const sanitizedPhone = phone !== undefined ? normalizeOptionalText(phone, 30) : undefined;
+        const sanitizedAddress = address !== undefined ? normalizeOptionalText(address, 300) : undefined;
 
         const existing = await dbGet('SELECT * FROM Users WHERE username = ?', [req.user.username]);
         if (!existing) return res.status(404).json({ error: 'User not found.' });
+
+        if (sanitizedUsername !== undefined) {
+            if (!isValidUsername(sanitizedUsername)) {
+                return res.status(400).json({ error: 'Username must be 3-32 characters with no spaces.' });
+            }
+            const duplicate = await dbGet('SELECT username FROM Users WHERE username = ? AND username <> ?', [sanitizedUsername, req.user.username]);
+            if (duplicate) return res.status(409).json({ error: 'Username already in use.' });
+        }
+        if (sanitizedEmail !== undefined) {
+            if (!isValidEmail(sanitizedEmail)) {
+                return res.status(400).json({ error: 'Enter a valid email address.' });
+            }
+            const duplicateEmail = await dbGet('SELECT username FROM Users WHERE lower(email) = lower(?) AND username <> ?', [sanitizedEmail, req.user.username]);
+            if (duplicateEmail) return res.status(409).json({ error: 'Email already in use.' });
+        }
+        if (sanitizedPassword && (sanitizedPassword.length < 8 || sanitizedPassword.length > 128)) {
+            return res.status(400).json({ error: 'Password must be 8-128 characters long.' });
+        }
 
         let profile_image = existing.profile_image;
         if (req.file) {
@@ -880,13 +1081,13 @@ app.put('/api/users/profile', verifyToken, upload.single('profile_picture'), asy
         }
 
         let hashedPassword = existing.password;
-        if (password) {
-            hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+        if (sanitizedPassword) {
+            hashedPassword = await bcrypt.hash(sanitizedPassword, SALT_ROUNDS);
         }
 
         await dbRun(
             'UPDATE Users SET username = ?, email = ?, password = ?, full_name = ?, phone = ?, address = ?, profile_image = ? WHERE username = ?',
-            [username || existing.username, email || existing.email, hashedPassword, full_name !== undefined ? full_name : existing.full_name, phone !== undefined ? phone : existing.phone, address !== undefined ? address : existing.address, profile_image, req.user.username]
+            [sanitizedUsername || existing.username, sanitizedEmail || existing.email, hashedPassword, sanitizedFullName !== undefined ? sanitizedFullName : existing.full_name, sanitizedPhone !== undefined ? sanitizedPhone : existing.phone, sanitizedAddress !== undefined ? sanitizedAddress : existing.address, profile_image, req.user.username]
         );
 
         return res.json({ message: 'Profile updated.' });
@@ -916,13 +1117,34 @@ app.put('/api/users/:username', verifyToken, requireAdmin, async (req, res) => {
     try {
         const { username: targetUsername } = req.params;
         const { username, email, role } = req.body;
+        const sanitizedUsername = username !== undefined ? normalizeText(username, 32) : undefined;
+        const sanitizedEmail = email !== undefined ? normalizeText(email, 254).toLowerCase() : undefined;
+        const sanitizedRole = role !== undefined ? normalizeRole(role, true) : undefined;
 
         const existing = await dbGet('SELECT * FROM Users WHERE username = ?', [targetUsername]);
         if (!existing) return res.status(404).json({ error: 'User not found.' });
 
+        if (sanitizedUsername !== undefined) {
+            if (!isValidUsername(sanitizedUsername)) {
+                return res.status(400).json({ error: 'Username must be 3-32 characters with no spaces.' });
+            }
+            const duplicate = await dbGet('SELECT username FROM Users WHERE username = ? AND username <> ?', [sanitizedUsername, targetUsername]);
+            if (duplicate) return res.status(409).json({ error: 'Username already in use.' });
+        }
+        if (sanitizedEmail !== undefined) {
+            if (!isValidEmail(sanitizedEmail)) {
+                return res.status(400).json({ error: 'Enter a valid email address.' });
+            }
+            const duplicateEmail = await dbGet('SELECT username FROM Users WHERE lower(email) = lower(?) AND username <> ?', [sanitizedEmail, targetUsername]);
+            if (duplicateEmail) return res.status(409).json({ error: 'Email already in use.' });
+        }
+        if (sanitizedRole === null) {
+            return res.status(400).json({ error: 'Invalid role.' });
+        }
+
         await dbRun(
             'UPDATE Users SET username = ?, email = ?, role = ? WHERE username = ?',
-            [username || existing.username, email || existing.email, role || existing.role, targetUsername]
+            [sanitizedUsername || existing.username, sanitizedEmail || existing.email, sanitizedRole || existing.role, targetUsername]
         );
 
         return res.json({ message: 'User updated.' });
@@ -936,6 +1158,9 @@ app.put('/api/users/:username', verifyToken, requireAdmin, async (req, res) => {
 app.delete('/api/users/:username', verifyToken, requireAdmin, async (req, res) => {
     try {
         const { username: targetUsername } = req.params;
+        if (targetUsername === req.user.username) {
+            return res.status(400).json({ error: 'You cannot delete your own account.' });
+        }
         const result = await dbRun('DELETE FROM Users WHERE username = ?', [targetUsername]);
         if (result.affectedRows === 0) return res.status(404).json({ error: 'User not found.' });
         return res.json({ message: 'User deleted.' });
@@ -953,15 +1178,28 @@ app.post('/api/orders', verifyToken, async (req, res) => {
         const { items, delivery_address, payment_method, notes } = req.body;
         // items format: [{ menu_item_id, quantity }, ...]
 
-        if (!items || !Array.isArray(items) || items.length === 0) {
+        if (req.user.role !== 'customer') {
+            return res.status(403).json({ error: 'Only customers can place orders.' });
+        }
+
+        const normalizedItems = normalizeOrderItems(items);
+        if (!normalizedItems) {
             return res.status(400).json({ error: 'Order must contain at least one item.' });
         }
+
+        const sanitizedDeliveryAddress = normalizeText(delivery_address, 255);
+        if (!sanitizedDeliveryAddress) {
+            return res.status(400).json({ error: 'Delivery address is required.' });
+        }
+
+        const sanitizedPaymentMethod = normalizePaymentMethod(payment_method) || 'cash';
+        const sanitizedNotes = normalizeOptionalText(notes, 500);
 
         // calculate total price and detect restaurant id
         let total_amount = 0;
         let restaurant_id = null;
         const itemDetails = [];
-        for (const item of items) {
+        for (const item of normalizedItems) {
             const mi = await dbGet('SELECT id, price, restaurant_id FROM MenuItems WHERE id = ?', [item.menu_item_id]);
             if (!mi) return res.status(400).json({ error: 'Menu item ' + item.menu_item_id + ' not found.' });
             const subtotal = mi.price * item.quantity;
@@ -983,7 +1221,7 @@ app.post('/api/orders', verifyToken, async (req, res) => {
 
         const orderResult = await dbRun(
             `INSERT INTO Orders (${compat.ordersUserColumn}, restaurant_id, total_amount, status, delivery_address, payment_method, notes${otpColumn}) VALUES (?, ?, ?, ?, ?, ?, ?${otpPlaceholder})`,
-            [orderUserValue, restaurant_id, total_amount, 'pending', delivery_address || null, payment_method || 'cash', notes || null, ...otpValues]
+            [orderUserValue, restaurant_id, total_amount, 'pending', sanitizedDeliveryAddress, sanitizedPaymentMethod, sanitizedNotes, ...otpValues]
         );
 
         const orderId = orderResult.insertId;
@@ -1126,13 +1364,18 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
         const { status, otp } = req.body;
         let nextStatus = status;
 
+        const orderId = parsePositiveInteger(id);
+        if (!orderId) {
+            return res.status(400).json({ error: 'Invalid order id.' });
+        }
+
         const validStatuses = ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'];
         if (!status || !validStatuses.includes(status)) {
             return res.status(400).json({ error: 'Invalid status.' });
         }
 
         const compat = await ensureSchemaCompat();
-        const order = await dbGet('SELECT * FROM Orders WHERE id = ?', [id]);
+        const order = await dbGet('SELECT * FROM Orders WHERE id = ?', [orderId]);
         if (!order) return res.status(404).json({ error: 'Order not found.' });
 
         const deliveryAssigneeValue = await resolveDeliveryPersonValue(req.user.username);
@@ -1154,7 +1397,7 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
                 return res.status(400).json({ error: 'Delivery OTP is required to mark as delivered.' });
             }
             const storedOtp = String(order.delivery_otp);
-            const providedOtp = String(otp).trim();
+            const providedOtp = normalizeText(otp, 8);
             const storedBuf = Buffer.from(storedOtp.padEnd(4, '\0'));
             const providedBuf = Buffer.from(providedOtp.padEnd(4, '\0'));
             const match = storedBuf.length === providedBuf.length &&
@@ -1182,7 +1425,7 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
 
         await dbRun(
             `UPDATE Orders SET status = ?, ${compat.ordersDeliveryColumn} = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-            [nextStatus, deliveryPersonValue, id]
+            [nextStatus, deliveryPersonValue, orderId]
         );
 
         if (req.user.role === 'delivery' && status === 'cancelled') {
@@ -1250,9 +1493,11 @@ app.get('/api/categories', async (_req, res) => {
 app.post('/api/categories', verifyToken, requireAdmin, async (req, res) => {
     try {
         const { name, description } = req.body;
-        if (!name) return res.status(400).json({ error: 'Category name is required.' });
-        const result = await dbRun('INSERT INTO Categories (name, description) VALUES (?, ?)', [name, description || null]);
-        return res.status(201).json({ message: 'Category created.', username: trimmedUsername });
+        const sanitizedName = normalizeText(name, 120);
+        const sanitizedDescription = normalizeOptionalText(description, 500);
+        if (!sanitizedName) return res.status(400).json({ error: 'Category name is required.' });
+        const result = await dbRun('INSERT INTO Categories (name, description) VALUES (?, ?)', [sanitizedName, sanitizedDescription]);
+        return res.status(201).json({ message: 'Category created.', id: result.insertId });
     } catch (err) {
         console.error('Create category error:', err.message);
         return res.status(500).json({ error: 'Server error.' });
@@ -1264,10 +1509,15 @@ app.put('/api/categories/:id', verifyToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const { name, description } = req.body;
-        const existing = await dbGet('SELECT * FROM Categories WHERE username = ?', [id]);
+        const categoryId = parsePositiveInteger(id);
+        if (!categoryId) return res.status(400).json({ error: 'Invalid category id.' });
+        const existing = await dbGet('SELECT * FROM Categories WHERE id = ?', [categoryId]);
         if (!existing) return res.status(404).json({ error: 'Category not found.' });
-        await dbRun('UPDATE Categories SET name = ?, description = ? WHERE username = ?',
-            [name || existing.name, description !== undefined ? description : existing.description, id]);
+        const sanitizedName = name !== undefined ? normalizeText(name, 120) : existing.name;
+        const sanitizedDescription = description !== undefined ? normalizeOptionalText(description, 500) : existing.description;
+        if (name !== undefined && !sanitizedName) return res.status(400).json({ error: 'Category name is required.' });
+        await dbRun('UPDATE Categories SET name = ?, description = ? WHERE id = ?',
+            [sanitizedName, sanitizedDescription, categoryId]);
         return res.json({ message: 'Category updated.' });
     } catch (err) {
         console.error('Update category error:', err.message);
@@ -1279,7 +1529,9 @@ app.put('/api/categories/:id', verifyToken, requireAdmin, async (req, res) => {
 app.delete('/api/categories/:id', verifyToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await dbRun('DELETE FROM Categories WHERE username = ?', [id]);
+        const categoryId = parsePositiveInteger(id);
+        if (!categoryId) return res.status(400).json({ error: 'Invalid category id.' });
+        const result = await dbRun('DELETE FROM Categories WHERE id = ?', [categoryId]);
         if (result.affectedRows === 0) return res.status(404).json({ error: 'Category not found.' });
         return res.json({ message: 'Category deleted.' });
     } catch (err) {
@@ -1352,7 +1604,10 @@ app.post('/api/reviews', verifyToken, async (req, res) => {
             return res.status(403).json({ error: 'Only customers can write reviews.' });
         }
 
-        if (!restaurant_id || !rating) {
+        const sanitizedRestaurantId = parsePositiveInteger(restaurant_id);
+        const sanitizedOrderId = order_id ? parsePositiveInteger(order_id) : null;
+        const sanitizedComment = normalizeOptionalText(comment, 1500);
+        if (!sanitizedRestaurantId || rating === undefined || rating === null) {
             return res.status(400).json({ error: 'restaurant_id and rating are required.' });
         }
 
@@ -1361,14 +1616,24 @@ app.post('/api/reviews', verifyToken, async (req, res) => {
             return res.status(400).json({ error: 'Rating must be an integer between 1 and 5.' });
         }
 
-        const restaurant = await dbGet('SELECT id FROM Restaurants WHERE id = ?', [restaurant_id]);
+        if (sanitizedOrderId) {
+            const orderMatch = await dbGet(
+                `SELECT id FROM Orders WHERE id = ? AND ${compat.ordersUserColumn} = ? AND restaurant_id = ?`,
+                [sanitizedOrderId, reviewUserValue, sanitizedRestaurantId]
+            );
+            if (!orderMatch) {
+                return res.status(400).json({ error: 'Order must belong to you and match the restaurant.' });
+            }
+        }
+
+        const restaurant = await dbGet('SELECT id FROM Restaurants WHERE id = ?', [sanitizedRestaurantId]);
         if (!restaurant) {
             return res.status(404).json({ error: 'Restaurant not found.' });
         }
 
         const existing = await dbGet(
             `SELECT id FROM Reviews WHERE ${compat.reviewsUserColumn} = ? AND restaurant_id = ? ORDER BY id DESC LIMIT 1`,
-            [reviewUserValue, restaurant_id]
+            [reviewUserValue, sanitizedRestaurantId]
         );
         if (existing) {
             return res.status(409).json({ error: 'You already reviewed this restaurant.' });
@@ -1376,7 +1641,7 @@ app.post('/api/reviews', verifyToken, async (req, res) => {
 
         const result = await dbRun(
             `INSERT INTO Reviews (${compat.reviewsUserColumn}, restaurant_id, order_id, rating, comment) VALUES (?, ?, ?, ?, ?)`,
-            [reviewUserValue, restaurant_id, order_id || null, numericRating, comment || null]
+            [reviewUserValue, sanitizedRestaurantId, sanitizedOrderId, numericRating, sanitizedComment]
         );
         return res.status(201).json({ message: 'Review submitted.', id: result.insertId });
     } catch (err) {
@@ -1396,8 +1661,10 @@ app.put('/api/reviews/:id', verifyToken, async (req, res) => {
 
         const { id } = req.params;
         const { rating, comment } = req.body;
+        const reviewId = parsePositiveInteger(id);
+        if (!reviewId) return res.status(400).json({ error: 'Invalid review id.' });
 
-        const review = await dbGet('SELECT * FROM Reviews WHERE id = ?', [id]);
+        const review = await dbGet('SELECT * FROM Reviews WHERE id = ?', [reviewId]);
         if (!review) return res.status(404).json({ error: 'Review not found.' });
 
         // Only the review author can edit
@@ -1412,6 +1679,8 @@ app.put('/api/reviews/:id', verifyToken, async (req, res) => {
             }
         }
 
+        const sanitizedComment = comment !== undefined ? normalizeOptionalText(comment, 1500) : undefined;
+
         const updates = [];
         const params = [];
         if (rating !== undefined) {
@@ -1420,14 +1689,14 @@ app.put('/api/reviews/:id', verifyToken, async (req, res) => {
         }
         if (comment !== undefined) {
             updates.push('comment = ?');
-            params.push(comment || null);
+            params.push(sanitizedComment);
         }
 
         if (!updates.length) {
             return res.status(400).json({ error: 'No fields to update.' });
         }
 
-        params.push(id);
+        params.push(reviewId);
         await dbRun(`UPDATE Reviews SET ${updates.join(', ')} WHERE id = ?`, params);
         return res.json({ message: 'Review updated.' });
     } catch (err) {
@@ -1444,12 +1713,14 @@ app.put('/api/reviews/:id/reply', verifyToken, async (req, res) => {
         }
 
         const { id } = req.params;
-        const replyText = (req.body.reply || '').trim();
+        const reviewId = parsePositiveInteger(id);
+        if (!reviewId) return res.status(400).json({ error: 'Invalid review id.' });
+        const replyText = normalizeOptionalText(req.body.reply, 1500);
         if (!replyText) {
             return res.status(400).json({ error: 'Reply is required.' });
         }
 
-        const review = await dbGet('SELECT id, restaurant_id FROM Reviews WHERE id = ?', [id]);
+        const review = await dbGet('SELECT id, restaurant_id FROM Reviews WHERE id = ?', [reviewId]);
         if (!review) {
             return res.status(404).json({ error: 'Review not found.' });
         }
@@ -1464,7 +1735,7 @@ app.put('/api/reviews/:id/reply', verifyToken, async (req, res) => {
 
         await dbRun(
             'UPDATE Reviews SET vendor_reply = ?, vendor_reply_at = CURRENT_TIMESTAMP WHERE id = ?',
-            [replyText, id]
+            [replyText, reviewId]
         );
 
         return res.json({ message: 'Reply posted.' });
@@ -1478,7 +1749,9 @@ app.put('/api/reviews/:id/reply', verifyToken, async (req, res) => {
 app.delete('/api/reviews/:id/reply', verifyToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const review = await dbGet('SELECT id, restaurant_id, vendor_reply FROM Reviews WHERE id = ?', [id]);
+        const reviewId = parsePositiveInteger(id);
+        if (!reviewId) return res.status(400).json({ error: 'Invalid review id.' });
+        const review = await dbGet('SELECT id, restaurant_id, vendor_reply FROM Reviews WHERE id = ?', [reviewId]);
         if (!review) {
             return res.status(404).json({ error: 'Review not found.' });
         }
@@ -1501,7 +1774,7 @@ app.delete('/api/reviews/:id/reply', verifyToken, async (req, res) => {
 
         await dbRun(
             'UPDATE Reviews SET vendor_reply = NULL, vendor_reply_at = NULL WHERE id = ?',
-            [id]
+            [reviewId]
         );
 
         return res.json({ message: 'Vendor reply deleted.' });
@@ -1518,14 +1791,16 @@ app.delete('/api/reviews/:id', verifyToken, async (req, res) => {
         const reviewUserValue = await resolveReviewUserValue(req.user.username);
 
         const { id } = req.params;
-        const review = await dbGet('SELECT * FROM Reviews WHERE id = ?', [id]);
+        const reviewId = parsePositiveInteger(id);
+        if (!reviewId) return res.status(400).json({ error: 'Invalid review id.' });
+        const review = await dbGet('SELECT * FROM Reviews WHERE id = ?', [reviewId]);
         if (!review) return res.status(404).json({ error: 'Review not found.' });
 
         if (req.user.role !== 'admin' && review[compat.reviewsUserColumn] !== reviewUserValue) {
             return res.status(403).json({ error: 'Not authorized.' });
         }
 
-        await dbRun('DELETE FROM Reviews WHERE id = ?', [id]);
+        await dbRun('DELETE FROM Reviews WHERE id = ?', [reviewId]);
         return res.json({ message: 'Review deleted.' });
     } catch (err) {
         console.error('Delete review error:', err.message);
