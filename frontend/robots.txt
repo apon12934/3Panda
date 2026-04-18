@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /delivery
+Disallow: /login
+Disallow: /my-orders
+Disallow: /profile
+Disallow: /vendor
+
+Sitemap: https://3panda.ddns.net/sitemap.xml
