@@ -1684,22 +1684,112 @@ tbody tr:last-child {
 
 .review-stars {
     display: flex;
+    align-items: center;
     gap: .2rem;
     margin-bottom: .45rem;
 }
 
 .review-star {
-    border: none;
+    border: 0;
     background: transparent;
     color: #D1D5DB;
-    font-size: 1.35rem;
-    line-height: 1;
     cursor: pointer;
     padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    transition: transform .14s ease, color .14s ease, filter .14s ease;
 }
 
 .review-star.is-active {
     color: #F59E0B;
+}
+
+.review-star:hover {
+    transform: translateY(-1px) scale(1.04);
+    filter: drop-shadow(0 2px 4px rgba(245, 158, 11, .18));
+}
+
+.review-star .rating-star-icon {
+    width: 1.45rem;
+    height: 1.45rem;
+}
+
+.rating-stars {
+    display: inline-flex;
+    align-items: center;
+    gap: .08rem;
+    line-height: 0;
+    vertical-align: middle;
+}
+
+.rating-star-slot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rating-star-icon {
+    width: 1rem;
+    height: 1rem;
+    display: block;
+}
+
+.rating-star-slot--filled,
+.rating-star-slot--half {
+    color: #F59E0B;
+}
+
+.rating-star-slot--empty {
+    color: #D1D5DB;
+}
+
+.review-stars-label .rating-star-icon,
+.restaurant-rating-stars .rating-star-icon {
+    width: 1.06rem;
+    height: 1.06rem;
+}
+
+.review-stars-label {
+    color: inherit;
+    font-size: 0;
+    letter-spacing: 0;
+}
+
+.restaurant-rating-summary.no-reviews .restaurant-rating-stars {
+    color: #D1D5DB;
+}
+
+.edit-modal-stars {
+    gap: .18rem;
+}
+
+.edit-star-btn {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: #D1D5DB;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    cursor: pointer;
+    transition: transform .14s ease, color .14s ease, filter .14s ease;
+}
+
+.edit-star-btn.is-active {
+    color: #F59E0B;
+}
+
+.edit-star-btn:hover {
+    transform: translateY(-1px) scale(1.04);
+    filter: drop-shadow(0 2px 4px rgba(245, 158, 11, .18));
+}
+
+.edit-modal-stars .rating-star-icon {
+    width: 1.8rem;
+    height: 1.8rem;
 }
 
 .review-list {
@@ -1823,19 +1913,11 @@ tbody tr:last-child {
 
 .restaurant-rating-stars {
     color: #F59E0B;
-    letter-spacing: 0.04em;
-    font-size: 1.18rem;
-    line-height: 1;
 }
 
 .restaurant-rating-text {
     color: var(--text-secondary);
     font-weight: 600;
-}
-
-.restaurant-rating-summary.no-reviews .restaurant-rating-stars {
-    color: #D1D5DB;
-    font-size: 1.2rem;
 }
 
 .restaurant-rating-summary.no-reviews .restaurant-rating-text {
@@ -3535,18 +3617,7 @@ body.edit-popup-open {
     border-top: 1px solid #e5e7eb;
 }
 
-.edit-modal-stars {
-    display: flex;
-    gap: 0.5rem;
-    font-size: 2rem;
-    cursor: pointer;
-    margin-top: 0.5rem;
-}
 
-.edit-star-btn {
-    transition: color 0.1s;
-    user-select: none;
-}
 
 /* ============================================================
    MOBILE DEEP-DIVE OVERRIDES (GLOBAL)

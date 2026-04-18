@@ -402,6 +402,40 @@ const authJSON = () => ({
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
+const STAR_PATH = 'M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z';
+let starGradientIdSeed = 0;
+
+function renderStarSvg(type = 'empty') {
+    const baseAttrs = 'class="rating-star-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"';
+    if (type === 'filled') {
+        return `<svg ${baseAttrs}><path d="${STAR_PATH}" fill="currentColor"/></svg>`;
+    }
+
+    if (type === 'half') {
+        const gradientId = `star-half-${++starGradientIdSeed}`;
+        return `<svg ${baseAttrs}><defs><linearGradient id="${gradientId}" x1="0" y1="0" x2="1" y2="0"><stop offset="50%" stop-color="currentColor"></stop><stop offset="50%" stop-color="transparent"></stop></linearGradient></defs><path d="${STAR_PATH}" fill="url(#${gradientId})" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/></svg>`;
+    }
+
+    return `<svg ${baseAttrs}><path d="${STAR_PATH}" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linejoin="round"/></svg>`;
+}
+
+function renderRatingStars(rating, { max = 5, allowHalf = true, className = '' } = {}) {
+    const value = Math.max(0, Math.min(max, Number(rating) || 0));
+    let html = '';
+
+    for (let index = 1; index <= max; index += 1) {
+        let type = 'empty';
+        if (value >= index) {
+            type = 'filled';
+        } else if (allowHalf && value >= index - 0.5) {
+            type = 'half';
+        }
+        html += `<span class="rating-star-slot rating-star-slot--${type}">${renderStarSvg(type)}</span>`;
+    }
+
+    return `<span class="rating-stars ${className}" aria-label="Rating ${value.toFixed(1)} out of ${max}">${html}</span>`;
+}
+
 const EDIT_POPUP_IDS = ['edit-user-card', 'edit-restaurant-card', 'edit-item-card', 'vendor-edit-item-card'];
 
 function syncEditPopupBodyLock() {
@@ -803,21 +837,17 @@ async function loadRestaurants() {
             if (!stats || !stats.count) {
                 return `
                     <div class="restaurant-rating-summary no-reviews">
-                        <span class="restaurant-rating-stars">☆☆☆☆☆</span>
+                        ${renderRatingStars(0, { allowHalf: false, className: 'restaurant-rating-stars' })}
                         <span class="restaurant-rating-text">No reviews yet</span>
                     </div>
                 `;
             }
 
             const avg = stats.sum / stats.count;
-            const rounded = Math.round(avg * 2) / 2;
-            const fullStars = Math.floor(rounded);
-            const halfStar = rounded % 1 !== 0;
-            const stars = '★'.repeat(fullStars) + (halfStar ? '⯪' : '') + '☆'.repeat(5 - fullStars - (halfStar ? 1 : 0));
 
             return `
                 <div class="restaurant-rating-summary" title="Average rating">
-                    <span class="restaurant-rating-stars">${stars}</span>
+                    ${renderRatingStars(Math.round(avg * 2) / 2, { className: 'restaurant-rating-stars' })}
                     <span class="restaurant-rating-text">${avg.toFixed(1)} (${stats.count})</span>
                 </div>
             `;
@@ -1398,10 +1428,17 @@ function setupReviewStarPicker() {
     const stars = Array.from($$('#review-stars .review-star'));
     if (!stars.length) return;
 
+    stars.forEach((star) => {
+        if (!star.innerHTML.trim()) {
+            star.innerHTML = renderStarSvg('filled');
+        }
+    });
+
     const paint = (rating) => {
         stars.forEach((star) => {
             const value = Number(star.dataset.rating);
             star.classList.toggle('is-active', value <= rating);
+            star.setAttribute('aria-pressed', String(value <= rating));
         });
     };
 
@@ -1442,7 +1479,7 @@ function renderReviewList(container, reviews, opts = {}) {
 
     container.innerHTML = reviews.map((review) => {
         const score = Number(review.rating) || 0;
-        const stars = '★'.repeat(Math.max(0, Math.min(5, score))) + '☆'.repeat(Math.max(0, 5 - score));
+        const stars = renderRatingStars(score, { allowHalf: false, className: 'review-stars-label' });
         const reviewText = review.comment ? escapeHtml(review.comment) : 'No written comment.';
         const vendorDisplay = String(review.vendor_full_name || 'Vendor').trim();
         const vendorReply = review.vendor_reply
@@ -1495,7 +1532,7 @@ function renderReviewList(container, reviews, opts = {}) {
                     ${avatar}
                     <strong>${safeReviewer}</strong>
                 </div>
-                <span class="review-stars-label">${stars}</span>
+                ${stars}
             </div>
             <p class="review-item-text">${reviewText}</p>
             ${vendorReply}
@@ -1611,7 +1648,7 @@ async function openReviewEditModal(btn) {
                 <div style="margin-bottom:1rem;">
                     <label>Rating:</label>
                     <div class="review-stars edit-modal-stars" style="font-size:2rem;cursor:pointer;">
-                        ${['1','2','3','4','5'].map(n => `<span class="edit-star-btn" data-rating="${n}" style="margin-right:0.25rem;color:${Number(n) <= currentRating ? '#ffc107' : '#ccc'};cursor:pointer;">★</span>`).join('')}
+                        ${['1','2','3','4','5'].map(n => `<button type="button" class="edit-star-btn${Number(n) <= currentRating ? ' is-active' : ''}" data-rating="${n}" aria-label="Rate ${n} star${Number(n) === 1 ? '' : 's'}">${renderStarSvg('filled')}</button>`).join('')}
                     </div>
                 </div>
                 <div>
@@ -1634,20 +1671,20 @@ async function openReviewEditModal(btn) {
         star.addEventListener('click', () => {
             editRating = Number(star.dataset.rating);
             modal.querySelectorAll('.edit-star-btn').forEach((s, idx) => {
-                s.style.color = (idx + 1) <= editRating ? '#ffc107' : '#ccc';
+                s.classList.toggle('is-active', (idx + 1) <= editRating);
             });
         });
         star.addEventListener('mouseover', () => {
             const hovRating = Number(star.dataset.rating);
             modal.querySelectorAll('.edit-star-btn').forEach((s, idx) => {
-                s.style.color = (idx + 1) <= hovRating ? '#ffc107' : '#ccc';
+                s.classList.toggle('is-active', (idx + 1) <= hovRating);
             });
         });
     });
 
     modal.addEventListener('mouseleave', () => {
         modal.querySelectorAll('.edit-star-btn').forEach((s, idx) => {
-            s.style.color = (idx + 1) <= editRating ? '#ffc107' : '#ccc';
+            s.classList.toggle('is-active', (idx + 1) <= editRating);
         });
     });
 
