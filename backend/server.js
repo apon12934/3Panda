@@ -320,6 +320,15 @@ const CLEAN_PAGE_TO_FILE = {
     vendor: 'vendor.html'
 };
 
+// Serve SEO verification and crawl files explicitly from the site root.
+app.get('/robots.txt', (_req, res) => {
+    return res.type('text/plain').sendFile(path.join(FRONTEND_DIR, 'robots.txt'));
+});
+
+app.get('/sitemap.xml', (_req, res) => {
+    return res.type('application/xml').sendFile(path.join(FRONTEND_DIR, 'sitemap.xml'));
+});
+
 // Canonicalize legacy .html page URLs to clean paths.
 app.get(/^\/([a-z0-9-]+)\.html$/i, (req, res, next) => {
     const page = String(req.params[0] || '').toLowerCase();
