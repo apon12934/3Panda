@@ -8,6 +8,10 @@ services:
     startCommand: npm start
     autoDeploy: true
     envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://3panda.ddns.net,https://threepanda.onrender.com
       - key: TIDB_HOST
         sync: false
       - key: TIDB_PORT
