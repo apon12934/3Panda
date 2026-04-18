@@ -17,6 +17,10 @@
   relational integrity, role-based workflows, and real deployment with a cloud database.
 </p>
 
+<p align="center">
+  <a href="https://3panda.ddns.net" target="_blank" rel="noreferrer noopener"><strong>Live Production Site: 3panda.ddns.net</strong></a>
+</p>
+
 ---
 
 ## Quick Overview
@@ -31,6 +35,7 @@
 | Database | TiDB Serverless (MySQL-compatible) |
 | Media Storage | Cloudinary |
 | Deployment | Render |
+| Live Production | https://3panda.ddns.net |
 
 ## Table of Contents
 
