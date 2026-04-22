@@ -47,8 +47,18 @@
                 <input type="text" id="login-identifier" class="form-control" placeholder=" " required>
                 <label for="login-identifier">Email or Username</label>
             </div>
-            <div class="form-group floating-group">
+            <div class="form-group floating-group has-password-toggle">
                 <input type="password" id="login-password" class="form-control" placeholder=" " required>
+                <button
+                    type="button"
+                    class="password-toggle"
+                    data-password-target="login-password"
+                    aria-label="Show password"
+                    aria-pressed="false"
+                >
+                    <span class="password-toggle-eye" aria-hidden="true"></span>
+                    <span class="password-toggle-strike" aria-hidden="true"></span>
+                </button>
                 <label for="login-password">Account Password</label>
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%;padding:.8rem;">Log In →</button>
@@ -77,8 +87,18 @@
                 <input type="email" id="reg-email" class="form-control" placeholder=" " required>
                 <label for="reg-email">Email</label>
             </div>
-            <div class="form-group floating-group">
+            <div class="form-group floating-group has-password-toggle">
                 <input type="password" id="reg-password" class="form-control" placeholder=" " required>
+                <button
+                    type="button"
+                    class="password-toggle"
+                    data-password-target="reg-password"
+                    aria-label="Show password"
+                    aria-pressed="false"
+                >
+                    <span class="password-toggle-eye" aria-hidden="true"></span>
+                    <span class="password-toggle-strike" aria-hidden="true"></span>
+                </button>
                 <label for="reg-password">Password</label>
             </div>
             <div class="form-group custom-dropdown-group">

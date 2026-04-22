@@ -1863,6 +1863,33 @@ function initLogin() {
     if (tabSignup2) tabSignup2.addEventListener('click', showRegisterCard);
     if (showLog) showLog.addEventListener('click', e => { e.preventDefault(); showLoginCard(); });
 
+    // Show/hide password toggles for auth forms.
+    document.querySelectorAll('.password-toggle[data-password-target]').forEach((btn) => {
+        const inputId = btn.getAttribute('data-password-target');
+        const input = inputId ? document.getElementById(inputId) : null;
+        if (!input) return;
+
+        const syncToggleState = () => {
+            const revealed = input.type === 'text';
+            btn.classList.toggle('is-revealed', revealed);
+            btn.setAttribute('aria-pressed', String(revealed));
+            btn.setAttribute('aria-label', revealed ? 'Hide password' : 'Show password');
+        };
+
+        btn.addEventListener('click', () => {
+            input.type = input.type === 'password' ? 'text' : 'password';
+            syncToggleState();
+            input.focus({ preventScroll: true });
+
+            const caretPos = input.value.length;
+            if (typeof input.setSelectionRange === 'function') {
+                input.setSelectionRange(caretPos, caretPos);
+            }
+        });
+
+        syncToggleState();
+    });
+
     const loginForm = $('#login-form');
     if (loginForm) loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
