@@ -58,13 +58,13 @@
 </nav>
 
 <!-- hero area -->
-<section class="hero" data-animate>
+<section class="hero" data-animate data-reveal>
     <div class="hero-copy">
         <h1>Premium Food.<em>Panda Speed.</em></h1>
         <p>From Baper Hotel to your favorite premium spots, get the best local food delivered straight to your door. No hassle, just great meals.</p>
     </div>
 
-    <div class="hero-art-wrap" data-animate="slide-right">
+    <div class="hero-art-wrap" data-animate="slide-right" data-parallax="0.12">
         <img src="images/hero-image.png" alt="3 Panda rider delivering food" class="hero-art">
     </div>
 
@@ -88,7 +88,7 @@
 <div class="container">
 
     <!-- restaurants list section -->
-    <div class="section-header" data-animate>
+    <div class="section-header" data-animate data-reveal>
         <div>
             <div class="section-label">Curated Selection</div>
             <h2 class="section-title" style="margin-bottom:0;">
@@ -108,7 +108,7 @@
     <div class="divider"></div>
 
     <!-- menu items section -->
-    <div class="section-header" data-animate>
+    <div class="section-header" data-animate data-reveal>
         <div>
             <div class="section-label">Today's Picks</div>
             <h2 class="section-title" style="margin-bottom:0;">
@@ -134,7 +134,7 @@
 
 <!-- restaurant menu popup -->
 <div class="popup-overlay hidden" id="rest-popup-overlay"></div>
-<div class="popup-panel rest-popup hidden" id="rest-popup">
+<div class="popup-panel rest-popup hidden" id="rest-popup" data-lenis-prevent>
     <div class="popup-header">
         <h2 id="rest-popup-name">Restaurant Menu</h2>
         <button class="popup-close" id="rest-popup-close">&times;</button>
@@ -179,7 +179,7 @@
 </div>
 
 <div class="popup-overlay hidden" id="restaurant-owner-overlay"></div>
-<div class="popup-panel hidden restaurant-owner-popup" id="restaurant-owner-popup">
+<div class="popup-panel hidden restaurant-owner-popup" id="restaurant-owner-popup" data-lenis-prevent>
     <div class="popup-header">
         <h2>Restaurant Owner Info</h2>
         <button class="popup-close" id="restaurant-owner-close">&times;</button>
@@ -215,7 +215,7 @@
 </div>
 
 <div class="popup-overlay hidden" id="item-details-overlay"></div>
-<div class="popup-panel hidden item-details-popup" id="item-details-popup">
+<div class="popup-panel hidden item-details-popup" id="item-details-popup" data-lenis-prevent>
     <div class="popup-header">
         <h2>Item Details</h2>
         <button class="popup-close" id="item-details-close">&times;</button>
@@ -245,7 +245,7 @@
 </div>
 
 <div class="popup-overlay hidden" id="cart-popup-overlay"></div>
-<div class="popup-panel hidden" id="cart-popup">
+<div class="popup-panel hidden" id="cart-popup" data-lenis-prevent>
     <div class="popup-header">
         <h2>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:.3rem;"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
@@ -333,6 +333,7 @@
 
 <!-- leaflet map library script -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/lenis@1.3.23/dist/lenis.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

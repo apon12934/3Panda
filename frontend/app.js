@@ -11,50 +11,206 @@ const NOMINATIM_SEARCH_URL = 'https://nominatim.openstreetmap.org/search';
 const OSRM_ROUTE_URL = 'https://router.project-osrm.org/route/v1/driving';
 
 // ============================================================
-// SCROLL ANIMATION SYSTEM (IntersectionObserver)
+// PREMIUM MOTION ENGINE — Scroll Reveals, Parallax, Smart Nav
 // ============================================================
 
+const MOTION_REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let lenisInstance = null;
+
+/**
+ * Initialize Lenis smooth scrolling if available.
+ * Lenis is loaded via CDN <script> before app.js.
+ */
+function initLenis() {
+    if (MOTION_REDUCED || typeof Lenis === 'undefined') return;
+
+    lenisInstance = new Lenis({
+        duration: 1.1,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        orientation: 'vertical',
+        gestureOrientation: 'vertical',
+        smoothWheel: true,
+        wheelMultiplier: 1,
+        touchMultiplier: 2,
+        autoRaf: true,
+    });
+
+    // Expose globally so popups can stop/start
+    window._lenis = lenisInstance;
+}
+
+/**
+ * Premium scroll reveal system with dynamic stagger.
+ * Supports both [data-reveal] (new) and [data-animate] (legacy).
+ */
 function initScrollAnimations() {
-    const observer = new IntersectionObserver((entries) => {
+    if (MOTION_REDUCED) {
+        // Immediately reveal everything
+        document.querySelectorAll('[data-reveal], [data-animate], [data-stagger]').forEach(el => {
+            el.classList.add('is-revealed', 'animate-in');
+        });
+        return;
+    }
+
+    // Set dynamic stagger indices for stagger groups
+    document.querySelectorAll('[data-stagger]').forEach(group => {
+        Array.from(group.children).forEach((child, i) => {
+            child.style.setProperty('--child-index', i);
+        });
+    });
+
+    // Set reveal indices for sequential page elements
+    let revealIndex = 0;
+    document.querySelectorAll('[data-reveal]').forEach(el => {
+        if (!el.closest('[data-stagger]')) {
+            el.style.setProperty('--reveal-index', revealIndex);
+            revealIndex++;
+        }
+    });
+
+    const revealObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                entry.target.classList.add('animate-in');
-                // don't unobserve — one-time trigger
-                observer.unobserve(entry.target);
+                entry.target.classList.add('is-revealed', 'animate-in');
+                revealObserver.unobserve(entry.target);
             }
         });
     }, {
-        threshold: 0.1,
-        rootMargin: '0px 0px -40px 0px'
+        threshold: 0.08,
+        rootMargin: '0px 0px -60px 0px'
     });
 
-    document.querySelectorAll('[data-animate], [data-stagger]').forEach(el => {
-        observer.observe(el);
+    document.querySelectorAll('[data-reveal], [data-animate], [data-stagger]').forEach(el => {
+        revealObserver.observe(el);
     });
 }
 
-// ============================================================
-// NAVBAR GLASSMORPHISM ON SCROLL
-// ============================================================
+/**
+ * Parallax scroll handler.
+ * Elements with data-parallax="0.15" move at 15% of scroll speed.
+ */
+function initParallax() {
+    if (MOTION_REDUCED) return;
 
+    const parallaxEls = document.querySelectorAll('[data-parallax]');
+    if (!parallaxEls.length) return;
+
+    const updateParallax = () => {
+        const scrollY = window.scrollY;
+        parallaxEls.forEach(el => {
+            const speed = parseFloat(el.dataset.parallax) || 0.1;
+            const rect = el.getBoundingClientRect();
+            const elementCenter = rect.top + rect.height / 2;
+            const viewportCenter = window.innerHeight / 2;
+            const offset = (elementCenter - viewportCenter) * speed;
+            el.style.transform = `translateY(${offset}px)`;
+        });
+    };
+
+    // Use Lenis scroll event if available, otherwise passive scroll
+    if (lenisInstance) {
+        lenisInstance.on('scroll', updateParallax);
+    } else {
+        let parallaxTicking = false;
+        window.addEventListener('scroll', () => {
+            if (!parallaxTicking) {
+                requestAnimationFrame(() => {
+                    updateParallax();
+                    parallaxTicking = false;
+                });
+                parallaxTicking = true;
+            }
+        }, { passive: true });
+    }
+}
+
+/**
+ * Smart navbar: glassmorphism + auto-hide on scroll down, show on scroll up.
+ */
 function initNavbarScroll() {
     const navbar = document.getElementById('main-navbar');
     if (!navbar) return;
 
+    let lastScrollY = 0;
     let ticking = false;
-    window.addEventListener('scroll', () => {
-        if (!ticking) {
-            window.requestAnimationFrame(() => {
-                if (window.scrollY > 20) {
-                    navbar.classList.add('scrolled');
-                } else {
-                    navbar.classList.remove('scrolled');
-                }
-                ticking = false;
-            });
-            ticking = true;
+    const HIDE_THRESHOLD = 80;
+
+    const updateNavbar = () => {
+        const scrollY = window.scrollY;
+
+        // Glassmorphism on scroll
+        if (scrollY > 20) {
+            navbar.classList.add('scrolled');
+        } else {
+            navbar.classList.remove('scrolled');
         }
-    }, { passive: true });
+
+        // Smart auto-hide (only on longer pages, don't hide at top)
+        if (scrollY > HIDE_THRESHOLD) {
+            if (scrollY > lastScrollY + 5) {
+                // Scrolling down → hide
+                navbar.classList.add('nav-hidden');
+            } else if (scrollY < lastScrollY - 5) {
+                // Scrolling up → show
+                navbar.classList.remove('nav-hidden');
+            }
+        } else {
+            navbar.classList.remove('nav-hidden');
+        }
+
+        lastScrollY = scrollY;
+        ticking = false;
+    };
+
+    // Use Lenis if available
+    if (lenisInstance) {
+        lenisInstance.on('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        });
+    } else {
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    }
+}
+
+/**
+ * Card magnetic 3D tilt micro-interaction on hover.
+ * Applies a subtle perspective tilt that follows the mouse.
+ */
+function initCardTilt() {
+    if (MOTION_REDUCED) return;
+    // Only on non-touch devices
+    if (window.matchMedia('(hover: none)').matches) return;
+
+    document.addEventListener('mousemove', (e) => {
+        const card = e.target.closest('.card, .menu-item-card, .stat-card, .vendor-rest-card');
+        if (!card) return;
+
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
+        const rotateX = ((y - centerY) / centerY) * -3;
+        const rotateY = ((x - centerX) / centerX) * 3;
+
+        card.style.transform = `translateY(-6px) perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+    });
+
+    document.addEventListener('mouseleave', (e) => {
+        const card = e.target.closest('.card, .menu-item-card, .stat-card, .vendor-rest-card');
+        if (card) {
+            card.style.transform = '';
+        }
+    }, true);
 }
 
 // ============================================================
@@ -584,9 +740,12 @@ const page = (() => {
 // app start
 
 document.addEventListener('DOMContentLoaded', () => {
+    initLenis();
     buildNav();
     initScrollAnimations();
     initNavbarScroll();
+    initParallax();
+    initCardTilt();
     initHamburger();
     initFileUploadPlaceholders();
     initCustomDropdowns();
@@ -755,6 +914,8 @@ function initHome() {
     function openPopup() {
         popup.classList.remove('hidden');
         overlay.classList.remove('hidden');
+        // Stop Lenis when popup is open
+        if (window._lenis) window._lenis.stop();
         // load map first time popup opens
         if (!mapInstance) setTimeout(initCheckoutMap, 100);
         else setTimeout(() => mapInstance.invalidateSize(), 150);
@@ -763,6 +924,8 @@ function initHome() {
     function closePopup() {
         popup.classList.add('hidden');
         overlay.classList.add('hidden');
+        // Restart Lenis when popup closes
+        if (window._lenis) window._lenis.start();
     }
 
     if (fab) fab.addEventListener('click', openPopup);
@@ -1197,6 +1360,7 @@ function initRestaurantPopup() {
     function closePopup() {
         popup.classList.add('hidden');
         overlay.classList.add('hidden');
+        if (window._lenis) window._lenis.start();
     }
 
     overlay.addEventListener('click', closePopup);
@@ -1297,6 +1461,7 @@ async function openRestaurantPopup(restaurantId, restaurantName) {
 
     popup.classList.remove('hidden');
     overlay.classList.remove('hidden');
+    if (window._lenis) window._lenis.stop();
 
     try {
         const res = await fetch(API + '/menu-items?restaurant_id=' + restaurantId);
