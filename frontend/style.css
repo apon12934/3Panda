@@ -874,37 +874,42 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 }
 
 .has-password-toggle .form-control {
-    padding-right: 3rem;
+    padding-right: 3.15rem;
 }
 
 .password-toggle {
     position: absolute;
     top: 50%;
-    right: .55rem;
-    width: 2.1rem;
-    height: 2.1rem;
-    border: 0;
-    border-radius: 50%;
+    right: .5rem;
+    width: 2.2rem;
+    height: 2.2rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: transparent;
-    color: var(--text-light);
+    background: linear-gradient(180deg, #ffffff, #f6f8fb);
+    color: #8b94a5;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .9) inset;
     cursor: pointer;
     transform: translateY(-50%);
     transition: color var(--duration) var(--ease),
                 background var(--duration) var(--ease),
+                border-color var(--duration) var(--ease),
+                box-shadow var(--duration) var(--ease),
                 transform var(--duration) var(--ease);
     z-index: 2;
 }
 
 .password-toggle:hover {
     color: var(--red);
-    background: var(--red-subtle);
+    border-color: rgba(198, 40, 40, .35);
+    background: linear-gradient(180deg, #fff6f6, #ffecec);
+    box-shadow: 0 4px 12px rgba(198, 40, 40, .15);
 }
 
 .password-toggle:active {
-    transform: translateY(-50%) scale(.94);
+    transform: translateY(-50%) scale(.96);
 }
 
 .password-toggle:focus-visible {
@@ -912,54 +917,44 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     outline-offset: 2px;
 }
 
-.password-toggle-eye {
-    position: relative;
-    width: 1.18rem;
-    height: .72rem;
-    border: 2px solid currentColor;
-    border-radius: 999px;
-    transition: transform var(--duration) var(--ease-bounce),
-                border-color var(--duration) var(--ease);
-}
-
-.password-toggle-eye::before {
-    content: '';
+.password-toggle-icon {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    width: .3rem;
-    height: .3rem;
-    border-radius: 50%;
-    background: currentColor;
-    transform: translate(-50%, -50%) scale(1);
-    transition: transform var(--duration) var(--ease-bounce),
-                background var(--duration) var(--ease);
+    width: 1.08rem;
+    height: 1.08rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity .24s var(--ease),
+                transform .28s var(--ease-bounce);
 }
 
-.password-toggle-strike {
-    position: absolute;
-    width: 1.32rem;
-    height: 2px;
-    border-radius: 999px;
-    background: currentColor;
-    transform: rotate(-28deg) scaleX(1);
-    transform-origin: center;
-    opacity: .9;
-    transition: transform var(--duration) var(--ease),
-                opacity var(--duration) var(--ease);
+.password-toggle-icon svg {
+    width: 100%;
+    height: 100%;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
-.password-toggle.is-revealed .password-toggle-eye {
-    transform: scale(1.04);
+.password-toggle .icon-show {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
 }
 
-.password-toggle.is-revealed .password-toggle-eye::before {
-    transform: translate(-50%, -50%) scale(1.15);
-}
-
-.password-toggle.is-revealed .password-toggle-strike {
-    transform: rotate(-28deg) scaleX(0);
+.password-toggle .icon-hide {
     opacity: 0;
+    transform: scale(.75) rotate(-10deg);
+}
+
+.password-toggle.is-revealed .icon-show {
+    opacity: 0;
+    transform: scale(.75) rotate(10deg);
+}
+
+.password-toggle.is-revealed .icon-hide {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
 }
 
 /* Dedicated custom upload UI (replaces browser default file input look) */
