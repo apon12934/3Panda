@@ -192,7 +192,7 @@ function initCardTilt() {
     if (MOTION_REDUCED) return;
     if (window.matchMedia('(hover: none)').matches) return;
 
-    const SELECTOR = '.card, .stat-card, .vendor-rest-card';
+    const SELECTOR = '.card, .stat-card, .vendor-rest-card, .carousel-card';
     const MAX_TILT = 8;   // degrees
     const LIFT    = 10;   // px rise on hover
 
@@ -235,6 +235,61 @@ function initCardTilt() {
         }));
     }).observe(document.body, { childList: true, subtree: true });
 }
+
+// ============================================================
+// UNIFIED POPUP CONTROLLER — PandaPopup
+// One system for all popups. Change animation here → every popup updates.
+// ============================================================
+
+const PandaPopup = {
+    /**
+     * Open a popup panel (and its overlay, if provided).
+     * Removes .hidden, plays entrance animation via CSS.
+     */
+    open(panelEl, overlayEl) {
+        if (!panelEl) return;
+        if (overlayEl) {
+            overlayEl.classList.remove('hidden', 'is-exiting');
+        }
+        panelEl.classList.remove('hidden', 'is-exiting');
+        // Lock scroll
+        if (window._lenis) window._lenis.stop();
+    },
+
+    /**
+     * Close a popup panel with exit animation.
+     * Adds .is-exiting, waits for animation to end, then adds .hidden.
+     */
+    close(panelEl, overlayEl) {
+        if (!panelEl) return;
+        // If already hidden, nothing to do
+        if (panelEl.classList.contains('hidden')) return;
+
+        panelEl.classList.add('is-exiting');
+        if (overlayEl) overlayEl.classList.add('is-exiting');
+
+        const cleanup = () => {
+            panelEl.classList.add('hidden');
+            panelEl.classList.remove('is-exiting');
+            if (overlayEl) {
+                overlayEl.classList.add('hidden');
+                overlayEl.classList.remove('is-exiting');
+            }
+            // Unlock scroll
+            if (window._lenis) window._lenis.start();
+            panelEl.removeEventListener('animationend', cleanup);
+        };
+
+        panelEl.addEventListener('animationend', cleanup, { once: true });
+
+        // Fallback: if animation doesn't fire (element not visible, etc), clean up after 300ms
+        setTimeout(() => {
+            if (panelEl.classList.contains('is-exiting')) cleanup();
+        }, 300);
+    }
+};
+
+window.PandaPopup = PandaPopup;
 
 // ============================================================
 // MOBILE HAMBURGER MENU
@@ -560,6 +615,29 @@ function initCustomDropdowns() {
         buildMenu(state);
         syncState(state);
     };
+
+    // Expose enhanceSelect globally so it can be called on dynamically added selects
+    window._enhanceSelect = enhanceSelect;
+
+    // Auto-enhance dynamically added selects (e.g. cloned from <template>)
+    if (!window.__customDropdownMutationBound) {
+        new MutationObserver((mutations) => {
+            mutations.forEach(m => m.addedNodes.forEach(node => {
+                if (node.nodeType !== 1) return;
+                // Enhance the node itself if it's a select
+                if (node.matches && node.matches('select.form-control') && !node.closest('[data-custom-dropdown]')) {
+                    enhanceSelect(node);
+                }
+                // Enhance any select.form-control descendants
+                if (node.querySelectorAll) {
+                    node.querySelectorAll('select.form-control').forEach(sel => {
+                        if (!sel.closest('[data-custom-dropdown]')) enhanceSelect(sel);
+                    });
+                }
+            }));
+        }).observe(document.body, { childList: true, subtree: true });
+        window.__customDropdownMutationBound = true;
+    }
 }
 
 // small helper functions
@@ -633,7 +711,7 @@ function initEditPopupBehavior() {
         EDIT_POPUP_IDS.forEach((id) => {
             const el = document.getElementById(id);
             if (el && !el.classList.contains('hidden')) {
-                el.classList.add('hidden');
+                PandaPopup.close(el);
                 closedAny = true;
             }
         });
@@ -935,20 +1013,14 @@ function initHome() {
     const closeBtn = $('#popup-close');
 
     function openPopup() {
-        popup.classList.remove('hidden');
-        overlay.classList.remove('hidden');
-        // Stop Lenis when popup is open
-        if (window._lenis) window._lenis.stop();
+        PandaPopup.open(popup, overlay);
         // load map first time popup opens
         if (!mapInstance) setTimeout(initCheckoutMap, 100);
         else setTimeout(() => mapInstance.invalidateSize(), 150);
     }
 
     function closePopup() {
-        popup.classList.add('hidden');
-        overlay.classList.add('hidden');
-        // Restart Lenis when popup closes
-        if (window._lenis) window._lenis.start();
+        PandaPopup.close(popup, overlay);
     }
 
     if (fab) fab.addEventListener('click', openPopup);
@@ -1105,15 +1177,13 @@ function openRestaurantOwnerInfo(cardEl) {
     setText('#owner-info-email', cardEl.dataset.ownerEmail || '-');
     setText('#owner-info-phone', cardEl.dataset.ownerPhone || '-');
 
-    overlay.classList.remove('hidden');
-    popup.classList.remove('hidden');
+    PandaPopup.open(popup, overlay);
 }
 
 function closeRestaurantOwnerInfo() {
     const overlay = $('#restaurant-owner-overlay');
     const popup = $('#restaurant-owner-popup');
-    if (overlay) overlay.classList.add('hidden');
-    if (popup) popup.classList.add('hidden');
+    PandaPopup.close(popup, overlay);
 }
 
 async function loadMenuItems(restaurantId) {
@@ -1381,9 +1451,7 @@ function initRestaurantPopup() {
     if (!popup) return;
 
     function closePopup() {
-        popup.classList.add('hidden');
-        overlay.classList.add('hidden');
-        if (window._lenis) window._lenis.start();
+        PandaPopup.close(popup, overlay);
     }
 
     overlay.addEventListener('click', closePopup);
@@ -1482,9 +1550,7 @@ async function openRestaurantPopup(restaurantId, restaurantName) {
         submitReviewBtn.dataset.bound = '1';
     }
 
-    popup.classList.remove('hidden');
-    overlay.classList.remove('hidden');
-    if (window._lenis) window._lenis.stop();
+    PandaPopup.open(popup, overlay);
 
     try {
         const res = await fetch(API + '/menu-items?restaurant_id=' + restaurantId);
@@ -1539,8 +1605,7 @@ function initItemDetailsPopup() {
     if (!overlay || !popup || !closeBtn) return;
 
     const closePopup = () => {
-        popup.classList.add('hidden');
-        overlay.classList.add('hidden');
+        PandaPopup.close(popup, overlay);
     };
 
     overlay.addEventListener('click', closePopup);
@@ -1584,8 +1649,7 @@ function openItemDetailsById(itemId) {
         showMsg(`${item.name} added to cart.`, 'success');
     };
 
-    popup.classList.remove('hidden');
-    overlay.classList.remove('hidden');
+    PandaPopup.open(popup, overlay);
 }
 
 function updateCarouselDots() {
@@ -3029,7 +3093,7 @@ function initAdmin() {
 
 // admin users section functions
     const cancelEditUser = $('#cancel-edit-user');
-    if (cancelEditUser) cancelEditUser.addEventListener('click', () => $('#edit-user-card').classList.add('hidden'));
+    if (cancelEditUser) cancelEditUser.addEventListener('click', () => PandaPopup.close($('#edit-user-card')));
 
     const editUserForm = $('#edit-user-form');
     if (editUserForm) editUserForm.addEventListener('submit', async (e) => {
@@ -3048,7 +3112,7 @@ function initAdmin() {
             const data = await res.json();
             if (!res.ok) return showMsg(data.error);
             showMsg('User updated!', 'success');
-            $('#edit-user-card').classList.add('hidden');
+            PandaPopup.close($('#edit-user-card'));
             adminLoadUsers();
         } catch (err) { showMsg('Update failed.'); }
     });
@@ -3075,7 +3139,7 @@ function initAdmin() {
     });
 
     const cancelEditRest = $('#cancel-edit-rest');
-    if (cancelEditRest) cancelEditRest.addEventListener('click', () => $('#edit-restaurant-card').classList.add('hidden'));
+    if (cancelEditRest) cancelEditRest.addEventListener('click', () => PandaPopup.close($('#edit-restaurant-card')));
 
     const editRestForm = $('#edit-restaurant-form');
     if (editRestForm) editRestForm.addEventListener('submit', async (e) => {
@@ -3091,7 +3155,7 @@ function initAdmin() {
             const data = await res.json();
             if (!res.ok) return showMsg(data.error);
             showMsg('Restaurant updated!', 'success');
-            $('#edit-restaurant-card').classList.add('hidden');
+            PandaPopup.close($('#edit-restaurant-card'));
             adminLoadRestaurants();
         } catch (err) { showMsg('Update failed.'); }
     });
@@ -3118,7 +3182,7 @@ function initAdmin() {
     });
 
     const cancelEditItem = $('#cancel-edit-item');
-    if (cancelEditItem) cancelEditItem.addEventListener('click', () => $('#edit-item-card').classList.add('hidden'));
+    if (cancelEditItem) cancelEditItem.addEventListener('click', () => PandaPopup.close($('#edit-item-card')));
 
     const editItemForm = $('#edit-item-form');
     if (editItemForm) editItemForm.addEventListener('submit', async (e) => {
@@ -3136,7 +3200,7 @@ function initAdmin() {
             const data = await res.json();
             if (!res.ok) return showMsg(data.error);
             showMsg('Item updated!', 'success');
-            $('#edit-item-card').classList.add('hidden');
+            PandaPopup.close($('#edit-item-card'));
             adminLoadItems();
         } catch (err) { showMsg('Update failed.'); }
     });
@@ -3173,7 +3237,7 @@ async function adminLoadUsers() {
 }
 
 window.adminEditUser = (userKey, username, email, role) => {
-    $('#edit-user-card').classList.remove('hidden');
+    PandaPopup.open($('#edit-user-card'));
     $('#edit-user-id').value = userKey;
     $('#edit-user-name').value = username;
     $('#edit-user-email').value = email;
@@ -3220,7 +3284,7 @@ async function adminLoadRestaurants() {
 }
 
 window.adminEditRestaurant = (id, name, ownerUsername) => {
-    $('#edit-restaurant-card').classList.remove('hidden');
+    PandaPopup.open($('#edit-restaurant-card'));
     $('#edit-rest-id').value = id;
     $('#edit-rest-name').value = name;
     $('#edit-rest-owner-username').value = ownerUsername || '';
@@ -3277,7 +3341,7 @@ async function adminLoadItems() {
 }
 
 window.adminEditItem = (id, restId, name, price, desc) => {
-    $('#edit-item-card').classList.remove('hidden');
+    PandaPopup.open($('#edit-item-card'));
     $('#edit-item-id').value = id;
     $('#edit-item-restaurant').value = restId;
     $('#edit-item-name').value = name;
@@ -3610,7 +3674,7 @@ function initVendor() {
     // Cancel edit item
     const cancelEdit = $('#vendor-cancel-edit-item');
     if (cancelEdit) cancelEdit.addEventListener('click', () => {
-        $('#vendor-edit-item-card').classList.add('hidden');
+        PandaPopup.close($('#vendor-edit-item-card'));
     });
 
     // Edit item form
@@ -3632,7 +3696,7 @@ function initVendor() {
             const data = await res.json();
             if (!res.ok) return showMsg(data.error);
             showMsg(data.message, 'success');
-            $('#vendor-edit-item-card').classList.add('hidden');
+            PandaPopup.close($('#vendor-edit-item-card'));
             vendorLoadMenuItems(_vendorCurrentRestaurantId);
         } catch (err) { showMsg('Update failed.'); }
     });
@@ -3741,7 +3805,7 @@ async function vendorLoadMenuItems(restaurantId) {
 }
 
 window.vendorEditItem = (id, name, price, desc) => {
-    $('#vendor-edit-item-card').classList.remove('hidden');
+    PandaPopup.open($('#vendor-edit-item-card'));
     $('#vendor-edit-item-id').value = id;
     $('#vendor-edit-item-name').value = name;
     $('#vendor-edit-item-desc').value = desc || '';

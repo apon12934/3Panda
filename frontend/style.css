@@ -3748,10 +3748,56 @@ tbody tr:last-child {
     margin: 0 !important;
     box-shadow: 0 22px 56px rgba(17, 24, 39, .22), 0 0 0 100vmax rgba(17, 24, 39, .45);
     border: 1px solid rgba(255, 255, 255, .6);
+    animation: popupScaleIn .35s var(--motion-smooth);
 }
 
 body.edit-popup-open {
     overflow: hidden;
+}
+
+/* ============================================================
+   UNIFIED POPUP EXIT ANIMATION
+   Applied via JS when closing any popup-panel or overlay.
+   ============================================================ */
+
+@keyframes popupFadeOut {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+@keyframes popupScaleOut {
+    from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    to   { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+}
+
+@keyframes popupSlideOut {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 0; transform: translateY(40px) scale(0.98); }
+}
+
+.popup-overlay.is-exiting {
+    animation: popupFadeOut .25s var(--ease) forwards;
+    pointer-events: none;
+}
+
+/* Centered popups (rest-popup, item-details, owner-info, edit cards) */
+.popup-panel.is-exiting {
+    animation: popupScaleOut .25s var(--ease) forwards;
+    pointer-events: none;
+}
+
+/* Bottom-slide popups (cart panel) */
+.popup-panel:not(.rest-popup):not(.restaurant-owner-popup):not(.item-details-popup).is-exiting {
+    animation: popupSlideOut .25s var(--ease) forwards;
+}
+
+/* Edit cards exiting */
+#edit-user-card.is-exiting,
+#edit-restaurant-card.is-exiting,
+#edit-item-card.is-exiting,
+#vendor-edit-item-card.is-exiting {
+    animation: popupScaleOut .25s var(--ease) forwards;
+    pointer-events: none;
 }
 
 @media (max-width: 768px) {
