@@ -62,7 +62,7 @@
     --motion-spring:  cubic-bezier(0.34, 1.56, 0.64, 1); /* overshoot for micro */
     --motion-soft:    cubic-bezier(0.45, 0, 0.15, 1);    /* gentle ease */
     --motion-duration:0.8s;
-    --motion-stagger: 0.08s;
+    --motion-stagger: 0.06s;
 
     /* Typography */
     --font-heading: 'Poppins', 'Anek Bangla', system-ui, sans-serif;
@@ -610,14 +610,11 @@ img { display: block; max-width: 100%; }
     background: var(--surface);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
-    overflow: hidden;
     display: flex;
     flex-direction: column;
-    transition: transform 0.4s var(--motion-smooth),
-                box-shadow 0.4s var(--motion-smooth);
     border: 1px solid var(--border);
     transform-style: preserve-3d;
-    perspective: 800px;
+    /* overflow removed — JS owns 3D transform; use clip on img instead */
 }
 
 @supports (content-visibility: auto) {
@@ -630,17 +627,13 @@ img { display: block; max-width: 100%; }
     }
 }
 
-.card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 20px 40px rgba(0,0,0,.10), 0 4px 12px rgba(0,0,0,.06);
-    border-color: #d7dbe3;
-}
 
 .card-img {
     width: 100%;
     aspect-ratio: 16 / 9;
     object-fit: cover;
     background: linear-gradient(135deg, #f5f5f5, #ebebeb);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .card-body {

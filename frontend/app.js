@@ -76,13 +76,17 @@ function initScrollAnimations() {
             }
         });
     }, {
-        threshold: 0.08,
-        rootMargin: '0px 0px -60px 0px'
+        threshold: 0.12,
+        rootMargin: '0px 0px -15% 0px'
     });
 
+    // observe existing elements
     document.querySelectorAll('[data-reveal], [data-animate], [data-stagger]').forEach(el => {
         revealObserver.observe(el);
     });
+
+    // expose so dynamically injected content can be observed
+    window._revealObserver = revealObserver;
 }
 
 /**
@@ -181,36 +185,55 @@ function initNavbarScroll() {
 }
 
 /**
- * Card magnetic 3D tilt micro-interaction on hover.
- * Applies a subtle perspective tilt that follows the mouse.
+ * Card 3D tilt — per-element pointer events for zero-lag response.
+ * Perspective sits on the card wrapper so rotations feel genuinely 3D.
  */
 function initCardTilt() {
     if (MOTION_REDUCED) return;
-    // Only on non-touch devices
     if (window.matchMedia('(hover: none)').matches) return;
 
-    document.addEventListener('mousemove', (e) => {
-        const card = e.target.closest('.card, .menu-item-card, .stat-card, .vendor-rest-card');
-        if (!card) return;
+    const SELECTOR = '.card, .stat-card, .vendor-rest-card';
+    const MAX_TILT = 8;   // degrees
+    const LIFT    = 10;   // px rise on hover
 
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
+    function attachTilt(card) {
+        if (card._tiltBound) return;
+        card._tiltBound = true;
 
-        const rotateX = ((y - centerY) / centerY) * -3;
-        const rotateY = ((x - centerX) / centerX) * 3;
+        // instant transform while moving — no transition lag
+        card.addEventListener('pointerenter', () => {
+            card.style.transition = 'box-shadow 0.3s, transform 0.35s cubic-bezier(0.23,1,0.32,1)';
+            card.style.willChange = 'transform';
+        });
 
-        card.style.transform = `translateY(-6px) perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-    });
+        card.addEventListener('pointermove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width  - 0.5;  // -0.5 → +0.5
+            const y = (e.clientY - rect.top)  / rect.height - 0.5;
+            const rx = -y * MAX_TILT;
+            const ry =  x * MAX_TILT;
+            card.style.transition = 'box-shadow 0.3s';
+            card.style.transform  = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-${LIFT}px) scale(1.02)`;
+        });
 
-    document.addEventListener('mouseleave', (e) => {
-        const card = e.target.closest('.card, .menu-item-card, .stat-card, .vendor-rest-card');
-        if (card) {
-            card.style.transform = '';
-        }
-    }, true);
+        card.addEventListener('pointerleave', () => {
+            card.style.transition = 'transform 0.55s cubic-bezier(0.23,1,0.32,1), box-shadow 0.55s';
+            card.style.transform  = '';
+            card.style.willChange = 'auto';
+        });
+    }
+
+    // attach to all current cards
+    document.querySelectorAll(SELECTOR).forEach(attachTilt);
+
+    // attach to future cards via mutation observer
+    new MutationObserver((mutations) => {
+        mutations.forEach(m => m.addedNodes.forEach(node => {
+            if (node.nodeType !== 1) return;
+            if (node.matches && node.matches(SELECTOR)) attachTilt(node);
+            node.querySelectorAll && node.querySelectorAll(SELECTOR).forEach(attachTilt);
+        }));
+    }).observe(document.body, { childList: true, subtree: true });
 }
 
 // ============================================================
