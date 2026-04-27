@@ -618,6 +618,7 @@ img { display: block; max-width: 100%; }
     flex-direction: column;
     border: 1px solid var(--border);
     transform-style: preserve-3d;
+    min-width: 0;
     /* overflow removed — JS owns 3D transform; use clip on img instead */
 }
 
