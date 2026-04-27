@@ -52,22 +52,6 @@ function initScrollAnimations() {
         return;
     }
 
-    // Set dynamic stagger indices for stagger groups
-    document.querySelectorAll('[data-stagger]').forEach(group => {
-        Array.from(group.children).forEach((child, i) => {
-            child.style.setProperty('--child-index', i);
-        });
-    });
-
-    // Set reveal indices for sequential page elements
-    let revealIndex = 0;
-    document.querySelectorAll('[data-reveal]').forEach(el => {
-        if (!el.closest('[data-stagger]')) {
-            el.style.setProperty('--reveal-index', revealIndex);
-            revealIndex++;
-        }
-    });
-
     const revealObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -76,18 +60,41 @@ function initScrollAnimations() {
             }
         });
     }, {
-        threshold: 0.12,
-        rootMargin: '0px 0px -15% 0px'
-    });
-
-    // observe existing elements
-    document.querySelectorAll('[data-reveal], [data-animate], [data-stagger]').forEach(el => {
-        revealObserver.observe(el);
+        threshold: 0.05,
+        rootMargin: '0px 0px -40px 0px' // smaller margin for better mobile reliability
     });
 
     // expose so dynamically injected content can be observed
     window._revealObserver = revealObserver;
+
+    // Initial pass
+    refreshDynamicAnimations();
 }
+
+/**
+ * Helper to refresh stagger indices and observe new elements.
+ * Call this after injecting dynamic content.
+ */
+function refreshDynamicAnimations(container = document) {
+    // Set dynamic stagger indices
+    container.querySelectorAll('[data-stagger]').forEach(group => {
+        Array.from(group.children).forEach((child, i) => {
+            child.style.setProperty('--child-index', i);
+        });
+    });
+
+    // Observe new reveal elements
+    const observer = window._revealObserver;
+    if (observer) {
+        container.querySelectorAll('[data-reveal], [data-animate], [data-stagger]').forEach(el => {
+            if (!el.classList.contains('is-revealed') && !el.classList.contains('animate-in')) {
+                observer.observe(el);
+            }
+        });
+    }
+}
+window.refreshDynamicAnimations = refreshDynamicAnimations;
+
 
 /**
  * Parallax scroll handler.
@@ -1133,6 +1140,9 @@ async function loadRestaurants() {
             </div>
         `).join('');
 
+        refreshDynamicAnimations(container);
+
+
         if (container && container.dataset.restaurantClickBound !== '1') {
             container.addEventListener('click', (event) => {
                 const card = event.target.closest('.restaurant-click-card');
@@ -1212,6 +1222,9 @@ async function loadMenuItems(restaurantId) {
                 </div>
             </div>
         `).join('');
+
+        refreshDynamicAnimations(container);
+
     } catch (err) {
         console.error(err);
     }
