@@ -2231,45 +2231,46 @@ function initLogin() {
 
 
 function initProfilePictureModal() {
-    const modal = $('#profile-pic-modal');
+    const overlay = $('#profile-pic-overlay');
+    const popup = $('#profile-pic-popup');
     const fileInput = $('#profile-pic-input');
     const profileImg = $('#profile-img');
     const profilePictureContainer = $('#profile-picture-container');
     const profileEditIcon = $('#profile-edit-icon');
     const viewBtn = $('#profile-pic-view-btn');
     const uploadBtn = $('#profile-pic-upload-btn');
-    const closeBtn = $('#profile-pic-modal-close');
+    const closeBtn = $('#profile-pic-popup-close');
 
-    if (!modal || !fileInput || !profileImg) return;
+    if (!popup || !fileInput || !profileImg) return;
 
-    // Open modal when clicking profile picture or edit icon
-    const openModal = () => {
-        modal.style.display = 'flex';
+    // Open popup when clicking profile picture or edit icon
+    const openPopup = () => {
+        overlay.style.display = 'block';
+        popup.style.display = 'flex';
         if (window._lenis) window._lenis.stop();
     };
 
-    profilePictureContainer?.addEventListener('click', openModal);
+    profilePictureContainer?.addEventListener('click', openPopup);
     profileEditIcon?.addEventListener('click', (e) => {
         e.stopPropagation();
-        openModal();
+        openPopup();
     });
 
-    // Close modal
-    const closeModal = () => {
-        modal.style.display = 'none';
+    // Close popup
+    const closePopup = () => {
+        overlay.style.display = 'none';
+        popup.style.display = 'none';
         if (window._lenis) window._lenis.start();
         fileInput.value = ''; // Reset file input
     };
 
-    closeBtn?.addEventListener('click', closeModal);
-    modal?.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-    });
+    closeBtn?.addEventListener('click', closePopup);
+    overlay?.addEventListener('click', closePopup);
 
-    // Close modal with ESC key
+    // Close popup with ESC key
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal.style.display === 'flex') {
-            closeModal();
+        if (e.key === 'Escape' && popup.style.display === 'flex') {
+            closePopup();
         }
     });
 
@@ -2279,7 +2280,7 @@ function initProfilePictureModal() {
         if (imgSrc && !imgSrc.startsWith('data:')) {
             window.open(imgSrc, '_blank');
         }
-        closeModal();
+        closePopup();
     });
 
     // Upload button - trigger file input
@@ -2310,7 +2311,7 @@ function initProfilePictureModal() {
             if (u2.profile_image) {
                 profileImg.src = u2.profile_image + '?t=' + Date.now();
             }
-            closeModal();
+            closePopup();
         } catch (err) {
             console.error(err);
             showMsg('Failed to upload profile picture.');

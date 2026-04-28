@@ -87,31 +87,35 @@
     </div>
 </div>
 
-<!-- Profile Picture Upload Modal -->
-<div id="profile-pic-modal" class="modal" style="display: none;">
-    <div class="modal-content profile-pic-modal">
-        <div class="modal-header">
-            <h3>Profile Picture</h3>
-            <button type="button" class="modal-close" id="profile-pic-modal-close" aria-label="Close">×</button>
-        </div>
-        <div class="modal-body">
-            <div class="modal-actions">
-                <button type="button" class="modal-action-btn" id="profile-pic-view-btn">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                        <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                    View
-                </button>
-                <button type="button" class="modal-action-btn" id="profile-pic-upload-btn">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                    Upload
-                </button>
-            </div>
+<!-- Profile Picture Upload Modal (uses popup structure) -->
+<div id="profile-pic-overlay" class="popup-overlay" style="display: none;"></div>
+<div id="profile-pic-popup" class="popup-panel profile-pic-popup" style="display: none;">
+    <div class="popup-header">
+        <h2>Profile Picture</h2>
+        <button type="button" class="popup-close" id="profile-pic-popup-close" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+    <div class="popup-body">
+        <div class="pic-modal-actions">
+            <button type="button" class="pic-modal-action-btn" id="profile-pic-view-btn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                View
+            </button>
+            <button type="button" class="pic-modal-action-btn" id="profile-pic-upload-btn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Upload
+            </button>
         </div>
     </div>
 </div>
