@@ -87,9 +87,9 @@
     </div>
 </div>
 
-<!-- Profile Picture Upload Modal (uses popup structure) -->
+<!-- Profile Picture Upload Modal (uses universal popup system) -->
 <div id="profile-pic-overlay" class="popup-overlay" style="display: none;"></div>
-<div id="profile-pic-popup" class="popup-panel profile-pic-popup" style="display: none;">
+<div id="profile-pic-popup" class="popup-panel" style="display: none;">
     <div class="popup-header">
         <h2>Profile Picture</h2>
         <button type="button" class="popup-close" id="profile-pic-popup-close" aria-label="Close">
@@ -100,16 +100,16 @@
         </button>
     </div>
     <div class="popup-body">
-        <div class="pic-modal-actions">
-            <button type="button" class="pic-modal-action-btn" id="profile-pic-view-btn">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem;">
+            <button type="button" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.8rem; padding: 1.5rem 1.3rem; border: 1.5px solid var(--border-light); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); font-size: 0.93rem; font-weight: 500; cursor: pointer; transition: all var(--duration) var(--ease); font-family: var(--font-heading);" id="profile-pic-view-btn" onmouseover="this.style.borderColor='var(--red)'; this.style.background='var(--red-glow)'; this.style.color='var(--red)'; this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(198, 40, 40, 0.2)';" onmouseout="this.style.borderColor='var(--border-light)'; this.style.background='var(--surface)'; this.style.color='var(--text)'; this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
                 </svg>
                 View
             </button>
-            <button type="button" class="pic-modal-action-btn" id="profile-pic-upload-btn">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button type="button" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.8rem; padding: 1.5rem 1.3rem; border: 1.5px solid var(--border-light); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); font-size: 0.93rem; font-weight: 500; cursor: pointer; transition: all var(--duration) var(--ease); font-family: var(--font-heading);" id="profile-pic-upload-btn" onmouseover="this.style.borderColor='var(--red)'; this.style.background='var(--red-glow)'; this.style.color='var(--red)'; this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(198, 40, 40, 0.2)';" onmouseout="this.style.borderColor='var(--border-light)'; this.style.background='var(--surface)'; this.style.color='var(--text)'; this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="17 8 12 3 7 8"></polyline>
                     <line x1="12" y1="3" x2="12" y2="15"></line>

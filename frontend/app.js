@@ -2243,7 +2243,7 @@ function initProfilePictureModal() {
 
     if (!popup || !fileInput || !profileImg) return;
 
-    // Open popup when clicking profile picture or edit icon
+    // Open popup
     const openPopup = () => {
         overlay.style.display = 'block';
         popup.style.display = 'flex';
@@ -2258,23 +2258,30 @@ function initProfilePictureModal() {
 
     // Close popup
     const closePopup = () => {
-        overlay.style.display = 'none';
-        popup.style.display = 'none';
-        if (window._lenis) window._lenis.start();
-        fileInput.value = ''; // Reset file input
+        overlay.classList.add('is-exiting');
+        popup.classList.add('is-exiting');
+        
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            popup.style.display = 'none';
+            overlay.classList.remove('is-exiting');
+            popup.classList.remove('is-exiting');
+            if (window._lenis) window._lenis.start();
+            fileInput.value = '';
+        }, 250);
     };
 
     closeBtn?.addEventListener('click', closePopup);
     overlay?.addEventListener('click', closePopup);
 
-    // Close popup with ESC key
+    // ESC to close
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && popup.style.display === 'flex') {
             closePopup();
         }
     });
 
-    // View button - open image in new tab
+    // View button
     viewBtn?.addEventListener('click', () => {
         const imgSrc = profileImg.src;
         if (imgSrc && !imgSrc.startsWith('data:')) {
@@ -2283,7 +2290,7 @@ function initProfilePictureModal() {
         closePopup();
     });
 
-    // Upload button - trigger file input
+    // Upload button
     uploadBtn?.addEventListener('click', () => {
         fileInput.click();
     });
@@ -2305,7 +2312,6 @@ function initProfilePictureModal() {
             if (!res.ok) return showMsg(data.error);
             showMsg('Profile picture updated!', 'success');
             
-            // Reload profile image preview
             const res2 = await fetch(API + '/users/profile', { headers: authHeaders() });
             const u2 = await res2.json();
             if (u2.profile_image) {
