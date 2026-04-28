@@ -2229,6 +2229,95 @@ function initLogin() {
 
 // profile page logic (profile.html)
 
+
+function initProfilePictureModal() {
+    const modal = $('#profile-pic-modal');
+    const fileInput = $('#profile-pic-input');
+    const profileImg = $('#profile-img');
+    const profilePictureContainer = $('#profile-picture-container');
+    const profileEditIcon = $('#profile-edit-icon');
+    const viewBtn = $('#profile-pic-view-btn');
+    const uploadBtn = $('#profile-pic-upload-btn');
+    const closeBtn = $('#profile-pic-modal-close');
+
+    if (!modal || !fileInput || !profileImg) return;
+
+    // Open modal when clicking profile picture or edit icon
+    const openModal = () => {
+        modal.style.display = 'flex';
+        if (window._lenis) window._lenis.stop();
+    };
+
+    profilePictureContainer?.addEventListener('click', openModal);
+    profileEditIcon?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openModal();
+    });
+
+    // Close modal
+    const closeModal = () => {
+        modal.style.display = 'none';
+        if (window._lenis) window._lenis.start();
+        fileInput.value = ''; // Reset file input
+    };
+
+    closeBtn?.addEventListener('click', closeModal);
+    modal?.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    // Close modal with ESC key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.style.display === 'flex') {
+            closeModal();
+        }
+    });
+
+    // View button - open image in new tab
+    viewBtn?.addEventListener('click', () => {
+        const imgSrc = profileImg.src;
+        if (imgSrc && !imgSrc.startsWith('data:')) {
+            window.open(imgSrc, '_blank');
+        }
+        closeModal();
+    });
+
+    // Upload button - trigger file input
+    uploadBtn?.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    // Handle file selection
+    fileInput.addEventListener('change', async () => {
+        if (!fileInput.files[0]) return;
+
+        try {
+            const fd = new FormData();
+            fd.append('profile_picture', fileInput.files[0]);
+
+            const res = await fetch(API + '/users/profile', {
+                method: 'PUT',
+                headers: authHeaders(),
+                body: fd
+            });
+            const data = await res.json();
+            if (!res.ok) return showMsg(data.error);
+            showMsg('Profile picture updated!', 'success');
+            
+            // Reload profile image preview
+            const res2 = await fetch(API + '/users/profile', { headers: authHeaders() });
+            const u2 = await res2.json();
+            if (u2.profile_image) {
+                profileImg.src = u2.profile_image + '?t=' + Date.now();
+            }
+            closeModal();
+        } catch (err) {
+            console.error(err);
+            showMsg('Failed to upload profile picture.');
+        }
+    });
+}
+
 async function initProfile() {
     if (!getToken()) return window.location.href = 'login.html';
 
@@ -2248,6 +2337,9 @@ async function initProfile() {
     } catch (err) {
         console.error(err);
     }
+
+    // Initialize profile picture modal
+    initProfilePictureModal();
 
     $('#profile-form').addEventListener('submit', async (e) => {
         e.preventDefault();
