@@ -2544,7 +2544,7 @@ async function loadPendingOrders() {
             const cardRoot = clone.querySelector('.delivery-order-card');
             if (cardRoot) {
                 cardRoot.addEventListener('click', (e) => {
-                    if (e.target.closest('.update-status-btn') || e.target.closest('.order-status-select')) return;
+                    if (e.target.closest('.update-status-btn') || e.target.closest('.order-status-select') || e.target.closest('[data-custom-dropdown]')) return;
                     showSelectedPendingOrderOnMap(order, cardRoot, { scrollToMap: true });
                 });
             }

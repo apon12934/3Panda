@@ -623,13 +623,20 @@ img { display: block; max-width: 100%; }
 }
 
 @supports (content-visibility: auto) {
-    /* Skip rendering work for off-screen cards on low-end/mobile devices. */
-    .card,
+    /* Skip rendering work for off-screen cards on low-end/mobile devices.
+       Exclude delivery-order-card — it contains dropdowns that must overflow. */
+    .card:not(.delivery-order-card),
     .rest-carousel .carousel-card,
     .vendor-rest-card {
         content-visibility: auto;
         contain-intrinsic-size: auto 360px;
     }
+}
+
+/* Delivery order cards need visible overflow so the custom dropdown menu
+   can render outside the card boundary (like the admin dashboard). */
+.delivery-order-card {
+    overflow: visible;
 }
 
 
