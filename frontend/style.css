@@ -639,6 +639,12 @@ img { display: block; max-width: 100%; }
     overflow: visible;
 }
 
+/* Elevate card z-index when a dropdown inside it is open so it overlaps sibling cards */
+.card:has(.custom-dropdown.is-open) {
+    z-index: 50;
+    position: relative;
+}
+
 
 .card-img {
     width: 100%;
