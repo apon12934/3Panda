@@ -396,7 +396,30 @@ const upload = multer({
     }
 });
 
+// ============================================================
+//  Activity-log helper — fire-and-forget audit trail
+// ============================================================
+
+const getClientIp = (req) => {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) return String(forwarded).split(',')[0].trim();
+    return req.ip || req.connection?.remoteAddress || null;
+};
+
+const logActivity = (req, { action, targetType = null, targetId = null, details = null, actor = null }) => {
+    const actorName = actor || (req.user ? req.user.username : null);
+    const ip = getClientIp(req);
+    const ua = req.headers['user-agent'] ? String(req.headers['user-agent']).slice(0, 500) : null;
+    const detailsJson = details ? JSON.stringify(details) : null;
+
+    dbRun(
+        `INSERT INTO ActivityLog (actor, action, target_type, target_id, details, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [actorName, action, targetType, targetId ? String(targetId) : null, detailsJson, ip, ua]
+    ).catch(err => console.warn('Activity log write error:', err.message));
+};
+
 // auth routes
+
 
 // register user
 app.post('/api/register', async (req, res) => {
@@ -447,6 +470,8 @@ app.post('/api/register', async (req, res) => {
             { expiresIn: '24h' }
         );
 
+        logActivity(req, { action: 'user.registered', actor: trimmedUsername, targetType: 'user', targetId: trimmedUsername, details: { role: userRole, email: trimmedEmail } });
+
         return res.status(201).json({
             message: 'Registration successful.',
             token,
@@ -479,11 +504,13 @@ app.post('/api/login', async (req, res) => {
             [loginIdentifier, loginIdentifier]
         );
         if (!user) {
+            logActivity(req, { action: 'user.login_failed', actor: loginIdentifier, targetType: 'user', targetId: loginIdentifier, details: { reason: 'user_not_found' } });
             return res.status(401).json({ error: 'Invalid credentials.' });
         }
 
         const match = await bcrypt.compare(normalizedPassword, user.password);
         if (!match) {
+            logActivity(req, { action: 'user.login_failed', actor: loginIdentifier, targetType: 'user', targetId: user.username, details: { reason: 'wrong_password' } });
             return res.status(401).json({ error: 'Invalid credentials.' });
         }
 
@@ -492,6 +519,8 @@ app.post('/api/login', async (req, res) => {
             JWT_SECRET,
             { expiresIn: '24h' }
         );
+
+        logActivity(req, { action: 'user.login_success', actor: user.username, targetType: 'user', targetId: user.username, details: { role: user.role } });
 
         return res.json({
             message: 'Login successful.',
@@ -577,6 +606,8 @@ app.post('/api/restaurants', verifyToken, requireAdmin, upload.single('banner'),
             [sanitizedName, sanitizedDescription, sanitizedAddress, sanitizedPhone, image, assignedOwner, 'approved']
         );
 
+        logActivity(req, { action: 'restaurant.created', targetType: 'restaurant', targetId: result.insertId, details: { name: sanitizedName, owner: assignedOwner } });
+
         return res.status(201).json({ message: 'Restaurant created.', id: result.insertId });
     } catch (err) {
         console.error('Create restaurant error:', err.message);
@@ -623,6 +654,8 @@ app.put('/api/restaurants/:id', verifyToken, requireAdmin, upload.single('banner
             [sanitizedName || existing.name, sanitizedDescription, sanitizedAddress, sanitizedPhone, image, resolvedOwner, id]
         );
 
+        logActivity(req, { action: 'restaurant.edited', targetType: 'restaurant', targetId: id, details: { name: sanitizedName || existing.name } });
+
         return res.json({ message: 'Restaurant updated.' });
     } catch (err) {
         console.error('Update restaurant error:', err.message);
@@ -634,8 +667,12 @@ app.put('/api/restaurants/:id', verifyToken, requireAdmin, upload.single('banner
 app.delete('/api/restaurants/:id', verifyToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
+        const existing = await dbGet('SELECT name FROM Restaurants WHERE id = ?', [id]);
         const result = await dbRun('DELETE FROM Restaurants WHERE id = ?', [id]);
         if (result.affectedRows === 0) return res.status(404).json({ error: 'Restaurant not found.' });
+
+        logActivity(req, { action: 'restaurant.deleted', targetType: 'restaurant', targetId: id, details: { name: existing?.name } });
+
         return res.json({ message: 'Restaurant deleted.' });
     } catch (err) {
         console.error('Delete restaurant error:', err.message);
@@ -668,6 +705,8 @@ app.patch('/api/restaurants/:id/owner', verifyToken, requireAdmin, async (req, r
             'UPDATE Restaurants SET owner_username = ? WHERE id = ?',
             [owner_username, id]
         );
+
+        logActivity(req, { action: 'restaurant.owner_changed', targetType: 'restaurant', targetId: id, details: { name: restaurant.name, old_owner: restaurant.owner_username, new_owner: owner_username } });
 
         return res.json({
             message: `Restaurant "${restaurant.name}" (ID: ${id}) re-assigned to user "${owner_username}".`,
@@ -721,6 +760,8 @@ app.post('/api/vendor/restaurants', verifyToken, upload.single('banner'), async 
             'INSERT INTO Restaurants (name, description, address, phone, image, owner_username, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [sanitizedName, sanitizedDescription, sanitizedAddress, sanitizedPhone, image, req.user.username, 'pending']
         );
+
+        logActivity(req, { action: 'restaurant.submitted', targetType: 'restaurant', targetId: result.insertId, details: { name: sanitizedName } });
 
         return res.status(201).json({ message: 'Restaurant submitted for approval.', id: result.insertId });
     } catch (err) {
@@ -793,6 +834,8 @@ app.post('/api/vendor/menu-items', verifyToken, upload.single('banner'), async (
             [sanitizedRestaurantId, sanitizedName, sanitizedDescription, sanitizedPrice, image]
         );
 
+        logActivity(req, { action: 'menu_item.created', targetType: 'menu_item', targetId: result.insertId, details: { name: sanitizedName, restaurant: restaurant.name, price: sanitizedPrice } });
+
         return res.status(201).json({ message: 'Menu item created.', id: result.insertId });
     } catch (err) {
         console.error('Vendor create menu item error:', err.message);
@@ -837,6 +880,8 @@ app.put('/api/vendor/menu-items/:id', verifyToken, upload.single('banner'), asyn
             [sanitizedName, sanitizedDescription, sanitizedPrice, image, menuItemId]
         );
 
+        logActivity(req, { action: 'menu_item.edited', targetType: 'menu_item', targetId: menuItemId, details: { name: sanitizedName, restaurant: restaurant.name } });
+
         return res.json({ message: 'Menu item updated.' });
     } catch (err) {
         console.error('Vendor update menu item error:', err.message);
@@ -865,6 +910,9 @@ app.delete('/api/vendor/menu-items/:id', verifyToken, async (req, res) => {
         if (!restaurant) return res.status(403).json({ error: 'Not authorized to delete this item.' });
 
         await dbRun('DELETE FROM MenuItems WHERE id = ?', [menuItemId]);
+
+        logActivity(req, { action: 'menu_item.deleted', targetType: 'menu_item', targetId: menuItemId, details: { name: item.name, restaurant: restaurant.name } });
+
         return res.json({ message: 'Menu item deleted.' });
     } catch (err) {
         console.error('Vendor delete menu item error:', err.message);
@@ -890,6 +938,8 @@ app.patch('/api/restaurants/:id/status', verifyToken, requireAdmin, async (req, 
             'UPDATE Restaurants SET status = ? WHERE id = ?',
             [status, id]
         );
+
+        logActivity(req, { action: 'restaurant.status_changed', targetType: 'restaurant', targetId: id, details: { name: restaurant.name, old_status: restaurant.status, new_status: status } });
 
         return res.json({
             message: `Restaurant "${restaurant.name}" status updated to "${status}".`,
@@ -966,6 +1016,8 @@ app.post('/api/menu-items', verifyToken, requireAdmin, upload.single('banner'), 
             [sanitizedRestaurantId, sanitizedCategoryId, sanitizedName, sanitizedDescription, sanitizedPrice, image]
         );
 
+        logActivity(req, { action: 'menu_item.created', targetType: 'menu_item', targetId: result.insertId, details: { name: sanitizedName, price: sanitizedPrice } });
+
         return res.status(201).json({ message: 'Menu item created.', id: result.insertId });
     } catch (err) {
         console.error('Create menu item error:', err.message);
@@ -1013,6 +1065,8 @@ app.put('/api/menu-items/:id', verifyToken, requireAdmin, upload.single('banner'
             ]
         );
 
+        logActivity(req, { action: 'menu_item.edited', targetType: 'menu_item', targetId: menuItemId, details: { name: sanitizedName } });
+
         return res.json({ message: 'Menu item updated.' });
     } catch (err) {
         console.error('Update menu item error:', err.message);
@@ -1026,8 +1080,12 @@ app.delete('/api/menu-items/:id', verifyToken, requireAdmin, async (req, res) =>
         const { id } = req.params;
         const menuItemId = parsePositiveInteger(id);
         if (!menuItemId) return res.status(400).json({ error: 'Invalid menu item id.' });
+        const existing = await dbGet('SELECT name FROM MenuItems WHERE id = ?', [menuItemId]);
         const result = await dbRun('DELETE FROM MenuItems WHERE id = ?', [menuItemId]);
         if (result.affectedRows === 0) return res.status(404).json({ error: 'Menu item not found.' });
+
+        logActivity(req, { action: 'menu_item.deleted', targetType: 'menu_item', targetId: menuItemId, details: { name: existing?.name } });
+
         return res.json({ message: 'Menu item deleted.' });
     } catch (err) {
         console.error('Delete menu item error:', err.message);
@@ -1099,6 +1157,8 @@ app.put('/api/users/profile', verifyToken, upload.single('profile_picture'), asy
             [sanitizedUsername || existing.username, sanitizedEmail || existing.email, hashedPassword, sanitizedFullName !== undefined ? sanitizedFullName : existing.full_name, sanitizedPhone !== undefined ? sanitizedPhone : existing.phone, sanitizedAddress !== undefined ? sanitizedAddress : existing.address, profile_image, req.user.username]
         );
 
+        logActivity(req, { action: 'user.profile_updated', targetType: 'user', targetId: req.user.username, details: { changed_username: sanitizedUsername !== undefined, changed_email: sanitizedEmail !== undefined, changed_password: !!sanitizedPassword } });
+
         return res.json({ message: 'Profile updated.' });
     } catch (err) {
         console.error('Update profile error:', err.message);
@@ -1156,6 +1216,8 @@ app.put('/api/users/:username', verifyToken, requireAdmin, async (req, res) => {
             [sanitizedUsername || existing.username, sanitizedEmail || existing.email, sanitizedRole || existing.role, targetUsername]
         );
 
+        logActivity(req, { action: 'admin.user_edited', targetType: 'user', targetId: targetUsername, details: { new_username: sanitizedUsername, new_email: sanitizedEmail, new_role: sanitizedRole, old_role: existing.role } });
+
         return res.json({ message: 'User updated.' });
     } catch (err) {
         console.error('Update user error:', err.message);
@@ -1172,6 +1234,9 @@ app.delete('/api/users/:username', verifyToken, requireAdmin, async (req, res) =
         }
         const result = await dbRun('DELETE FROM Users WHERE username = ?', [targetUsername]);
         if (result.affectedRows === 0) return res.status(404).json({ error: 'User not found.' });
+
+        logActivity(req, { action: 'admin.user_deleted', targetType: 'user', targetId: targetUsername });
+
         return res.json({ message: 'User deleted.' });
     } catch (err) {
         console.error('Delete user error:', err.message);
@@ -1241,6 +1306,8 @@ app.post('/api/orders', verifyToken, async (req, res) => {
                 [orderId, item.menu_item_id, item.quantity, item.unit_price, item.subtotal]
             );
         }
+
+        logActivity(req, { action: 'order.placed', targetType: 'order', targetId: orderId, details: { total: total_amount, items: normalizedItems.length, payment: sanitizedPaymentMethod } });
 
         return res.status(201).json({ message: 'Order placed.', orderId });
     } catch (err) {
@@ -1436,6 +1503,8 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
             `UPDATE Orders SET status = ?, ${compat.ordersDeliveryColumn} = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
             [nextStatus, deliveryPersonValue, orderId]
         );
+
+        logActivity(req, { action: 'order.status_changed', targetType: 'order', targetId: orderId, details: { old_status: order.status, new_status: nextStatus, changed_by_role: req.user.role } });
 
         if (req.user.role === 'delivery' && status === 'cancelled') {
             return res.json({ message: 'Order released for other riders.' });
@@ -1652,6 +1721,9 @@ app.post('/api/reviews', verifyToken, async (req, res) => {
             `INSERT INTO Reviews (${compat.reviewsUserColumn}, restaurant_id, order_id, rating, comment) VALUES (?, ?, ?, ?, ?)`,
             [reviewUserValue, sanitizedRestaurantId, sanitizedOrderId, numericRating, sanitizedComment]
         );
+
+        logActivity(req, { action: 'review.created', targetType: 'review', targetId: result.insertId, details: { restaurant_id: sanitizedRestaurantId, rating: numericRating } });
+
         return res.status(201).json({ message: 'Review submitted.', id: result.insertId });
     } catch (err) {
         console.error('Create review error:', err.message);
@@ -1707,6 +1779,9 @@ app.put('/api/reviews/:id', verifyToken, async (req, res) => {
 
         params.push(reviewId);
         await dbRun(`UPDATE Reviews SET ${updates.join(', ')} WHERE id = ?`, params);
+
+        logActivity(req, { action: 'review.edited', targetType: 'review', targetId: reviewId, details: { rating: rating !== undefined ? Number(rating) : undefined } });
+
         return res.json({ message: 'Review updated.' });
     } catch (err) {
         console.error('Update review error:', err.message);
@@ -1747,6 +1822,8 @@ app.put('/api/reviews/:id/reply', verifyToken, async (req, res) => {
             [replyText, reviewId]
         );
 
+        logActivity(req, { action: 'review.vendor_reply', targetType: 'review', targetId: reviewId });
+
         return res.json({ message: 'Reply posted.' });
     } catch (err) {
         console.error('Reply review error:', err.message);
@@ -1786,6 +1863,8 @@ app.delete('/api/reviews/:id/reply', verifyToken, async (req, res) => {
             [reviewId]
         );
 
+        logActivity(req, { action: 'review.vendor_reply_removed', targetType: 'review', targetId: reviewId });
+
         return res.json({ message: 'Vendor reply deleted.' });
     } catch (err) {
         console.error('Delete vendor reply error:', err.message);
@@ -1810,6 +1889,9 @@ app.delete('/api/reviews/:id', verifyToken, async (req, res) => {
         }
 
         await dbRun('DELETE FROM Reviews WHERE id = ?', [reviewId]);
+
+        logActivity(req, { action: 'review.deleted', targetType: 'review', targetId: reviewId });
+
         return res.json({ message: 'Review deleted.' });
     } catch (err) {
         console.error('Delete review error:', err.message);
@@ -1817,7 +1899,91 @@ app.delete('/api/reviews/:id', verifyToken, async (req, res) => {
     }
 });
 
+// ============================================================
+//  Activity-log endpoints
+// ============================================================
+
+// client-reported logout (fire before clearing localStorage)
+app.post('/api/activity-log/logout', verifyToken, (req, res) => {
+    logActivity(req, { action: 'user.logout', targetType: 'user', targetId: req.user.username });
+    return res.json({ message: 'Logout recorded.' });
+});
+
+// admin: paginated activity log with filters
+app.get('/api/admin/activity-log', verifyToken, requireAdmin, async (req, res) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(10, parseInt(req.query.limit) || 50));
+        const offset = (page - 1) * limit;
+
+        let where = [];
+        let params = [];
+
+        if (req.query.action) {
+            where.push('a.action LIKE ?');
+            params.push(`%${normalizeText(req.query.action, 100)}%`);
+        }
+        if (req.query.actor) {
+            where.push('a.actor LIKE ?');
+            params.push(`%${normalizeText(req.query.actor, 100)}%`);
+        }
+        if (req.query.search) {
+            const term = `%${normalizeText(req.query.search, 120)}%`;
+            where.push('(a.target_id LIKE ? OR a.details LIKE ? OR a.action LIKE ?)');
+            params.push(term, term, term);
+        }
+        if (req.query.from) {
+            where.push('a.created_at >= ?');
+            params.push(req.query.from);
+        }
+        if (req.query.to) {
+            where.push('a.created_at <= ?');
+            params.push(req.query.to);
+        }
+
+        const whereClause = where.length ? ' WHERE ' + where.join(' AND ') : '';
+
+        const countRow = await dbGet(`SELECT COUNT(*) AS total FROM ActivityLog a${whereClause}`, params);
+        const total = countRow ? countRow.total : 0;
+
+        const rows = await dbAll(
+            `SELECT a.* FROM ActivityLog a${whereClause} ORDER BY a.created_at DESC LIMIT ? OFFSET ?`,
+            [...params, limit, offset]
+        );
+
+        return res.json({
+            logs: rows,
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+        });
+    } catch (err) {
+        console.error('Activity log error:', err.message);
+        return res.status(500).json({ error: 'Server error.' });
+    }
+});
+
+// admin: activity log stats for dashboard cards
+app.get('/api/admin/activity-log/stats', verifyToken, requireAdmin, async (_req, res) => {
+    try {
+        const total = await dbGet('SELECT COUNT(*) AS c FROM ActivityLog');
+        const todayLogins = await dbGet(
+            "SELECT COUNT(*) AS c FROM ActivityLog WHERE action = 'user.login_success' AND created_at >= CURDATE()"
+        );
+        const todayActions = await dbGet(
+            "SELECT COUNT(*) AS c FROM ActivityLog WHERE created_at >= CURDATE()"
+        );
+        return res.json({
+            total_logs: total?.c || 0,
+            logins_today: todayLogins?.c || 0,
+            actions_today: todayActions?.c || 0
+        });
+    } catch (err) {
+        console.error('Activity log stats error:', err.message);
+        return res.status(500).json({ error: 'Server error.' });
+    }
+});
+
 // start the server
+
 
 initDB().then(() => {
     app.listen(PORT, () => {

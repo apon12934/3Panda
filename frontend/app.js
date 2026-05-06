@@ -823,6 +823,14 @@ function buildNav() {
             if (!authBtn._logoutListenerAttached) {
                 authBtn.addEventListener('click', (e) => {
                     e.preventDefault();
+                    // Report logout to activity log before clearing auth
+                    const tk = getToken();
+                    if (tk) {
+                        fetch(API + '/activity-log/logout', {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + tk, 'Content-Type': 'application/json' }
+                        }).catch(() => {});
+                    }
                     localStorage.clear();
                     window.location.href = 'login.html';
                 });
@@ -3202,6 +3210,7 @@ function initAdmin() {
     adminPopulateStats();
     adminLoadPendingApprovals();
     adminRefreshVendorSelects();
+    adminInitActivityLog();
 
 // admin users section functions
     const cancelEditUser = $('#cancel-edit-user');
@@ -3934,3 +3943,221 @@ window.vendorDeleteItem = async (id) => {
         vendorLoadMenuItems(_vendorCurrentRestaurantId);
     } catch (err) { showMsg('Delete failed.'); }
 };
+
+// ============================================================
+//  Activity Log — admin audit trail viewer
+// ============================================================
+
+const ACTLOG_ACTION_LABELS = {
+    'user.login_success': 'Login',
+    'user.login_failed': 'Failed Login',
+    'user.registered': 'Registration',
+    'user.logout': 'Logout',
+    'user.profile_updated': 'Profile Updated',
+    'admin.user_edited': 'User Edited',
+    'admin.user_deleted': 'User Deleted',
+    'order.placed': 'Order Placed',
+    'order.status_changed': 'Order Status Changed',
+    'restaurant.created': 'Restaurant Created',
+    'restaurant.edited': 'Restaurant Edited',
+    'restaurant.deleted': 'Restaurant Deleted',
+    'restaurant.submitted': 'Restaurant Submitted',
+    'restaurant.status_changed': 'Restaurant Approval',
+    'restaurant.owner_changed': 'Owner Changed',
+    'menu_item.created': 'Item Created',
+    'menu_item.edited': 'Item Edited',
+    'menu_item.deleted': 'Item Deleted',
+    'review.created': 'Review Created',
+    'review.edited': 'Review Edited',
+    'review.deleted': 'Review Deleted',
+    'review.vendor_reply': 'Vendor Reply',
+    'review.vendor_reply_removed': 'Reply Removed'
+};
+
+const ACTLOG_ACTION_COLORS = {
+    'user.login_success': '#22c55e',
+    'user.login_failed': '#ef4444',
+    'user.registered': '#3b82f6',
+    'user.logout': '#94a3b8',
+    'user.profile_updated': '#8b5cf6',
+    'admin.user_edited': '#f59e0b',
+    'admin.user_deleted': '#ef4444',
+    'order.placed': '#22c55e',
+    'order.status_changed': '#06b6d4',
+    'restaurant.created': '#22c55e',
+    'restaurant.edited': '#f59e0b',
+    'restaurant.deleted': '#ef4444',
+    'restaurant.submitted': '#3b82f6',
+    'restaurant.status_changed': '#f59e0b',
+    'restaurant.owner_changed': '#8b5cf6',
+    'menu_item.created': '#22c55e',
+    'menu_item.edited': '#f59e0b',
+    'menu_item.deleted': '#ef4444',
+    'review.created': '#22c55e',
+    'review.edited': '#f59e0b',
+    'review.deleted': '#ef4444',
+    'review.vendor_reply': '#06b6d4',
+    'review.vendor_reply_removed': '#94a3b8'
+};
+
+let _actlogPage = 1;
+let _actlogTotalPages = 1;
+let _actlogLiveInterval = null;
+let _actlogLoaded = false;
+
+function actlogRelativeTime(isoStr) {
+    if (!isoStr) return '\u2014';
+    const now = Date.now();
+    const then = new Date(isoStr).getTime();
+    const diff = Math.max(0, now - then);
+    const secs = Math.floor(diff / 1000);
+    if (secs < 60) return secs + 's ago';
+    const mins = Math.floor(secs / 60);
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return days + 'd ago';
+    return new Date(isoStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function actlogFormatDetails(detailsStr) {
+    if (!detailsStr) return '\u2014';
+    try {
+        const obj = typeof detailsStr === 'string' ? JSON.parse(detailsStr) : detailsStr;
+        const entries = Object.entries(obj).filter(([, v]) => v !== null && v !== undefined);
+        if (!entries.length) return '\u2014';
+        return entries.map(([k, v]) => {
+            const key = k.replace(/_/g, ' ');
+            return `<span class="actlog-detail-chip"><strong>${key}:</strong> ${v}</span>`;
+        }).join(' ');
+    } catch {
+        return String(detailsStr).slice(0, 80);
+    }
+}
+
+function actlogActionBadge(action) {
+    const label = ACTLOG_ACTION_LABELS[action] || action.replace(/[._]/g, ' ');
+    const color = ACTLOG_ACTION_COLORS[action] || '#64748b';
+    return `<span class="actlog-badge" style="--badge-color:${color}">${label}</span>`;
+}
+
+async function adminLoadActivityLog(page) {
+    if (page !== undefined) _actlogPage = page;
+    const tbody = $('#actlog-tbody');
+    if (!tbody) return;
+
+    const action = $('#actlog-filter-action')?.value || '';
+    const actor = $('#actlog-filter-actor')?.value.trim() || '';
+    const search = $('#actlog-filter-search')?.value.trim() || '';
+
+    let url = API + '/admin/activity-log?page=' + _actlogPage + '&limit=50';
+    if (action) url += '&action=' + encodeURIComponent(action);
+    if (actor) url += '&actor=' + encodeURIComponent(actor);
+    if (search) url += '&search=' + encodeURIComponent(search);
+
+    try {
+        const res = await fetch(url, { headers: authHeaders() });
+        if (!res.ok) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Failed to load activity log.</td></tr>';
+            return;
+        }
+        const data = await res.json();
+        const { logs, pagination } = data;
+        _actlogTotalPages = pagination.totalPages || 1;
+
+        if (!logs.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No activity found.</td></tr>';
+        } else {
+            tbody.innerHTML = logs.map(log => `
+                <tr class="actlog-row">
+                    <td class="actlog-time" title="${log.created_at || ''}">${actlogRelativeTime(log.created_at)}</td>
+                    <td class="actlog-actor">${log.actor || '<em>system</em>'}</td>
+                    <td>${actlogActionBadge(log.action)}</td>
+                    <td class="actlog-target">${log.target_id || '\u2014'}</td>
+                    <td class="actlog-ip">${log.ip_address || '\u2014'}</td>
+                    <td class="actlog-details">${actlogFormatDetails(log.details)}</td>
+                </tr>
+            `).join('');
+        }
+
+        // pagination controls
+        const prevBtn = $('#actlog-prev');
+        const nextBtn = $('#actlog-next');
+        const pageInfo = $('#actlog-page-info');
+        if (prevBtn) prevBtn.disabled = _actlogPage <= 1;
+        if (nextBtn) nextBtn.disabled = _actlogPage >= _actlogTotalPages;
+        if (pageInfo) pageInfo.textContent = `Page ${pagination.page} of ${_actlogTotalPages} \u00B7 ${pagination.total} events`;
+
+    } catch (err) {
+        console.error('Activity log load error:', err);
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Error loading logs.</td></tr>';
+    }
+}
+
+async function adminLoadActivityLogStats() {
+    try {
+        const res = await fetch(API + '/admin/activity-log/stats', { headers: authHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        const totalEl = $('#actlog-stat-total');
+        const loginsEl = $('#actlog-stat-logins');
+        const actionsEl = $('#actlog-stat-actions');
+        if (totalEl) totalEl.textContent = data.total_logs.toLocaleString();
+        if (loginsEl) loginsEl.textContent = data.logins_today.toLocaleString();
+        if (actionsEl) actionsEl.textContent = data.actions_today.toLocaleString();
+    } catch (err) {
+        console.error('Activity log stats error:', err);
+    }
+}
+
+function adminInitActivityLog() {
+    // Wire up filter buttons
+    const applyBtn = $('#actlog-apply-filters');
+    const clearBtn = $('#actlog-clear-filters');
+    const prevBtn = $('#actlog-prev');
+    const nextBtn = $('#actlog-next');
+    const liveToggle = $('#actlog-live-toggle');
+
+    if (applyBtn) applyBtn.addEventListener('click', () => { _actlogPage = 1; adminLoadActivityLog(); });
+    if (clearBtn) clearBtn.addEventListener('click', () => {
+        if ($('#actlog-filter-action')) $('#actlog-filter-action').value = '';
+        if ($('#actlog-filter-actor')) $('#actlog-filter-actor').value = '';
+        if ($('#actlog-filter-search')) $('#actlog-filter-search').value = '';
+        _actlogPage = 1;
+        adminLoadActivityLog();
+    });
+    if (prevBtn) prevBtn.addEventListener('click', () => { if (_actlogPage > 1) adminLoadActivityLog(_actlogPage - 1); });
+    if (nextBtn) nextBtn.addEventListener('click', () => { if (_actlogPage < _actlogTotalPages) adminLoadActivityLog(_actlogPage + 1); });
+
+    if (liveToggle) liveToggle.addEventListener('change', () => {
+        if (liveToggle.checked) {
+            adminLoadActivityLog(1);
+            adminLoadActivityLogStats();
+            _actlogLiveInterval = setInterval(() => {
+                adminLoadActivityLog();
+                adminLoadActivityLogStats();
+            }, 10000);
+        } else {
+            if (_actlogLiveInterval) { clearInterval(_actlogLiveInterval); _actlogLiveInterval = null; }
+        }
+    });
+
+    // Also allow Enter key on filter inputs
+    ['actlog-filter-actor', 'actlog-filter-search'].forEach(id => {
+        const el = $('#' + id);
+        if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') { _actlogPage = 1; adminLoadActivityLog(); } });
+    });
+
+    // Lazy load: only fetch when the tab is first activated
+    const tabBtns = document.querySelectorAll('.tab-btn[data-tab="tab-activity-log"]');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (!_actlogLoaded) {
+                _actlogLoaded = true;
+                adminLoadActivityLog(1);
+                adminLoadActivityLogStats();
+            }
+        });
+    });
+}

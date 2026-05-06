@@ -80,6 +80,10 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.3rem;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
             Pending Approvals <span id="approvals-count-badge" class="approvals-count-dot hidden"></span>
         </button>
+        <button class="tab-btn" data-tab="tab-activity-log">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.3rem;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+            Activity Log
+        </button>
     </div>
 
     <!-- users tab -->
@@ -316,6 +320,78 @@
         </div>
         <div id="pending-approvals-list" class="vendor-grid">
             <div class="empty-state"><p>Loading pending approvals...</p></div>
+        </div>
+    </div>
+
+    <!-- activity log tab -->
+    <div class="tab-panel" id="tab-activity-log">
+        <div style="margin-bottom:1rem;">
+            <div class="section-label">Audit Trail</div>
+            <h2 style="font-family:var(--font-heading);font-size:1.35rem;font-weight:700;letter-spacing:-.02em;">Activity Log</h2>
+            <p style="color:var(--text-secondary);font-size:.88rem;margin-top:.25rem;">Every action across the platform — logins, orders, edits, deletions — recorded in real time.</p>
+        </div>
+
+        <!-- stats row -->
+        <div class="actlog-stats-row" id="actlog-stats-row">
+            <div class="actlog-stat"><span class="actlog-stat-value" id="actlog-stat-total">—</span><span class="actlog-stat-label">Total Events</span></div>
+            <div class="actlog-stat"><span class="actlog-stat-value" id="actlog-stat-logins">—</span><span class="actlog-stat-label">Logins Today</span></div>
+            <div class="actlog-stat"><span class="actlog-stat-value" id="actlog-stat-actions">—</span><span class="actlog-stat-label">Actions Today</span></div>
+        </div>
+
+        <!-- filter bar -->
+        <div class="actlog-filters">
+            <div class="form-group" style="margin-bottom:0;flex:1;min-width:140px;">
+                <label for="actlog-filter-action">Action Type</label>
+                <select id="actlog-filter-action" class="form-control" style="font-size:.85rem;">
+                    <option value="">All actions</option>
+                    <option value="user.login">Logins</option>
+                    <option value="user.register">Registrations</option>
+                    <option value="user.logout">Logouts</option>
+                    <option value="user.login_failed">Failed Logins</option>
+                    <option value="order.">Orders</option>
+                    <option value="restaurant.">Restaurants</option>
+                    <option value="menu_item.">Menu Items</option>
+                    <option value="review.">Reviews</option>
+                    <option value="admin.">Admin Actions</option>
+                    <option value="user.profile">Profile Updates</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0;flex:1;min-width:140px;">
+                <label for="actlog-filter-actor">Actor</label>
+                <input type="text" id="actlog-filter-actor" class="form-control" placeholder="Username..." style="font-size:.85rem;">
+            </div>
+            <div class="form-group" style="margin-bottom:0;flex:1;min-width:140px;">
+                <label for="actlog-filter-search">Search</label>
+                <input type="text" id="actlog-filter-search" class="form-control" placeholder="Order ID, name..." style="font-size:.85rem;">
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:.5rem;">
+                <button class="btn btn-primary btn-sm" id="actlog-apply-filters" type="button">Filter</button>
+                <button class="btn btn-secondary btn-sm" id="actlog-clear-filters" type="button">Clear</button>
+                <label class="actlog-live-toggle" title="Auto-refresh every 10 seconds">
+                    <input type="checkbox" id="actlog-live-toggle">
+                    <span class="actlog-live-slider"></span>
+                    <span class="actlog-live-label">Live</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- log table -->
+        <div class="table-wrap">
+            <table class="actlog-table">
+                <thead>
+                    <tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>IP</th><th>Details</th></tr>
+                </thead>
+                <tbody id="actlog-tbody">
+                    <tr><td colspan="6" class="text-center text-muted">Select the Activity Log tab to load events.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- pagination -->
+        <div class="actlog-pagination" id="actlog-pagination">
+            <button class="btn btn-secondary btn-sm" id="actlog-prev" type="button" disabled>← Prev</button>
+            <span class="actlog-page-info" id="actlog-page-info">Page 1</span>
+            <button class="btn btn-secondary btn-sm" id="actlog-next" type="button" disabled>Next →</button>
         </div>
     </div>
 

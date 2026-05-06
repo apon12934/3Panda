@@ -2877,6 +2877,252 @@ tbody tr:last-child {
 }
 
 /* ============================================================
+   ACTIVITY LOG — Admin Audit Trail
+   ============================================================ */
+
+/* stats row */
+.actlog-stats-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.actlog-stat {
+    flex: 1;
+    min-width: 140px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+}
+
+.actlog-stat-value {
+    font-family: var(--font-heading);
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -.03em;
+    color: var(--text-primary);
+}
+
+.actlog-stat-label {
+    font-size: .78rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+/* filter bar */
+.actlog-filters {
+    display: flex;
+    gap: .75rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+    padding: 1rem 1.25rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+}
+
+.actlog-filters .form-group label {
+    font-size: .72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-secondary);
+    margin-bottom: .3rem;
+}
+
+/* live toggle switch */
+.actlog-live-toggle {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.actlog-live-toggle input { display: none; }
+
+.actlog-live-slider {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background: var(--border-subtle);
+    border-radius: 20px;
+    transition: background .3s ease;
+}
+
+.actlog-live-slider::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform .3s cubic-bezier(.4, 0, .2, 1);
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+
+.actlog-live-toggle input:checked + .actlog-live-slider {
+    background: #22c55e;
+}
+
+.actlog-live-toggle input:checked + .actlog-live-slider::before {
+    transform: translateX(16px);
+}
+
+.actlog-live-label {
+    font-size: .78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-secondary);
+}
+
+.actlog-live-toggle input:checked ~ .actlog-live-label {
+    color: #22c55e;
+}
+
+/* log table */
+.actlog-table {
+    width: 100%;
+    font-size: .83rem;
+}
+
+.actlog-table thead th {
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-secondary);
+    font-weight: 600;
+    padding: .6rem .75rem;
+    white-space: nowrap;
+}
+
+.actlog-row td {
+    padding: .55rem .75rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.actlog-row:hover {
+    background: rgba(255,255,255,.03);
+}
+
+.actlog-time {
+    white-space: nowrap;
+    color: var(--text-secondary);
+    font-size: .78rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.actlog-actor {
+    font-weight: 600;
+    color: var(--text-primary);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.actlog-target {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-secondary);
+}
+
+.actlog-ip {
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: .72rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.actlog-details {
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* action badge */
+.actlog-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: .2rem .55rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    white-space: nowrap;
+    background: color-mix(in srgb, var(--badge-color) 15%, transparent);
+    color: var(--badge-color);
+    border: 1px solid color-mix(in srgb, var(--badge-color) 25%, transparent);
+}
+
+/* detail chips */
+.actlog-detail-chip {
+    display: inline-block;
+    padding: .1rem .4rem;
+    border-radius: 4px;
+    font-size: .72rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--border-subtle);
+    margin: .1rem .15rem .1rem 0;
+    color: var(--text-secondary);
+}
+
+.actlog-detail-chip strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* pagination */
+.actlog-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+.actlog-page-info {
+    font-size: .82rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* responsive */
+@media (max-width: 768px) {
+    .actlog-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .actlog-stats-row {
+        flex-direction: column;
+    }
+    .actlog-table thead th:nth-child(5),
+    .actlog-table .actlog-ip {
+        display: none;
+    }
+    .actlog-details {
+        max-width: 140px;
+    }
+}
+
+/* ============================================================
    MISC UTILITIES
    ============================================================ */
 

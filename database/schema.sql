@@ -137,6 +137,19 @@ INSERT IGNORE INTO Categories (name, description) VALUES
 UPDATE Restaurants SET owner_username = 'Admin', status = 'approved'
     WHERE owner_username IS NULL;
 
+-- --------------- activity log table ---------------
+CREATE TABLE IF NOT EXISTS ActivityLog (
+    id            INT              PRIMARY KEY AUTO_INCREMENT,
+    actor         VARCHAR(100)     DEFAULT NULL,
+    action        VARCHAR(100)     NOT NULL,
+    target_type   VARCHAR(50)      DEFAULT NULL,
+    target_id     VARCHAR(200)     DEFAULT NULL,
+    details       JSON             DEFAULT NULL,
+    ip_address    VARCHAR(45)      DEFAULT NULL,
+    user_agent    VARCHAR(500)     DEFAULT NULL,
+    created_at    TIMESTAMP        DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Performance indexes for frequently queried database columns
 CREATE INDEX idx_users_email ON Users(email);
 CREATE INDEX idx_users_username ON Users(username);
@@ -153,3 +166,6 @@ CREATE INDEX idx_reviews_user_username ON Reviews(user_username);
 CREATE INDEX idx_reviews_rest ON Reviews(restaurant_id);
 CREATE INDEX idx_restaurants_owner ON Restaurants(owner_username);
 CREATE INDEX idx_restaurants_status ON Restaurants(status);
+CREATE INDEX idx_actlog_actor ON ActivityLog(actor);
+CREATE INDEX idx_actlog_action ON ActivityLog(action);
+CREATE INDEX idx_actlog_created ON ActivityLog(created_at);
