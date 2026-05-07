@@ -1947,8 +1947,8 @@ app.get('/api/admin/activity-log', verifyToken, requireAdmin, async (req, res) =
         const total = countRow ? countRow.total : 0;
 
         const rows = await dbAll(
-            `SELECT a.* FROM ActivityLog a${whereClause} ORDER BY a.created_at DESC LIMIT ? OFFSET ?`,
-            [...params, limit, offset]
+            `SELECT a.* FROM ActivityLog a${whereClause} ORDER BY a.created_at DESC LIMIT ${limit} OFFSET ${offset}`,
+            params
         );
 
         return res.json({
