@@ -4,3 +4,5 @@ node_modules/
 *.db-shm
 *.db-wal
 *.db-journal
+# AI Agent Context
+AI_CONTEXT.md
