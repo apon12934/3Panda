@@ -2320,6 +2320,18 @@ tbody tr:last-child {
     animation: popupScaleIn .35s var(--ease);
 }
 
+.profile-pic-popup {
+    top: 50%;
+    bottom: auto;
+    width: min(92vw, 520px);
+    max-height: 85vh;
+    border-radius: var(--radius-xl);
+    right: auto;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: popupScaleIn .35s var(--ease);
+}
+
 .item-details-popup {
     top: 50%;
     bottom: auto;
@@ -2494,6 +2506,11 @@ tbody tr:last-child {
     }
 
     .restaurant-owner-popup {
+        width: 94vw;
+        max-height: 88vh;
+    }
+
+    .profile-pic-popup {
         width: 94vw;
         max-height: 88vh;
     }
@@ -4124,7 +4141,7 @@ body.edit-popup-open {
 }
 
 /* Bottom-slide popups (cart panel) */
-.popup-panel:not(.rest-popup):not(.restaurant-owner-popup):not(.item-details-popup).is-exiting {
+.popup-panel:not(.rest-popup):not(.restaurant-owner-popup):not(.item-details-popup):not(.profile-pic-popup).is-exiting {
     animation: popupSlideOut .25s var(--ease) forwards;
 }
 

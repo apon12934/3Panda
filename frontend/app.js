@@ -2268,9 +2268,7 @@ function initProfilePictureModal() {
 
     // Open popup
     const openPopup = () => {
-        overlay.style.display = 'block';
-        popup.style.display = 'flex';
-        if (window._lenis) window._lenis.stop();
+        PandaPopup.open(popup, overlay);
     };
 
     profilePictureContainer?.addEventListener('click', openPopup);
@@ -2281,17 +2279,10 @@ function initProfilePictureModal() {
 
     // Close popup
     const closePopup = () => {
-        overlay.classList.add('is-exiting');
-        popup.classList.add('is-exiting');
-        
+        PandaPopup.close(popup, overlay);
         setTimeout(() => {
-            overlay.style.display = 'none';
-            popup.style.display = 'none';
-            overlay.classList.remove('is-exiting');
-            popup.classList.remove('is-exiting');
-            if (window._lenis) window._lenis.start();
             fileInput.value = '';
-        }, 250);
+        }, 300);
     };
 
     closeBtn?.addEventListener('click', closePopup);
@@ -2299,7 +2290,7 @@ function initProfilePictureModal() {
 
     // ESC to close
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && popup.style.display === 'flex') {
+        if (e.key === 'Escape' && popup && !popup.classList.contains('hidden')) {
             closePopup();
         }
     });
