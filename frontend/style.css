@@ -186,7 +186,7 @@ img { display: block; max-width: 100%; }
 /* Revealed state — applies to all types */
 [data-reveal].is-revealed {
     opacity: 1;
-    transform: translateY(0) translateX(0) scale(1) rotateX(0deg);
+    transform: none;
     filter: blur(0);
 }
 
@@ -227,7 +227,7 @@ img { display: block; max-width: 100%; }
 [data-animate].animate-in,
 [data-animate].is-revealed {
     opacity: 1;
-    transform: translateY(0) translateX(0) scale(1);
+    transform: none;
 }
 
 [data-stagger].animate-in > * {
