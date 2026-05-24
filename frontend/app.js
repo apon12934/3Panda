@@ -726,6 +726,21 @@ function initEditPopupBehavior() {
     };
     document.addEventListener('keydown', onEsc);
 
+    const onOutsideClick = (event) => {
+        const openCards = EDIT_POPUP_IDS.map((id) => document.getElementById(id))
+            .filter((el) => el && !el.classList.contains('hidden'));
+        if (!openCards.length) return;
+        if (openCards.some((el) => el.contains(event.target))) return;
+
+        let closedAny = false;
+        openCards.forEach((el) => {
+            PandaPopup.close(el);
+            closedAny = true;
+        });
+        if (closedAny) syncEditPopupBodyLock();
+    };
+    document.addEventListener('mousedown', onOutsideClick);
+
     EDIT_POPUP_IDS.forEach((id) => {
         const el = document.getElementById(id);
         if (!el) return;

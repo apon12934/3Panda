@@ -4064,11 +4064,20 @@ tbody tr:last-child {
     width: min(960px, 92vw);
     max-height: 88vh;
     overflow-y: auto;
+    scrollbar-width: none;
     z-index: 21000;
     margin: 0 !important;
     box-shadow: 0 22px 56px rgba(17, 24, 39, .22), 0 0 0 100vmax rgba(17, 24, 39, .45);
     border: 1px solid rgba(255, 255, 255, .6);
     animation: popupScaleIn .35s var(--motion-smooth);
+}
+
+#edit-user-card::-webkit-scrollbar,
+#edit-restaurant-card::-webkit-scrollbar,
+#edit-item-card::-webkit-scrollbar,
+#vendor-edit-item-card::-webkit-scrollbar {
+    width: 0;
+    height: 0;
 }
 
 /* Let custom dropdown menus escape the edit card scroll box when open. */
