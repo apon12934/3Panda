@@ -9,6 +9,7 @@
     <link rel="canonical" href="https://3panda.ddns.net/profile">
     <link rel="icon" type="image/png" href="images/logo/3panda.png">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css">
 </head>
 <body>
 
@@ -120,6 +121,30 @@
     </div>
 </div>
 
+<!-- Profile Picture Crop Modal -->
+<div id="profile-crop-overlay" class="popup-overlay hidden"></div>
+<div id="profile-crop-popup" class="popup-panel profile-crop-popup hidden">
+    <div class="popup-header">
+        <h2>Crop Profile Photo</h2>
+        <button type="button" class="popup-close" id="profile-crop-close" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+    <div class="popup-body profile-crop-body">
+        <p class="profile-crop-hint">Drag to reposition. Scroll to zoom.</p>
+        <div class="profile-crop-frame">
+            <img id="profile-crop-image" alt="Crop profile" />
+        </div>
+        <div class="profile-crop-actions">
+            <button type="button" class="btn btn-secondary btn-sm" id="profile-crop-cancel">Cancel</button>
+            <button type="button" class="btn btn-primary btn-sm" id="profile-crop-save">Crop & Upload</button>
+        </div>
+    </div>
+</div>
+
 <!-- Hidden file input for profile picture -->
 <input type="file" id="profile-pic-input" class="form-control file-input" accept="image/*" style="display: none;">
 
@@ -166,6 +191,7 @@
 <div id="toast-container"></div>
 
 <script src="https://unpkg.com/lenis@1.3.23/dist/lenis.min.js"></script>
+<script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

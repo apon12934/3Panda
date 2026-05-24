@@ -2332,6 +2332,56 @@ tbody tr:last-child {
     animation: popupScaleIn .35s var(--ease);
 }
 
+.profile-crop-popup {
+    top: 50%;
+    bottom: auto;
+    width: min(92vw, 720px);
+    max-height: 90vh;
+    border-radius: var(--radius-xl);
+    right: auto;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: popupScaleIn .35s var(--ease);
+}
+
+.profile-crop-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.profile-crop-hint {
+    margin: 0;
+    text-align: center;
+    font-size: .82rem;
+    color: var(--text-secondary);
+}
+
+.profile-crop-frame {
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    background: var(--surface-soft);
+    overflow: hidden;
+    height: min(60vh, 480px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-crop-frame img {
+    max-width: 100%;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.profile-crop-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .6rem;
+}
+
 .item-details-popup {
     top: 50%;
     bottom: auto;
@@ -2513,6 +2563,15 @@ tbody tr:last-child {
     .profile-pic-popup {
         width: 94vw;
         max-height: 88vh;
+    }
+
+    .profile-crop-popup {
+        width: 94vw;
+        max-height: 88vh;
+    }
+
+    .profile-crop-frame {
+        height: min(52vh, 360px);
     }
 
     .item-details-popup {
@@ -4141,7 +4200,7 @@ body.edit-popup-open {
 }
 
 /* Bottom-slide popups (cart panel) */
-.popup-panel:not(.rest-popup):not(.restaurant-owner-popup):not(.item-details-popup):not(.profile-pic-popup).is-exiting {
+.popup-panel:not(.rest-popup):not(.restaurant-owner-popup):not(.item-details-popup):not(.profile-pic-popup):not(.profile-crop-popup).is-exiting {
     animation: popupSlideOut .25s var(--ease) forwards;
 }
 

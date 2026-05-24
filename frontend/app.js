@@ -2256,6 +2256,12 @@ function initLogin() {
 function initProfilePictureModal() {
     const overlay = $('#profile-pic-overlay');
     const popup = $('#profile-pic-popup');
+    const cropOverlay = $('#profile-crop-overlay');
+    const cropPopup = $('#profile-crop-popup');
+    const cropImage = $('#profile-crop-image');
+    const cropCloseBtn = $('#profile-crop-close');
+    const cropCancelBtn = $('#profile-crop-cancel');
+    const cropSaveBtn = $('#profile-crop-save');
     const fileInput = $('#profile-pic-input');
     const profileImg = $('#profile-img');
     const profilePictureContainer = $('#profile-picture-container');
@@ -2265,6 +2271,67 @@ function initProfilePictureModal() {
     const closeBtn = $('#profile-pic-popup-close');
 
     if (!popup || !fileInput || !profileImg) return;
+
+    let cropper = null;
+    let cropImageUrl = null;
+    let pendingCropFile = null;
+
+    const cleanupCropper = () => {
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        if (cropImageUrl) {
+            URL.revokeObjectURL(cropImageUrl);
+            cropImageUrl = null;
+        }
+        if (cropImage) cropImage.removeAttribute('src');
+        pendingCropFile = null;
+    };
+
+    const closeCropper = () => {
+        if (cropPopup && cropOverlay) PandaPopup.close(cropPopup, cropOverlay);
+        cleanupCropper();
+        fileInput.value = '';
+    };
+
+    const getCroppedFileName = (file, mimeType) => {
+        const base = file && file.name ? file.name.replace(/\.[^/.]+$/, '') : 'profile';
+        const ext = mimeType === 'image/png' ? 'png' : 'jpg';
+        return base + '.' + ext;
+    };
+
+    const openCropper = (file) => {
+        if (!cropOverlay || !cropPopup || !cropImage) {
+            showMsg('Cropper is unavailable right now.');
+            return;
+        }
+        if (typeof Cropper === 'undefined') {
+            showMsg('Image cropper failed to load. Please try again.');
+            return;
+        }
+
+        pendingCropFile = file;
+        PandaPopup.close(popup, overlay);
+        cleanupCropper();
+
+        cropImageUrl = URL.createObjectURL(file);
+        cropImage.src = cropImageUrl;
+        PandaPopup.open(cropPopup, cropOverlay);
+
+        cropper = new Cropper(cropImage, {
+            aspectRatio: 1,
+            viewMode: 1,
+            autoCropArea: 1,
+            background: false,
+            responsive: true,
+            dragMode: 'move',
+            guides: false,
+            center: true,
+            highlight: false,
+            toggleDragModeOnDblclick: false
+        });
+    };
 
     // Open popup
     const openPopup = () => {
@@ -2288,11 +2355,15 @@ function initProfilePictureModal() {
     closeBtn?.addEventListener('click', closePopup);
     overlay?.addEventListener('click', closePopup);
 
+    cropCloseBtn?.addEventListener('click', closeCropper);
+    cropCancelBtn?.addEventListener('click', closeCropper);
+    cropOverlay?.addEventListener('click', closeCropper);
+
     // ESC to close
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && popup && !popup.classList.contains('hidden')) {
-            closePopup();
-        }
+        if (e.key !== 'Escape') return;
+        if (cropPopup && !cropPopup.classList.contains('hidden')) return closeCropper();
+        if (popup && !popup.classList.contains('hidden')) return closePopup();
     });
 
     // View button
@@ -2311,31 +2382,68 @@ function initProfilePictureModal() {
 
     // Handle file selection
     fileInput.addEventListener('change', async () => {
-        if (!fileInput.files[0]) return;
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        openCropper(file);
+    });
 
-        try {
-            const fd = new FormData();
-            fd.append('profile_picture', fileInput.files[0]);
+    cropSaveBtn?.addEventListener('click', async () => {
+        if (!cropper) return;
+        const originalText = cropSaveBtn.textContent;
+        cropSaveBtn.disabled = true;
+        cropSaveBtn.textContent = 'Uploading...';
 
-            const res = await fetch(API + '/users/profile', {
-                method: 'PUT',
-                headers: authHeaders(),
-                body: fd
-            });
-            const data = await res.json();
-            if (!res.ok) return showMsg(data.error);
-            showMsg('Profile picture updated!', 'success');
-            
-            const res2 = await fetch(API + '/users/profile', { headers: authHeaders() });
-            const u2 = await res2.json();
-            if (u2.profile_image) {
-                profileImg.src = u2.profile_image + '?t=' + Date.now();
-            }
-            closePopup();
-        } catch (err) {
-            console.error(err);
-            showMsg('Failed to upload profile picture.');
+        const mimeType = pendingCropFile && pendingCropFile.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        const canvas = cropper.getCroppedCanvas({
+            width: 1024,
+            height: 1024,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high'
+        });
+
+        if (!canvas) {
+            showMsg('Failed to crop image.');
+            cropSaveBtn.disabled = false;
+            cropSaveBtn.textContent = originalText;
+            return;
         }
+
+        canvas.toBlob(async (blob) => {
+            if (!blob) {
+                showMsg('Failed to crop image.');
+                cropSaveBtn.disabled = false;
+                cropSaveBtn.textContent = originalText;
+                return;
+            }
+
+            try {
+                const fd = new FormData();
+                const filename = getCroppedFileName(pendingCropFile, mimeType);
+                fd.append('profile_picture', blob, filename);
+
+                const res = await fetch(API + '/users/profile', {
+                    method: 'PUT',
+                    headers: authHeaders(),
+                    body: fd
+                });
+                const data = await res.json();
+                if (!res.ok) return showMsg(data.error);
+                showMsg('Profile picture updated!', 'success');
+
+                const res2 = await fetch(API + '/users/profile', { headers: authHeaders() });
+                const u2 = await res2.json();
+                if (u2.profile_image) {
+                    profileImg.src = u2.profile_image + '?t=' + Date.now();
+                }
+                closeCropper();
+            } catch (err) {
+                console.error(err);
+                showMsg('Failed to upload profile picture.');
+            } finally {
+                cropSaveBtn.disabled = false;
+                cropSaveBtn.textContent = originalText;
+            }
+        }, mimeType, 0.92);
     });
 }
 
