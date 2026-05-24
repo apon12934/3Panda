@@ -4071,6 +4071,14 @@ tbody tr:last-child {
     animation: popupScaleIn .35s var(--motion-smooth);
 }
 
+/* Let custom dropdown menus escape the edit card scroll box when open. */
+#edit-user-card:has(.custom-dropdown.is-open),
+#edit-restaurant-card:has(.custom-dropdown.is-open),
+#edit-item-card:has(.custom-dropdown.is-open),
+#vendor-edit-item-card:has(.custom-dropdown.is-open) {
+    overflow: visible;
+}
+
 body.edit-popup-open {
     overflow: hidden;
 }
