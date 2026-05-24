@@ -2332,6 +2332,70 @@ tbody tr:last-child {
     animation: popupScaleIn .35s var(--ease);
 }
 
+.profile-view-popup {
+    top: 50%;
+    bottom: auto;
+    width: min(92vw, 860px);
+    max-height: 88vh;
+    border-radius: var(--radius-xl);
+    right: auto;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: popupScaleIn .35s var(--ease);
+}
+
+.profile-view-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.profile-view-hint {
+    margin: 0;
+    text-align: center;
+    font-size: .82rem;
+    color: var(--text-secondary);
+}
+
+.profile-view-frame {
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    background: var(--surface-soft);
+    overflow: hidden;
+    height: min(62vh, 520px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    touch-action: none;
+    cursor: grab;
+}
+
+.profile-view-frame.is-dragging {
+    cursor: grabbing;
+}
+
+.profile-view-frame img {
+    max-width: 100%;
+    max-height: 100%;
+    transform-origin: center;
+    user-select: none;
+    pointer-events: none;
+    display: block;
+}
+
+.profile-view-controls {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    justify-content: flex-end;
+}
+
+.profile-view-controls input[type="range"] {
+    flex: 1;
+    accent-color: var(--red);
+}
+
 .profile-crop-popup {
     top: 50%;
     bottom: auto;
@@ -2563,6 +2627,15 @@ tbody tr:last-child {
     .profile-pic-popup {
         width: 94vw;
         max-height: 88vh;
+    }
+
+    .profile-view-popup {
+        width: 94vw;
+        max-height: 88vh;
+    }
+
+    .profile-view-frame {
+        height: min(52vh, 360px);
     }
 
     .profile-crop-popup {
@@ -4200,7 +4273,7 @@ body.edit-popup-open {
 }
 
 /* Bottom-slide popups (cart panel) */
-.popup-panel:not(.rest-popup):not(.restaurant-owner-popup):not(.item-details-popup):not(.profile-pic-popup):not(.profile-crop-popup).is-exiting {
+.popup-panel:not(.rest-popup):not(.restaurant-owner-popup):not(.item-details-popup):not(.profile-pic-popup):not(.profile-crop-popup):not(.profile-view-popup).is-exiting {
     animation: popupSlideOut .25s var(--ease) forwards;
 }
 

@@ -2256,6 +2256,13 @@ function initLogin() {
 function initProfilePictureModal() {
     const overlay = $('#profile-pic-overlay');
     const popup = $('#profile-pic-popup');
+    const viewOverlay = $('#profile-view-overlay');
+    const viewPopup = $('#profile-view-popup');
+    const viewFrame = $('#profile-view-frame');
+    const viewImage = $('#profile-view-image');
+    const viewCloseBtn = $('#profile-view-close');
+    const viewZoom = $('#profile-view-zoom');
+    const viewReset = $('#profile-view-reset');
     const cropOverlay = $('#profile-crop-overlay');
     const cropPopup = $('#profile-crop-popup');
     const cropImage = $('#profile-crop-image');
@@ -2275,6 +2282,14 @@ function initProfilePictureModal() {
     let cropper = null;
     let cropImageUrl = null;
     let pendingCropFile = null;
+    let viewScale = 1;
+    let viewTranslateX = 0;
+    let viewTranslateY = 0;
+    let isViewDragging = false;
+    let viewDragStartX = 0;
+    let viewDragStartY = 0;
+    let viewPointerStartX = 0;
+    let viewPointerStartY = 0;
 
     const cleanupCropper = () => {
         if (cropper) {
@@ -2287,6 +2302,25 @@ function initProfilePictureModal() {
         }
         if (cropImage) cropImage.removeAttribute('src');
         pendingCropFile = null;
+    };
+
+    const applyViewTransform = () => {
+        if (!viewImage) return;
+        viewImage.style.transform = `translate(${viewTranslateX}px, ${viewTranslateY}px) scale(${viewScale})`;
+    };
+
+    const resetViewTransform = () => {
+        viewScale = 1;
+        viewTranslateX = 0;
+        viewTranslateY = 0;
+        if (viewZoom) viewZoom.value = '1';
+        applyViewTransform();
+    };
+
+    const closeViewPopup = () => {
+        if (viewPopup && viewOverlay) PandaPopup.close(viewPopup, viewOverlay);
+        resetViewTransform();
+        if (viewImage) viewImage.removeAttribute('src');
     };
 
     const closeCropper = () => {
@@ -2362,6 +2396,7 @@ function initProfilePictureModal() {
     // ESC to close
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
+        if (viewPopup && !viewPopup.classList.contains('hidden')) return closeViewPopup();
         if (cropPopup && !cropPopup.classList.contains('hidden')) return closeCropper();
         if (popup && !popup.classList.contains('hidden')) return closePopup();
     });
@@ -2369,16 +2404,69 @@ function initProfilePictureModal() {
     // View button
     viewBtn?.addEventListener('click', () => {
         const imgSrc = profileImg.src;
-        if (imgSrc && !imgSrc.startsWith('data:')) {
-            window.open(imgSrc, '_blank');
-        }
+        if (!imgSrc) return;
         closePopup();
+        if (viewImage) viewImage.src = imgSrc;
+        resetViewTransform();
+        if (viewPopup && viewOverlay) PandaPopup.open(viewPopup, viewOverlay);
     });
 
     // Upload button
     uploadBtn?.addEventListener('click', () => {
         fileInput.click();
     });
+
+    viewCloseBtn?.addEventListener('click', closeViewPopup);
+    viewOverlay?.addEventListener('click', closeViewPopup);
+    viewReset?.addEventListener('click', () => {
+        resetViewTransform();
+    });
+
+    viewZoom?.addEventListener('input', () => {
+        viewScale = Math.max(1, Math.min(3, Number(viewZoom.value) || 1));
+        applyViewTransform();
+    });
+
+    viewFrame?.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        const delta = event.deltaY > 0 ? -0.08 : 0.08;
+        viewScale = Math.max(1, Math.min(3, viewScale + delta));
+        if (viewZoom) viewZoom.value = String(viewScale.toFixed(2));
+        applyViewTransform();
+    }, { passive: false });
+
+    viewFrame?.addEventListener('pointerdown', (event) => {
+        if (!viewFrame) return;
+        isViewDragging = true;
+        viewFrame.classList.add('is-dragging');
+        viewPointerStartX = event.clientX;
+        viewPointerStartY = event.clientY;
+        viewDragStartX = viewTranslateX;
+        viewDragStartY = viewTranslateY;
+        viewFrame.setPointerCapture(event.pointerId);
+    });
+
+    viewFrame?.addEventListener('pointermove', (event) => {
+        if (!isViewDragging) return;
+        const dx = event.clientX - viewPointerStartX;
+        const dy = event.clientY - viewPointerStartY;
+        viewTranslateX = viewDragStartX + dx;
+        viewTranslateY = viewDragStartY + dy;
+        applyViewTransform();
+    });
+
+    const stopViewDrag = (event) => {
+        if (!viewFrame) return;
+        if (event && viewFrame.hasPointerCapture(event.pointerId)) {
+            viewFrame.releasePointerCapture(event.pointerId);
+        }
+        isViewDragging = false;
+        viewFrame.classList.remove('is-dragging');
+    };
+
+    viewFrame?.addEventListener('pointerup', stopViewDrag);
+    viewFrame?.addEventListener('pointerleave', stopViewDrag);
+    viewFrame?.addEventListener('pointercancel', stopViewDrag);
 
     // Handle file selection
     fileInput.addEventListener('change', async () => {

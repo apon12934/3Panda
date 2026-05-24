@@ -121,6 +121,30 @@
     </div>
 </div>
 
+<!-- Profile Picture View Modal -->
+<div id="profile-view-overlay" class="popup-overlay hidden"></div>
+<div id="profile-view-popup" class="popup-panel profile-view-popup hidden">
+    <div class="popup-header">
+        <h2>Profile Picture</h2>
+        <button type="button" class="popup-close" id="profile-view-close" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+    <div class="popup-body profile-view-body">
+        <p class="profile-view-hint">Scroll to zoom. Drag to pan.</p>
+        <div class="profile-view-frame" id="profile-view-frame">
+            <img id="profile-view-image" alt="Profile photo" />
+        </div>
+        <div class="profile-view-controls">
+            <input type="range" id="profile-view-zoom" min="1" max="3" step="0.05" value="1" aria-label="Zoom" />
+            <button type="button" class="btn btn-secondary btn-sm" id="profile-view-reset">Reset</button>
+        </div>
+    </div>
+</div>
+
 <!-- Profile Picture Crop Modal -->
 <div id="profile-crop-overlay" class="popup-overlay hidden"></div>
 <div id="profile-crop-popup" class="popup-panel profile-crop-popup hidden">
