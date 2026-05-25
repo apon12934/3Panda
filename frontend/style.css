@@ -100,6 +100,7 @@ body {
     color: var(--text);
     line-height: 1.6;
     min-height: 100vh;
+    padding-top: 4.25rem;
     overflow-x: hidden;
     width: 100%;
     position: relative;
@@ -252,8 +253,11 @@ img { display: block; max-width: 100%; }
     align-items: center;
     justify-content: space-between;
     padding: .72rem 2rem;
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
     z-index: 100;
     border-bottom: 1px solid var(--border-light);
     transition: background .35s var(--motion-smooth),
@@ -3370,10 +3374,6 @@ body.profile-view-open {
 @media (max-width: 768px) {
     body.menu-open {
         overflow: hidden;
-    }
-
-    body {
-        padding-top: 4.25rem;
     }
 
     body.menu-open::before {

@@ -145,6 +145,7 @@ function initNavbarScroll() {
     let lastScrollY = 0;
     let ticking = false;
     const HIDE_THRESHOLD = 80;
+    const shouldAutoHide = () => window.matchMedia('(max-width: 768px)').matches;
 
     const updateNavbar = () => {
         const scrollY = window.scrollY;
@@ -157,7 +158,7 @@ function initNavbarScroll() {
         }
 
         // Smart auto-hide (only on longer pages, don't hide at top)
-        if (scrollY > HIDE_THRESHOLD) {
+        if (shouldAutoHide() && scrollY > HIDE_THRESHOLD) {
             if (scrollY > lastScrollY + 5) {
                 // Scrolling down → hide
                 navbar.classList.add('nav-hidden');
