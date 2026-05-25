@@ -269,6 +269,9 @@ const uploadToCloudinary = (fileBuffer, folder) => {
         // Auto-crop and resize for banners and items (16:9 ratio, 960x540)
         if (folder === 'restaurants' || folder === 'items') {
             transformation.unshift({ width: 960, height: 540, crop: 'fill', gravity: 'auto' });
+        } else if (folder === 'profiles') {
+            // Optimize profile pictures without forced cropping (frontend already crops to 1:1)
+            transformation.unshift({ width: 1024, height: 1024, crop: 'limit' });
         }
 
         const stream = cloudinary.uploader.upload_stream(

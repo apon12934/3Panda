@@ -323,6 +323,19 @@ const PandaPopup = {
 window.PandaPopup = PandaPopup;
 
 // ============================================================
+// CLOUDINARY THUMBNAIL HELPER
+// ============================================================
+window.getCloudinaryThumb = (url, width = 100, height = 100) => {
+    if (!url || !url.includes('cloudinary.com')) return url;
+    const parts = url.split('/upload/');
+    if (parts.length === 2) {
+        // use facial recognition cropping + compression
+        return `${parts[0]}/upload/c_fill,g_face,w_${width},h_${height},q_auto,f_auto/${parts[1]}`;
+    }
+    return url;
+};
+
+// ============================================================
 // GLOBAL IMAGE VIEWER (FOR REVIEWS, ETC)
 // ============================================================
 let globalViewerInitialized = false;
@@ -2113,7 +2126,8 @@ function openReviewerProfile(data) {
 
     if (avatarWrap) {
         if (data.avatar) {
-            avatarWrap.innerHTML = `<img src="${data.avatar}" alt="Avatar" class="review-avatar-img" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+            const thumbUrl = window.getCloudinaryThumb(data.avatar, 160, 160);
+            avatarWrap.innerHTML = `<img src="${thumbUrl}" alt="Avatar" class="review-avatar-img" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
             avatarWrap.onclick = () => window.openGlobalImageViewer(data.avatar);
         } else {
             avatarWrap.innerHTML = `<span class="review-avatar-initials" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: var(--gray-light); border-radius: 50%; color: var(--text-light);">${data.initials || 'U'}</span>`;
