@@ -1634,6 +1634,8 @@ app.get('/api/reviews', async (req, res) => {
                         COALESCE(u.username, CAST(r.${compat.reviewsUserColumn} AS CHAR)) AS user_username,
                         COALESCE(u.full_name, u.username, CAST(r.${compat.reviewsUserColumn} AS CHAR)) AS user_full_name,
                         COALESCE(ou.full_name, ou.username, rest.owner_username, 'Vendor') AS vendor_full_name,
+                        u.email AS user_email,
+                        u.phone AS user_phone,
                         r.restaurant_id, r.order_id, r.rating, r.comment,
                         r.vendor_reply, r.vendor_reply_at, r.created_at,
                         u.username, u.profile_image AS user_profile_image
@@ -1651,6 +1653,8 @@ app.get('/api/reviews', async (req, res) => {
                         COALESCE(u.username, CAST(r.${compat.reviewsUserColumn} AS CHAR)) AS user_username,
                         COALESCE(u.full_name, u.username, CAST(r.${compat.reviewsUserColumn} AS CHAR)) AS user_full_name,
                         COALESCE(ou.full_name, ou.username, rest.owner_username, 'Vendor') AS vendor_full_name,
+                        u.email AS user_email,
+                        u.phone AS user_phone,
                         r.restaurant_id, r.order_id, r.rating, r.comment,
                         r.vendor_reply, r.vendor_reply_at, r.created_at,
                         u.username, u.profile_image AS user_profile_image

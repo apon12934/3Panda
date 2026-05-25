@@ -214,6 +214,64 @@
     </div>
 </div>
 
+<div class="popup-overlay hidden" id="reviewer-profile-overlay"></div>
+<div class="popup-panel hidden restaurant-owner-popup" id="reviewer-profile-popup" data-lenis-prevent>
+    <div class="popup-header">
+        <h2>User Profile</h2>
+        <button class="popup-close" id="reviewer-profile-close">&times;</button>
+    </div>
+    <div class="popup-body">
+        <div style="display:flex; flex-direction:column; align-items:center; margin-bottom: 1.5rem;">
+            <div class="review-avatar" style="width: 80px; height: 80px; font-size: 2rem; cursor: pointer; margin-bottom: 0.5rem;" id="reviewer-profile-avatar-wrap">
+                <!-- image or initials injected here -->
+            </div>
+            <h3 style="margin:0;" id="reviewer-profile-name-title">-</h3>
+        </div>
+        <div class="owner-info-grid">
+            <div class="owner-info-row">
+                <span class="owner-info-label">Username</span>
+                <span class="owner-info-value" id="reviewer-profile-username">-</span>
+            </div>
+            <div class="owner-info-row">
+                <span class="owner-info-label">Full Name</span>
+                <span class="owner-info-value" id="reviewer-profile-name">-</span>
+            </div>
+            <div class="owner-info-row">
+                <span class="owner-info-label">Email</span>
+                <span class="owner-info-value" id="reviewer-profile-email">-</span>
+            </div>
+            <div class="owner-info-row">
+                <span class="owner-info-label">Phone</span>
+                <span class="owner-info-value" id="reviewer-profile-phone">-</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Profile Picture View Modal -->
+<div id="profile-view-overlay" class="popup-overlay hidden"></div>
+<div id="profile-view-popup" class="popup-panel profile-view-popup hidden" data-lenis-prevent>
+    <div class="popup-header">
+        <h2>Profile Picture</h2>
+        <button type="button" class="popup-close" id="profile-view-close" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+    <div class="popup-body profile-view-body">
+        <p class="profile-view-hint">Scroll to zoom. Drag to pan.</p>
+        <div class="profile-view-frame" id="profile-view-frame">
+            <img id="profile-view-image" alt="Profile photo" draggable="false" />
+        </div>
+        <div class="profile-view-controls">
+            <input type="range" id="profile-view-zoom" min="1" max="3" step="0.05" value="1" aria-label="Zoom" />
+            <button type="button" class="btn btn-secondary btn-sm" id="profile-view-reset">Reset</button>
+        </div>
+    </div>
+</div>
+
 <div class="popup-overlay hidden" id="item-details-overlay"></div>
 <div class="popup-panel hidden item-details-popup" id="item-details-popup" data-lenis-prevent>
     <div class="popup-header">

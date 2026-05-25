@@ -250,12 +250,24 @@ function initCardTilt() {
 // ============================================================
 
 const PandaPopup = {
+    _openPanels: [],
+    _baseZ: 1000,
+
     /**
      * Open a popup panel (and its overlay, if provided).
      * Removes .hidden, plays entrance animation via CSS.
      */
     open(panelEl, overlayEl) {
         if (!panelEl) return;
+
+        // Dynamic z-index layering for stacked popups
+        if (!this._openPanels.includes(panelEl)) {
+            this._baseZ += 10;
+            if (overlayEl) overlayEl.style.zIndex = this._baseZ + 1;
+            panelEl.style.zIndex = this._baseZ + 2;
+            this._openPanels.push(panelEl);
+        }
+
         if (overlayEl) {
             overlayEl.classList.remove('hidden', 'is-exiting');
         }
@@ -283,8 +295,19 @@ const PandaPopup = {
                 overlayEl.classList.add('hidden');
                 overlayEl.classList.remove('is-exiting');
             }
-            // Unlock scroll
-            if (window._lenis) window._lenis.start();
+            
+            // Remove from tracking array
+            const idx = this._openPanels.indexOf(panelEl);
+            if (idx > -1) {
+                this._openPanels.splice(idx, 1);
+            }
+
+            // Unlock scroll only if all popups are closed
+            if (this._openPanels.length === 0) {
+                if (window._lenis) window._lenis.start();
+                this._baseZ = 1000; // Reset base z-index when all clear
+            }
+
             panelEl.removeEventListener('animationend', cleanup);
         };
 
@@ -298,6 +321,220 @@ const PandaPopup = {
 };
 
 window.PandaPopup = PandaPopup;
+
+// ============================================================
+// GLOBAL IMAGE VIEWER (FOR REVIEWS, ETC)
+// ============================================================
+let globalViewerInitialized = false;
+window.openGlobalImageViewer = (src) => {
+    if (!globalViewerInitialized) {
+        initGlobalImageViewer();
+    }
+    const viewPopup = $('#profile-view-popup');
+    const viewOverlay = $('#profile-view-overlay');
+    const viewImage = $('#profile-view-image');
+    if (!viewPopup || !viewOverlay || !viewImage) return;
+
+    viewImage.src = src;
+    viewImage.setAttribute('draggable', 'false');
+    window._resetGlobalViewTransform();
+    PandaPopup.open(viewPopup, viewOverlay);
+    document.body.classList.add('profile-view-open');
+};
+
+function initGlobalImageViewer() {
+    if (globalViewerInitialized) return;
+    const viewOverlay = $('#profile-view-overlay');
+    const viewPopup = $('#profile-view-popup');
+    const viewFrame = $('#profile-view-frame');
+    const viewImage = $('#profile-view-image');
+    const viewCloseBtn = $('#profile-view-close');
+    const viewZoom = $('#profile-view-zoom');
+    const viewReset = $('#profile-view-reset');
+
+    if (!viewPopup || !viewImage) return;
+    globalViewerInitialized = true;
+
+    let viewScale = 1;
+    let viewTranslateX = 0;
+    let viewTranslateY = 0;
+    let isViewDragging = false;
+    let viewDragStartX = 0;
+    let viewDragStartY = 0;
+    let viewPointerStartX = 0;
+    let viewPointerStartY = 0;
+    let isViewPinching = false;
+    let pinchStartDistance = 0;
+    let pinchStartScale = 1;
+    let pinchStartMidpoint = { x: 0, y: 0 };
+    let pinchStartTranslateX = 0;
+    let pinchStartTranslateY = 0;
+    const activeViewPointers = new Map();
+
+    const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+    const getPointerDistance = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
+    const getPointerMidpoint = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+
+    const getViewBounds = () => {
+        if (!viewFrame || !viewImage) return { maxX: 0, maxY: 0 };
+        const frameRect = viewFrame.getBoundingClientRect();
+        const naturalW = viewImage.naturalWidth || frameRect.width;
+        const naturalH = viewImage.naturalHeight || frameRect.height;
+        const fitScale = Math.min(frameRect.width / naturalW, frameRect.height / naturalH);
+        const baseW = naturalW * fitScale;
+        const baseH = naturalH * fitScale;
+        const scaledW = baseW * viewScale;
+        const scaledH = baseH * viewScale;
+        const maxX = Math.max(0, (scaledW - frameRect.width) / 2);
+        const maxY = Math.max(0, (scaledH - frameRect.height) / 2);
+        return { maxX, maxY };
+    };
+
+    const clampViewTranslation = () => {
+        const { maxX, maxY } = getViewBounds();
+        viewTranslateX = clamp(viewTranslateX, -maxX, maxX);
+        viewTranslateY = clamp(viewTranslateY, -maxY, maxY);
+    };
+
+    const applyViewTransform = () => {
+        if (!viewImage) return;
+        clampViewTranslation();
+        viewImage.style.transform = `translate(${viewTranslateX}px, ${viewTranslateY}px) scale(${viewScale})`;
+    };
+
+    window._resetGlobalViewTransform = () => {
+        viewScale = 1;
+        viewTranslateX = 0;
+        viewTranslateY = 0;
+        if (viewZoom) viewZoom.value = '1';
+        applyViewTransform();
+    };
+
+    const closeViewPopup = () => {
+        PandaPopup.close(viewPopup, viewOverlay);
+        document.body.classList.remove('profile-view-open');
+        isViewDragging = false;
+        viewFrame?.classList.remove('is-dragging');
+        window._resetGlobalViewTransform();
+        if (viewImage) viewImage.removeAttribute('src');
+    };
+
+    viewCloseBtn?.addEventListener('click', closeViewPopup);
+    viewOverlay?.addEventListener('click', closeViewPopup);
+    viewReset?.addEventListener('click', window._resetGlobalViewTransform);
+
+    viewZoom?.addEventListener('input', () => {
+        viewScale = Math.max(1, Math.min(3, Number(viewZoom.value) || 1));
+        applyViewTransform();
+    });
+
+    viewImage?.addEventListener('load', window._resetGlobalViewTransform);
+    viewImage?.addEventListener('dragstart', e => { e.preventDefault(); e.stopPropagation(); });
+    viewFrame?.addEventListener('dragstart', e => { e.preventDefault(); e.stopPropagation(); });
+
+    viewFrame?.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const delta = event.deltaY > 0 ? -0.08 : 0.08;
+        viewScale = Math.max(1, Math.min(3, viewScale + delta));
+        if (viewZoom) viewZoom.value = String(viewScale.toFixed(2));
+        applyViewTransform();
+    }, { passive: false });
+
+    viewFrame?.addEventListener('pointerdown', (event) => {
+        if (!viewFrame) return;
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        viewFrame.setPointerCapture(event.pointerId);
+        activeViewPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+        if (activeViewPointers.size === 2) {
+            const [p1, p2] = Array.from(activeViewPointers.values());
+            pinchStartDistance = getPointerDistance(p1, p2) || 1;
+            pinchStartScale = viewScale;
+            pinchStartTranslateX = viewTranslateX;
+            pinchStartTranslateY = viewTranslateY;
+            pinchStartMidpoint = getPointerMidpoint(p1, p2);
+            isViewPinching = true;
+            isViewDragging = false;
+            viewFrame.classList.remove('is-dragging');
+            event.preventDefault();
+            return;
+        }
+
+        if (activeViewPointers.size !== 1) return;
+        const { maxX, maxY } = getViewBounds();
+        if (maxX === 0 && maxY === 0) return;
+        event.preventDefault();
+        isViewDragging = true;
+        viewFrame.classList.add('is-dragging');
+        viewPointerStartX = event.clientX;
+        viewPointerStartY = event.clientY;
+        viewDragStartX = viewTranslateX;
+        viewDragStartY = viewTranslateY;
+    });
+
+    viewFrame?.addEventListener('pointermove', (event) => {
+        if (!activeViewPointers.has(event.pointerId)) return;
+        activeViewPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+        if (activeViewPointers.size === 2 && isViewPinching) {
+            const [p1, p2] = Array.from(activeViewPointers.values());
+            const distance = getPointerDistance(p1, p2) || 1;
+            const ratio = distance / pinchStartDistance;
+            viewScale = clamp(pinchStartScale * ratio, 1, 3);
+            const midpoint = getPointerMidpoint(p1, p2);
+            viewTranslateX = pinchStartTranslateX + (midpoint.x - pinchStartMidpoint.x);
+            viewTranslateY = pinchStartTranslateY + (midpoint.y - pinchStartMidpoint.y);
+            if (viewZoom) viewZoom.value = String(viewScale.toFixed(2));
+            applyViewTransform();
+            event.preventDefault();
+            return;
+        }
+
+        if (!isViewDragging) return;
+        const dx = event.clientX - viewPointerStartX;
+        const dy = event.clientY - viewPointerStartY;
+        viewTranslateX = viewDragStartX + dx;
+        viewTranslateY = viewDragStartY + dy;
+        applyViewTransform();
+    });
+
+    const stopViewDrag = (event) => {
+        if (!viewFrame) return;
+        if (event && viewFrame.hasPointerCapture(event.pointerId)) {
+            viewFrame.releasePointerCapture(event.pointerId);
+        }
+        if (event) activeViewPointers.delete(event.pointerId);
+
+        if (activeViewPointers.size < 2) isViewPinching = false;
+        if (activeViewPointers.size === 1) {
+            const remaining = Array.from(activeViewPointers.values())[0];
+            const { maxX, maxY } = getViewBounds();
+            if (maxX !== 0 || maxY !== 0) {
+                isViewDragging = true;
+                viewFrame.classList.add('is-dragging');
+                viewPointerStartX = remaining.x;
+                viewPointerStartY = remaining.y;
+                viewDragStartX = viewTranslateX;
+                viewDragStartY = viewTranslateY;
+                return;
+            }
+        }
+        isViewDragging = false;
+        viewFrame.classList.remove('is-dragging');
+    };
+
+    viewFrame?.addEventListener('pointerup', stopViewDrag);
+    viewFrame?.addEventListener('pointerleave', stopViewDrag);
+    viewFrame?.addEventListener('pointercancel', stopViewDrag);
+
+    // ESC to close viewer specifically in global mode
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && viewPopup && !viewPopup.classList.contains('hidden')) {
+            closeViewPopup();
+        }
+    });
+}
 
 // ============================================================
 // MOBILE HAMBURGER MENU
@@ -1817,7 +2054,13 @@ function renderReviewList(container, reviews, opts = {}) {
 
         return `<div class="review-item" data-review-id="${review.id}">
             <div class="review-item-head">
-                <div class="review-author-info">
+                <div class="review-author-info reviewer-clickable" style="cursor: pointer;"
+                     data-username="${escapeHtml(reviewerRaw)}"
+                     data-fullname="${escapeHtml(review.user_full_name || '')}"
+                     data-email="${escapeHtml(review.user_email || '')}"
+                     data-phone="${escapeHtml(review.user_phone || '')}"
+                     data-avatar="${escapeHtml(profileImgUrl)}"
+                     data-initials="${escapeHtml(initials)}">
                     ${avatar}
                     <strong>${safeReviewer}</strong>
                 </div>
@@ -1841,7 +2084,46 @@ function renderReviewList(container, reviews, opts = {}) {
         container.querySelectorAll('.review-reply-delete-btn').forEach((btn) => {
             btn.addEventListener('click', () => deleteReviewReplyOnly(btn.dataset.reviewId));
         });
+        container.querySelectorAll('.reviewer-clickable').forEach((el) => {
+            el.addEventListener('click', () => openReviewerProfile(el.dataset));
+        });
     }
+}
+
+function openReviewerProfile(data) {
+    const popup = $('#reviewer-profile-popup');
+    const overlay = $('#reviewer-profile-overlay');
+    const closeBtn = $('#reviewer-profile-close');
+    if (!popup || !overlay) return;
+
+    const usernameEl = $('#reviewer-profile-username');
+    const nameEl = $('#reviewer-profile-name');
+    const emailEl = $('#reviewer-profile-email');
+    const phoneEl = $('#reviewer-profile-phone');
+    const nameTitleEl = $('#reviewer-profile-name-title');
+    const avatarWrap = $('#reviewer-profile-avatar-wrap');
+
+    if (usernameEl) usernameEl.textContent = data.username || '-';
+    if (nameEl) nameEl.textContent = data.fullname || data.username || '-';
+    if (emailEl) emailEl.textContent = data.email || '-';
+    if (phoneEl) phoneEl.textContent = data.phone || '-';
+    if (nameTitleEl) nameTitleEl.textContent = data.fullname || data.username || '-';
+
+    if (avatarWrap) {
+        if (data.avatar) {
+            avatarWrap.innerHTML = `<img src="${data.avatar}" alt="Avatar" class="review-avatar-img" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+            avatarWrap.onclick = () => window.openGlobalImageViewer(data.avatar);
+        } else {
+            avatarWrap.innerHTML = `<span class="review-avatar-initials" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: var(--gray-light); border-radius: 50%; color: var(--text-light);">${data.initials || 'U'}</span>`;
+            avatarWrap.onclick = null;
+        }
+    }
+
+    const closeHandler = () => PandaPopup.close(popup, overlay);
+    overlay.addEventListener('click', closeHandler, { once: true });
+    if (closeBtn) closeBtn.addEventListener('click', closeHandler, { once: true });
+
+    PandaPopup.open(popup, overlay);
 }
 
 async function loadRestaurantReviews(restaurantId) {
