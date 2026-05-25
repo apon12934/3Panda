@@ -2304,8 +2304,33 @@ function initProfilePictureModal() {
         pendingCropFile = null;
     };
 
+    const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+    const getViewBounds = () => {
+        if (!viewFrame || !viewImage) return { maxX: 0, maxY: 0 };
+        const frameRect = viewFrame.getBoundingClientRect();
+        const naturalW = viewImage.naturalWidth || frameRect.width;
+        const naturalH = viewImage.naturalHeight || frameRect.height;
+        const fitScale = Math.min(frameRect.width / naturalW, frameRect.height / naturalH);
+        const baseW = naturalW * fitScale;
+        const baseH = naturalH * fitScale;
+        const scaledW = baseW * viewScale;
+        const scaledH = baseH * viewScale;
+        const maxX = Math.max(0, (scaledW - frameRect.width) / 2);
+        const maxY = Math.max(0, (scaledH - frameRect.height) / 2);
+        return { maxX, maxY };
+    };
+
+    const clampViewTranslation = () => {
+        const { maxX, maxY } = getViewBounds();
+        viewTranslateX = clamp(viewTranslateX, -maxX, maxX);
+        viewTranslateY = clamp(viewTranslateY, -maxY, maxY);
+        return { maxX, maxY };
+    };
+
     const applyViewTransform = () => {
         if (!viewImage) return;
+        clampViewTranslation();
         viewImage.style.transform = `translate(${viewTranslateX}px, ${viewTranslateY}px) scale(${viewScale})`;
     };
 
@@ -2319,6 +2344,8 @@ function initProfilePictureModal() {
 
     const closeViewPopup = () => {
         if (viewPopup && viewOverlay) PandaPopup.close(viewPopup, viewOverlay);
+        isViewDragging = false;
+        viewFrame?.classList.remove('is-dragging');
         resetViewTransform();
         if (viewImage) viewImage.removeAttribute('src');
     };
@@ -2407,7 +2434,6 @@ function initProfilePictureModal() {
         if (!imgSrc) return;
         closePopup();
         if (viewImage) viewImage.src = imgSrc;
-        resetViewTransform();
         if (viewPopup && viewOverlay) PandaPopup.open(viewPopup, viewOverlay);
     });
 
@@ -2427,6 +2453,14 @@ function initProfilePictureModal() {
         applyViewTransform();
     });
 
+    viewImage?.addEventListener('load', () => {
+        resetViewTransform();
+    });
+
+    viewImage?.addEventListener('dragstart', (event) => {
+        event.preventDefault();
+    });
+
     viewFrame?.addEventListener('wheel', (event) => {
         event.preventDefault();
         const delta = event.deltaY > 0 ? -0.08 : 0.08;
@@ -2437,6 +2471,8 @@ function initProfilePictureModal() {
 
     viewFrame?.addEventListener('pointerdown', (event) => {
         if (!viewFrame) return;
+        const { maxX, maxY } = getViewBounds();
+        if (maxX === 0 && maxY === 0) return;
         isViewDragging = true;
         viewFrame.classList.add('is-dragging');
         viewPointerStartX = event.clientX;

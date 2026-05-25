@@ -2381,6 +2381,7 @@ tbody tr:last-child {
     transform-origin: center;
     user-select: none;
     pointer-events: none;
+    -webkit-user-drag: none;
     display: block;
 }
 
