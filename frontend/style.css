@@ -2238,6 +2238,8 @@ tbody tr:last-child {
     backdrop-filter: blur(4px);
     z-index: 1001;
     transition: opacity .3s var(--ease);
+    will-change: opacity, backdrop-filter;
+    transform: translateZ(0);
 }
 
 .popup-panel {
@@ -2253,6 +2255,8 @@ tbody tr:last-child {
     z-index: 1002;
     display: flex;
     flex-direction: column;
+    will-change: transform, opacity;
+    transform: translateZ(0);
     animation: popupSlideIn .5s var(--motion-smooth);
 }
 

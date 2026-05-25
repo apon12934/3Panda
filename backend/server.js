@@ -264,11 +264,18 @@ cloudinary.config({
 // helper to upload a multer file buffer to cloudinary
 const uploadToCloudinary = (fileBuffer, folder) => {
     return new Promise((resolve, reject) => {
+        let transformation = [{ quality: 'auto', fetch_format: 'auto' }];
+        
+        // Auto-crop and resize for banners and items (16:9 ratio, 960x540)
+        if (folder === 'restaurants' || folder === 'items') {
+            transformation.unshift({ width: 960, height: 540, crop: 'fill', gravity: 'auto' });
+        }
+
         const stream = cloudinary.uploader.upload_stream(
             {
                 folder: `3panda/${folder}`,
                 resource_type: 'image',
-                transformation: [{ quality: 'auto', fetch_format: 'auto' }]
+                transformation: transformation
             },
             (error, result) => {
                 if (error) reject(error);
