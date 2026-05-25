@@ -2291,6 +2291,13 @@ function initProfilePictureModal() {
     let viewDragStartY = 0;
     let viewPointerStartX = 0;
     let viewPointerStartY = 0;
+    let isViewPinching = false;
+    let pinchStartDistance = 0;
+    let pinchStartScale = 1;
+    let pinchStartMidpoint = { x: 0, y: 0 };
+    let pinchStartTranslateX = 0;
+    let pinchStartTranslateY = 0;
+    const activeViewPointers = new Map();
 
     const cleanupCropper = () => {
         if (cropper) {
@@ -2306,6 +2313,13 @@ function initProfilePictureModal() {
     };
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+    const getPointerDistance = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
+
+    const getPointerMidpoint = (a, b) => ({
+        x: (a.x + b.x) / 2,
+        y: (a.y + b.y) / 2
+    });
 
     const getViewBounds = () => {
         if (!viewFrame || !viewImage) return { maxX: 0, maxY: 0 };
@@ -2490,6 +2504,26 @@ function initProfilePictureModal() {
 
     viewFrame?.addEventListener('pointerdown', (event) => {
         if (!viewFrame) return;
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        viewFrame.setPointerCapture(event.pointerId);
+        activeViewPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+        if (activeViewPointers.size === 2) {
+            const [p1, p2] = Array.from(activeViewPointers.values());
+            pinchStartDistance = getPointerDistance(p1, p2) || 1;
+            pinchStartScale = viewScale;
+            pinchStartTranslateX = viewTranslateX;
+            pinchStartTranslateY = viewTranslateY;
+            pinchStartMidpoint = getPointerMidpoint(p1, p2);
+            isViewPinching = true;
+            isViewDragging = false;
+            viewFrame.classList.remove('is-dragging');
+            event.preventDefault();
+            return;
+        }
+
+        if (activeViewPointers.size !== 1) return;
+
         const { maxX, maxY } = getViewBounds();
         if (maxX === 0 && maxY === 0) return;
         event.preventDefault();
@@ -2499,10 +2533,26 @@ function initProfilePictureModal() {
         viewPointerStartY = event.clientY;
         viewDragStartX = viewTranslateX;
         viewDragStartY = viewTranslateY;
-        viewFrame.setPointerCapture(event.pointerId);
     });
 
     viewFrame?.addEventListener('pointermove', (event) => {
+        if (!activeViewPointers.has(event.pointerId)) return;
+        activeViewPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+        if (activeViewPointers.size === 2 && isViewPinching) {
+            const [p1, p2] = Array.from(activeViewPointers.values());
+            const distance = getPointerDistance(p1, p2) || 1;
+            const ratio = distance / pinchStartDistance;
+            viewScale = clamp(pinchStartScale * ratio, 1, 3);
+            const midpoint = getPointerMidpoint(p1, p2);
+            viewTranslateX = pinchStartTranslateX + (midpoint.x - pinchStartMidpoint.x);
+            viewTranslateY = pinchStartTranslateY + (midpoint.y - pinchStartMidpoint.y);
+            if (viewZoom) viewZoom.value = String(viewScale.toFixed(2));
+            applyViewTransform();
+            event.preventDefault();
+            return;
+        }
+
         if (!isViewDragging) return;
         const dx = event.clientX - viewPointerStartX;
         const dy = event.clientY - viewPointerStartY;
@@ -2516,6 +2566,26 @@ function initProfilePictureModal() {
         if (event && viewFrame.hasPointerCapture(event.pointerId)) {
             viewFrame.releasePointerCapture(event.pointerId);
         }
+        if (event) activeViewPointers.delete(event.pointerId);
+
+        if (activeViewPointers.size < 2) {
+            isViewPinching = false;
+        }
+
+        if (activeViewPointers.size === 1) {
+            const remaining = Array.from(activeViewPointers.values())[0];
+            const { maxX, maxY } = getViewBounds();
+            if (maxX !== 0 || maxY !== 0) {
+                isViewDragging = true;
+                viewFrame.classList.add('is-dragging');
+                viewPointerStartX = remaining.x;
+                viewPointerStartY = remaining.y;
+                viewDragStartX = viewTranslateX;
+                viewDragStartY = viewTranslateY;
+                return;
+            }
+        }
+
         isViewDragging = false;
         viewFrame.classList.remove('is-dragging');
     };
