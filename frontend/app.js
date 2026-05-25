@@ -2084,10 +2084,12 @@ function renderReviewList(container, reviews, opts = {}) {
         container.querySelectorAll('.review-reply-delete-btn').forEach((btn) => {
             btn.addEventListener('click', () => deleteReviewReplyOnly(btn.dataset.reviewId));
         });
-        container.querySelectorAll('.reviewer-clickable').forEach((el) => {
-            el.addEventListener('click', () => openReviewerProfile(el.dataset));
-        });
     }
+
+    // Attach profile popup listener globally
+    container.querySelectorAll('.reviewer-clickable').forEach((el) => {
+        el.addEventListener('click', () => openReviewerProfile(el.dataset));
+    });
 }
 
 function openReviewerProfile(data) {
