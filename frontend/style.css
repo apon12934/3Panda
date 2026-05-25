@@ -2368,6 +2368,8 @@ tbody tr:last-child {
     justify-content: center;
     position: relative;
     touch-action: none;
+    user-select: none;
+    overscroll-behavior: contain;
     cursor: grab;
 }
 
@@ -2383,6 +2385,10 @@ tbody tr:last-child {
     pointer-events: none;
     -webkit-user-drag: none;
     display: block;
+}
+
+body.profile-view-open {
+    overflow: hidden;
 }
 
 .profile-view-controls {

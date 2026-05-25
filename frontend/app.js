@@ -2344,10 +2344,22 @@ function initProfilePictureModal() {
 
     const closeViewPopup = () => {
         if (viewPopup && viewOverlay) PandaPopup.close(viewPopup, viewOverlay);
+        document.body.classList.remove('profile-view-open');
         isViewDragging = false;
         viewFrame?.classList.remove('is-dragging');
         resetViewTransform();
         if (viewImage) viewImage.removeAttribute('src');
+    };
+
+    const openViewPopup = (src) => {
+        if (!viewPopup || !viewOverlay) return;
+        if (viewImage) {
+            viewImage.src = src;
+            viewImage.setAttribute('draggable', 'false');
+        }
+        resetViewTransform();
+        PandaPopup.open(viewPopup, viewOverlay);
+        document.body.classList.add('profile-view-open');
     };
 
     const closeCropper = () => {
@@ -2433,8 +2445,7 @@ function initProfilePictureModal() {
         const imgSrc = profileImg.src;
         if (!imgSrc) return;
         closePopup();
-        if (viewImage) viewImage.src = imgSrc;
-        if (viewPopup && viewOverlay) PandaPopup.open(viewPopup, viewOverlay);
+        openViewPopup(imgSrc);
     });
 
     // Upload button
@@ -2459,10 +2470,17 @@ function initProfilePictureModal() {
 
     viewImage?.addEventListener('dragstart', (event) => {
         event.preventDefault();
+        event.stopPropagation();
+    });
+
+    viewFrame?.addEventListener('dragstart', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
     });
 
     viewFrame?.addEventListener('wheel', (event) => {
         event.preventDefault();
+        event.stopPropagation();
         const delta = event.deltaY > 0 ? -0.08 : 0.08;
         viewScale = Math.max(1, Math.min(3, viewScale + delta));
         if (viewZoom) viewZoom.value = String(viewScale.toFixed(2));
@@ -2473,6 +2491,7 @@ function initProfilePictureModal() {
         if (!viewFrame) return;
         const { maxX, maxY } = getViewBounds();
         if (maxX === 0 && maxY === 0) return;
+        event.preventDefault();
         isViewDragging = true;
         viewFrame.classList.add('is-dragging');
         viewPointerStartX = event.clientX;
