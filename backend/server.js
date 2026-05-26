@@ -308,11 +308,14 @@ app.use(cors({
 app.use(express.json({ limit: '64kb' }));
 app.use(express.urlencoded({ extended: true, limit: '64kb' }));
 
+// Performance: GZIP/Brotli compression for text assets
+app.use(compression());
+
 // Performance: add HTTP caching headers for static assets
 app.use((req, res, next) => {
-    // Cache static assets for 1 hour
+    // Cache static assets for 1 year (immutable)
     if (req.url.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2)$/i)) {
-        res.setHeader('Cache-Control', 'public, max-age=3600');
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     }
     // Security header
     res.setHeader('X-Content-Type-Options', 'nosniff');
