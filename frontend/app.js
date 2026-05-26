@@ -323,7 +323,7 @@ const PandaPopup = {
 window.PandaPopup = PandaPopup;
 
 // ============================================================
-// CLOUDINARY THUMBNAIL HELPER
+// CLOUDINARY OPTIMIZATION HELPERS
 // ============================================================
 window.getCloudinaryThumb = (url, width = 100, height = 100) => {
     if (!url || !url.includes('cloudinary.com')) return url;
@@ -331,6 +331,24 @@ window.getCloudinaryThumb = (url, width = 100, height = 100) => {
     if (parts.length === 2) {
         // use facial recognition cropping + compression
         return `${parts[0]}/upload/c_fill,g_face,w_${width},h_${height},q_auto,f_auto/${parts[1]}`;
+    }
+    return url;
+};
+
+window.getCloudinaryBanner = (url) => {
+    if (!url || !url.includes('cloudinary.com')) return url;
+    const parts = url.split('/upload/');
+    if (parts.length === 2) {
+        return `${parts[0]}/upload/c_fill,g_auto,w_960,h_540,q_auto,f_auto/${parts[1]}`;
+    }
+    return url;
+};
+
+window.getCloudinaryProfile = (url, size = 600) => {
+    if (!url || !url.includes('cloudinary.com')) return url;
+    const parts = url.split('/upload/');
+    if (parts.length === 2) {
+        return `${parts[0]}/upload/c_limit,w_${size},h_${size},q_auto,f_auto/${parts[1]}`;
     }
     return url;
 };
@@ -1325,7 +1343,7 @@ async function filterMenuBySearch(query) {
         }
         container.innerHTML = data.map(item => `
             <div class="card menu-item-card" data-item-id="${item.id}">
-                <img class="card-img" src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}" loading="lazy" decoding="async">
+                <img class="card-img" src="${window.getCloudinaryBanner(item.image) || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}" loading="lazy" decoding="async">
                 <div class="card-body">
                     <h3>${item.name}</h3>
                     ${item.description ? '<p class="card-desc">' + item.description + '</p>' : ''}
@@ -1402,7 +1420,7 @@ async function loadRestaurants() {
                  data-owner-email="${escapeHtmlAttr(r.owner_email || '')}"
                  data-owner-phone="${escapeHtmlAttr(r.owner_phone || '')}"
                  style="cursor:pointer;">
-                <img class="card-img" src="${r.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${r.name}" loading="lazy" decoding="async">
+                <img class="card-img" src="${window.getCloudinaryBanner(r.image) || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${r.name}" loading="lazy" decoding="async">
                 <div class="card-body">
                     <div class="restaurant-card-head">
                         <h3>${r.name}</h3>
@@ -1485,7 +1503,7 @@ async function loadMenuItems(restaurantId) {
         }
         container.innerHTML = data.map(item => `
             <div class="card menu-item-card" data-item-id="${item.id}">
-                <img class="card-img" src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}" loading="lazy" decoding="async">
+                <img class="card-img" src="${window.getCloudinaryBanner(item.image) || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${item.name}" loading="lazy" decoding="async">
                 <div class="card-body">
                     <h3>${item.name}</h3>
                     ${item.description ? '<p class="card-desc">' + item.description + '</p>' : ''}
@@ -1916,7 +1934,7 @@ function openItemDetailsById(itemId) {
 
     const fallbackImage = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E';
 
-    imageEl.src = item.image || fallbackImage;
+    imageEl.src = window.getCloudinaryBanner(item.image) || fallbackImage;
     imageEl.alt = item.name || 'Menu item';
     nameEl.textContent = item.name || 'Unnamed item';
     priceEl.textContent = formatPrice(item.price);
@@ -2031,13 +2049,14 @@ function renderReviewList(container, reviews, opts = {}) {
         const isOwner = !!currentUser && currentUser === reviewerRaw.toLowerCase();
 
         const profileImgUrl = review.user_profile_image ? String(review.user_profile_image).trim() : '';
+        const thumbUrl = window.getCloudinaryThumb(profileImgUrl, 80, 80);
         const initials = escapeHtml(
             reviewerDisplay
                 ? reviewerDisplay.split(/\s+/).filter((p) => p).slice(0, 2).map((p) => p.charAt(0).toUpperCase()).join('')
                 : 'U'
         );
         const avatarInner = profileImgUrl
-            ? `<img src="${escapeHtml(profileImgUrl)}" alt="${safeReviewer}" class="review-avatar-img" loading="lazy" onerror="this.parentElement.innerHTML='<span class=\\'review-avatar-initials\\'>${initials}</span>'">`
+            ? `<img src="${escapeHtml(thumbUrl)}" alt="${safeReviewer}" class="review-avatar-img" loading="lazy" onerror="this.parentElement.innerHTML='<span class=\\'review-avatar-initials\\'>${initials}</span>'">`
             : `<span class="review-avatar-initials">${initials}</span>`;
         const avatar = `<div class="review-avatar" aria-hidden="true">${avatarInner}</div>`;
 
@@ -2973,7 +2992,7 @@ async function initProfile() {
         if ($('#profile-phone')) $('#profile-phone').value = user.phone || '';
         if ($('#profile-address')) $('#profile-address').value = user.address || '';
         if (user.profile_image) {
-            $('#profile-img').src = user.profile_image;
+            $('#profile-img').src = window.getCloudinaryProfile(user.profile_image);
         }
     } catch (err) {
         console.error(err);
@@ -4020,7 +4039,7 @@ async function adminLoadRestaurants() {
                 <td>${r.name}</td>
                 <td>${r.owner_username || '\u2014'}</td>
                 <td><span class="status-badge status-badge--${r.status || 'approved'}">${(r.status || 'approved').charAt(0).toUpperCase() + (r.status || 'approved').slice(1)}</span></td>
-                <td>${r.image ? '<img src="' + r.image + '" class="table-banner-thumb" alt="Restaurant banner">' : '\u2014'}</td>
+                <td>${r.image ? `<img src="${window.getCloudinaryThumb(r.image, 160, 90)}" class="table-banner-thumb" alt="Restaurant banner">` : '\u2014'}</td>
                 <td class="gap-row">
                     <button class="btn btn-sm btn-primary" onclick="adminEditRestaurant(${r.id}, '${r.name.replace(/'/g,"\\'")}', '${(r.owner_username || '').replace(/'/g,"\\'")}')">Edit</button>
                     <button class="btn btn-sm btn-danger" onclick="adminDeleteRestaurant(${r.id})">Del</button>
@@ -4077,7 +4096,7 @@ async function adminLoadItems() {
                 <td title="${i.name}" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.name}</td>
                 <td title="${i.description||''}" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.description || '—'}</td>
                 <td>${formatPrice(i.price)}</td>
-                <td>${i.image ? '<img src="' + i.image + '" class="table-banner-thumb" alt="Item banner">' : '—'}</td>
+                <td>${i.image ? `<img src="${window.getCloudinaryThumb(i.image, 80, 80)}" class="table-banner-thumb" alt="Item banner">` : '—'}</td>
                 <td class="gap-row">
                     <button class="btn btn-sm btn-primary" onclick="adminEditItem(${i.id}, ${i.restaurant_id}, '${i.name.replace(/'/g,"\\'")}', ${i.price}, '${(i.description||'').replace(/'/g,"\\'")}')">Edit</button>
                     <button class="btn btn-sm btn-danger" onclick="adminDeleteItem(${i.id})">Del</button>
@@ -4298,7 +4317,7 @@ async function adminLoadPendingApprovals() {
 
         container.innerHTML = pending.map(r => `
             <div class="vendor-rest-card is-pending">
-                <img class="card-img" src="${r.image || noImagePlaceholder}" alt="${r.name}" loading="lazy" decoding="async">
+                <img class="card-img" src="${window.getCloudinaryBanner(r.image) || noImagePlaceholder}" alt="${r.name}" loading="lazy" decoding="async">
                 <div class="card-body">
                     <h3>${r.name} <span class="status-badge status-badge--pending">Pending</span></h3>
                     <div class="approval-card-owner">
@@ -4488,7 +4507,7 @@ async function vendorLoadRestaurants() {
             }
 
             return '<div class="vendor-rest-card ' + statusClass + '">' +
-                '<img class="card-img" src="' + (r.image || noImagePlaceholder) + '" alt="' + r.name + '" loading="lazy" decoding="async">' +
+                '<img class="card-img" src="' + (window.getCloudinaryBanner(r.image) || noImagePlaceholder) + '" alt="' + r.name + '" loading="lazy" decoding="async">' +
                 '<div class="card-body">' +
                 '<h3>' + r.name + ' ' + statusBadge + '</h3>' +
                 '<p>' + (r.description || 'No description.') + '</p>' +
@@ -4539,7 +4558,7 @@ async function vendorLoadMenuItems(restaurantId) {
                 <td title="${i.name}" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.name}</td>
                 <td title="${i.description||''}" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.description || '\u2014'}</td>
                 <td>${formatPrice(i.price)}</td>
-                <td>${i.image ? '<img src="' + i.image + '" style="height:40px;border-radius:4px;">' : '\u2014'}</td>
+                <td>${i.image ? `<img src="${window.getCloudinaryThumb(i.image, 80, 80)}" style="height:40px;border-radius:4px;">` : '\u2014'}</td>
                 <td class="gap-row">
                     <button class="btn btn-sm btn-primary" onclick="vendorEditItem(${i.id}, '${i.name.replace(/'/g,"\\'")}', ${i.price}, '${(i.description||'').replace(/'/g,"\\'")}')">Edit</button>
                     <button class="btn btn-sm btn-danger" onclick="vendorDeleteItem(${i.id})">Del</button>
