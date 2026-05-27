@@ -918,10 +918,35 @@ function initCustomDropdowns() {
 
 // small helper functions
 
-const getToken = () => localStorage.getItem('token');
-const getRole  = () => (localStorage.getItem('role') || '').trim().toLowerCase();
-const getUserId = () => localStorage.getItem('userId');
-const getUserName = () => localStorage.getItem('userName');
+const getToken = () => {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(atob(base64));
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
+            localStorage.clear();
+            return null;
+        }
+    } catch (e) {
+        localStorage.clear();
+        return null;
+    }
+    return token;
+};
+const getRole  = () => {
+    if (!getToken()) return '';
+    return (localStorage.getItem('role') || '').trim().toLowerCase();
+};
+const getUserId = () => {
+    if (!getToken()) return null;
+    return localStorage.getItem('userId');
+};
+const getUserName = () => {
+    if (!getToken()) return null;
+    return localStorage.getItem('userName');
+};
 
 const authHeaders = () => ({
     'Authorization': 'Bearer ' + getToken()
