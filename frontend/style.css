@@ -2465,7 +2465,7 @@ body.profile-view-open {
 .item-details-popup {
     top: 50%;
     bottom: auto;
-    width: min(94vw, 760px);
+    width: min(94vw, 650px);
     max-height: 88vh;
     border-radius: var(--radius-xl);
     right: auto;
@@ -2476,8 +2476,8 @@ body.profile-view-open {
 
 .item-details-popup .popup-body {
     display: grid;
-    grid-template-columns: minmax(230px, 40%) 1fr;
-    gap: 1rem;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
 }
 
 .item-details-media-wrap {
