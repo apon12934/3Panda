@@ -1444,6 +1444,7 @@ async function loadRestaurants() {
                  data-owner-role="${escapeHtmlAttr(r.owner_role || '')}"
                  data-owner-email="${escapeHtmlAttr(r.owner_email || '')}"
                  data-owner-phone="${escapeHtmlAttr(r.owner_phone || '')}"
+                 data-restaurant-image="${escapeHtmlAttr(r.image || '')}"
                  style="cursor:pointer;">
                 <img class="card-img" src="${window.getCloudinaryBanner(r.image) || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${r.name}" loading="lazy" decoding="async">
                 <div class="card-body">
@@ -1503,6 +1504,13 @@ function openRestaurantOwnerInfo(cardEl) {
     setText('#owner-info-name', cardEl.dataset.ownerName || '-');
     setText('#owner-info-email', cardEl.dataset.ownerEmail || '-');
     setText('#owner-info-phone', cardEl.dataset.ownerPhone || '-');
+
+    const imgEl = $('#owner-info-image');
+    if (imgEl) {
+        const fallbackImage = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2216%22%3ENo Image%3C/text%3E%3C/svg%3E';
+        imgEl.src = window.getCloudinaryBanner(cardEl.dataset.restaurantImage) || fallbackImage;
+        imgEl.alt = cardEl.dataset.restaurantName || 'Restaurant banner';
+    }
 
     PandaPopup.open(popup, overlay);
 }
