@@ -483,9 +483,9 @@ app.post('/api/register', async (req, res) => {
         );
 
         const token = jwt.sign(
-            { username: trimmedUsername, role: userRole },
+            { username: userRole === undefined ? user.username : trimmedUsername, role: userRole === undefined ? user.role : userRole },
             JWT_SECRET,
-            { expiresIn: '24h' }
+            { expiresIn: '15d' }
         );
 
         logActivity(req, { action: 'user.registered', actor: trimmedUsername, targetType: 'user', targetId: trimmedUsername, details: { role: userRole, email: trimmedEmail } });
