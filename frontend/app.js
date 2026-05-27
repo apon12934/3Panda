@@ -1450,7 +1450,7 @@ async function loadRestaurants() {
                 <div class="card-body">
                     <div class="restaurant-card-head">
                         <h3>${r.name}</h3>
-                        <button class="restaurant-info-btn" type="button" aria-label="Restaurant owner info" title="Restaurant owner info">i</button>
+                        <button class="restaurant-info-btn" type="button" aria-label="Restaurant info" title="Restaurant info">i</button>
                     </div>
                     <p>${r.description || 'Click to view menu'}</p>
                     ${renderRatingSummary(r.id)}
