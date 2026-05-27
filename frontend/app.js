@@ -1526,10 +1526,13 @@ async function loadMenuItems(restaurantId) {
         let url = API + '/menu-items';
         if (restaurantId) url += '?restaurant_id=' + restaurantId;
         const res = await fetch(url);
-        if (!res.ok) return showMsg('Failed to load menu items.');
+        const container = $('#menu-list');
+        if (!res.ok) {
+            if (container) container.innerHTML = `<div class="empty-state"><p>Failed to load menu items. <a href="#" onclick="event.preventDefault(); loadMenuItems(${restaurantId || 'null'});">Retry</a></p></div>`;
+            return showMsg('Failed to load menu items.');
+        }
         const data = await res.json();
         cacheMenuItems(data);
-        const container = $('#menu-list');
         if (!data.length) {
             container.innerHTML = '<div class="empty-state"><p>No menu items found.</p></div>';
             return;

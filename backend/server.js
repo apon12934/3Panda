@@ -312,12 +312,7 @@ app.use(express.urlencoded({ extended: true, limit: '64kb' }));
 // Performance: GZIP/Brotli compression for text assets
 app.use(compression());
 
-// Performance: add HTTP caching headers for static assets
 app.use((req, res, next) => {
-    // Cache static assets for 1 year (immutable)
-    if (req.url.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2)$/i)) {
-        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    }
     // Security header
     res.setHeader('X-Content-Type-Options', 'nosniff');
     next();
@@ -354,8 +349,17 @@ app.get(/^\/([a-z0-9-]+)\.html$/i, (req, res, next) => {
     return res.redirect(301, '/' + page);
 });
 
-// this serves the frontend folder
-app.use(express.static(FRONTEND_DIR));
+// this serves the frontend folder with proper caching
+app.use(express.static(FRONTEND_DIR, {
+    maxAge: '1y',
+    immutable: true,
+    setHeaders: (res, path, stat) => {
+        // Only cache actual static assets aggressively, not the HTML files
+        if (path.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+        }
+    }
+}));
 
 // Serve known frontend pages on extensionless paths.
 app.get(['/', '/login', '/profile', '/my-orders', '/delivery', '/admin', '/vendor'], (req, res) => {
