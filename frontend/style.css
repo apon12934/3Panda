@@ -1678,6 +1678,7 @@ tbody tr:last-child {
 
 .map-search-row .form-control {
     margin: 0;
+    border-radius: 2rem;
 }
 
 .map-search-results {

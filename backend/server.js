@@ -2004,6 +2004,49 @@ app.get('/api/admin/activity-log/stats', verifyToken, requireAdmin, async (_req,
     }
 });
 
+// ============================================================
+//  Barikoi Map API Proxy
+// ============================================================
+
+app.get('/api/maps/config', (req, res) => {
+    // We only expose the key for domain-restricted frontend usage (like loading raster tiles).
+    // The key itself is restricted via Barikoi Dashboard.
+    res.json({ apiKey: process.env.BARIKOI_API_KEY || '' });
+});
+
+app.get('/api/maps/autocomplete', async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q) {
+            return res.status(400).json({ error: 'Query parameter "q" is required.' });
+        }
+        if (!process.env.BARIKOI_API_KEY) {
+            return res.status(500).json({ error: 'Map API key is not configured on the server.' });
+        }
+        
+        const url = `https://barikoi.xyz/v1/api/search/autocomplete/server/place?q=${encodeURIComponent(q)}`;
+        // We use the actual API URL. Wait, the docs usually say `https://barikoi.xyz/v1/api/search/autocomplete/${API_KEY}/place?q=...`
+        const apiUrl = `https://barikoi.xyz/v1/api/search/autocomplete/${process.env.BARIKOI_API_KEY}/place?q=${encodeURIComponent(q)}`;
+
+        // We must pass a recognized origin/referer because the API key is domain-restricted.
+        const rawOrigin = req.get('origin') || req.get('referer');
+        const originHeader = (!rawOrigin || rawOrigin === 'null') ? 'http://localhost' : rawOrigin;
+
+        const response = await fetch(apiUrl, {
+            headers: { 'Referer': originHeader }
+        });
+        if (!response.ok) {
+             throw new Error(`Barikoi API responded with status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        return res.json(data);
+    } catch (err) {
+        console.error('Barikoi autocomplete proxy error:', err.message);
+        return res.status(500).json({ error: 'Failed to fetch map data from provider.' });
+    }
+});
+
 // start the server
 
 

@@ -7,8 +7,17 @@ if (window.location.protocol === 'file:' || (window.location.hostname.match(/loc
     API = window.location.origin + '/api';
 }
 
+let BARIKOI_API_KEY = '';
 const NOMINATIM_SEARCH_URL = 'https://nominatim.openstreetmap.org/search';
 const OSRM_ROUTE_URL = 'https://router.project-osrm.org/route/v1/driving';
+
+// Fetch map API config on load
+let barikoiKeyPromise = fetch(`${API}/maps/config`)
+    .then(res => res.json())
+    .then(data => {
+        if (data.apiKey) BARIKOI_API_KEY = data.apiKey;
+    })
+    .catch(err => console.error('Failed to load map config:', err));
 
 // ============================================================
 // PREMIUM MOTION ENGINE — Scroll Reveals, Parallax, Smart Nav
@@ -1659,7 +1668,7 @@ async function searchDeliveryPlace(query) {
     resultBox.innerHTML = '<button type="button" class="map-search-result" disabled>Searching...</button>';
 
     try {
-        const url = `${NOMINATIM_SEARCH_URL}?format=jsonv2&limit=6&q=${encodeURIComponent(query)}`;
+        const url = `${API}/maps/autocomplete?q=${encodeURIComponent(query)}`;
         const res = await fetch(url, {
             headers: {
                 Accept: 'application/json'
@@ -1667,7 +1676,8 @@ async function searchDeliveryPlace(query) {
         });
 
         if (!res.ok) throw new Error('Search failed');
-        const places = await res.json();
+        const data = await res.json();
+        const places = data.places || [];
 
         if (!Array.isArray(places) || !places.length) {
             resultBox.innerHTML = '<button type="button" class="map-search-result" disabled>No locations found</button>';
@@ -1677,11 +1687,11 @@ async function searchDeliveryPlace(query) {
         resultBox.innerHTML = '';
 
         places.forEach((place) => {
-            const lat = Number(place.lat);
-            const lon = Number(place.lon);
+            const lat = Number(place.latitude);
+            const lon = Number(place.longitude);
             if (Number.isNaN(lat) || Number.isNaN(lon)) return;
 
-            const label = place.display_name || 'Selected location';
+            const label = place.address || place.city || 'Selected location';
             const itemBtn = document.createElement('button');
             itemBtn.type = 'button';
             itemBtn.className = 'map-search-result';
@@ -1731,18 +1741,25 @@ function setCheckoutLocation(lat, lng, label = 'Delivery here') {
     mapInstance.setView([selectedLat, selectedLng], Math.max(mapInstance.getZoom(), 15));
 }
 
-function initCheckoutMap() {
+async function initCheckoutMap() {
     const mapEl = document.getElementById('map');
     if (!mapEl || typeof L === 'undefined') return;
 
-    mapInstance = L.map('map').setView([23.8103, 90.4125], 13); // default map center = Dhaka
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
+    if (!BARIKOI_API_KEY) await barikoiKeyPromise;
+
+    mapInstance = L.map('map', { wheelPxPerZoomLevel: 120 }).setView([23.8103, 90.4125], 13); // default map center = Dhaka
+    L.maplibreGL({
+        style: `https://map.barikoi.com/styles/barikoi-light/style.json?key=${BARIKOI_API_KEY}`,
+        attribution: 'Map data &copy; <a href="https://barikoi.com/">Barikoi</a>'
     }).addTo(mapInstance);
+    mapInstance.attributionControl.setPrefix(false);
 
     mapInstance.on('click', (e) => {
         setCheckoutLocation(e.latlng.lat, e.latlng.lng, 'Delivery pin');
     });
+    
+    // Hide Leaflet prefix
+    mapInstance.attributionControl.setPrefix(false);
 }
 
 // place order
@@ -3347,10 +3364,12 @@ async function getRiderLocation() {
     });
 }
 
-function showSelectedPendingOrderOnMap(order, selectedCardEl, opts = {}) {
+async function showSelectedPendingOrderOnMap(order, selectedCardEl, opts = {}) {
     const mapWrap = $('#selected-order-map-wrap');
     const mapEl = document.getElementById('selected-order-map');
     if (!mapWrap || !mapEl || typeof L === 'undefined') return;
+
+    if (!BARIKOI_API_KEY) await barikoiKeyPromise;
 
     const coords = parseDeliveryCoords(order.delivery_address);
     if (!coords) {
@@ -3372,10 +3391,12 @@ function showSelectedPendingOrderOnMap(order, selectedCardEl, opts = {}) {
     if (selectedCardEl) selectedCardEl.classList.add('is-selected');
 
     if (!selectedOrderMap) {
-        selectedOrderMap = L.map('selected-order-map').setView([coords.lat, coords.lng], 14);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
+        selectedOrderMap = L.map('selected-order-map', { wheelPxPerZoomLevel: 120 }).setView([coords.lat, coords.lng], 14);
+        L.maplibreGL({
+            style: `https://map.barikoi.com/styles/barikoi-light/style.json?key=${BARIKOI_API_KEY}`,
+            attribution: 'Map data &copy; <a href="https://barikoi.com/">Barikoi</a>'
         }).addTo(selectedOrderMap);
+        selectedOrderMap.attributionControl.setPrefix(false);
     }
 
     if (selectedOrderMarker) {
@@ -3504,16 +3525,20 @@ async function loadDeliveryHistory() {
     }
 }
 
-function initDeliveryMap() {
+async function initDeliveryMap() {
     window._deliveryMapNeedsInit = false;
     const mapEl = document.getElementById('delivery-map');
     if (!mapEl || typeof L === 'undefined') return;
 
+    if (!BARIKOI_API_KEY) await barikoiKeyPromise;
+
     if (!deliveryMap) {
-        deliveryMap = L.map('delivery-map').setView([23.8103, 90.4125], 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
+        deliveryMap = L.map('delivery-map', { wheelPxPerZoomLevel: 120 }).setView([23.8103, 90.4125], 12);
+        L.maplibreGL({
+            style: `https://map.barikoi.com/styles/barikoi-light/style.json?key=${BARIKOI_API_KEY}`,
+            attribution: 'Map data &copy; <a href="https://barikoi.com/">Barikoi</a>'
         }).addTo(deliveryMap);
+        deliveryMap.attributionControl.setPrefix(false);
     }
 
     // clear old markers before adding new ones
