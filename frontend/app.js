@@ -1081,8 +1081,8 @@ function showMsg(text, type = 'error') {
     const toast = document.createElement('div');
     toast.className = 'toast ' + type;
     const icon = type === 'success'
-        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
-        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke-width="2.5"/><circle cx="12" cy="16" r="1" fill="currentColor" stroke="none"/></svg>';
     toast.innerHTML = icon + '<span>' + text + '</span>';
     container.appendChild(toast);
     setTimeout(() => { if (toast.parentNode) toast.remove(); }, 4200);
@@ -1658,6 +1658,39 @@ function initMapSearchHandlers() {
             searchDeliveryPlace(query);
         }, 260);
     });
+
+    // Geolocate button — use browser GPS to set delivery pin
+    const geoBtn = $('#map-geolocate-btn');
+    if (geoBtn) {
+        geoBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                showMsg('Geolocation is not supported by your browser.', 'error');
+                return;
+            }
+            geoBtn.classList.add('is-locating');
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    geoBtn.classList.remove('is-locating');
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    setCheckoutLocation(lat, lng, 'My location');
+                    input.value = '';
+                    resultBox.classList.add('hidden');
+                    resultBox.innerHTML = '';
+                },
+                (err) => {
+                    geoBtn.classList.remove('is-locating');
+                    const msgs = {
+                        1: 'Location permission denied. Please allow location access in your browser settings.',
+                        2: 'Unable to determine your location. Please try again.',
+                        3: 'Location request timed out. Please try again.'
+                    };
+                    showMsg(msgs[err.code] || 'Could not get your location.', 'error');
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        });
+    }
 }
 
 async function searchDeliveryPlace(query) {
@@ -3836,7 +3869,7 @@ function showOtpModal(orderId) {
         <div class="modal-content" style="width:90%;max-width:420px;">
             <div class="modal-header">
                 <h5 style="margin:0;display:flex;align-items:center;gap:.5rem;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none"/></svg>
                     Enter Delivery OTP
                 </h5>
                 <button type="button" class="close-modal" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
@@ -4372,7 +4405,7 @@ async function adminLoadPendingApprovals() {
         }
 
         if (!pending.length) {
-            container.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><p>No pending approvals. All clear!</p></div>';
+            container.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4" stroke-width="2.5"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><p>No pending approvals. All clear!</p></div>';
             return;
         }
 
@@ -4382,7 +4415,7 @@ async function adminLoadPendingApprovals() {
                 <div class="card-body">
                     <h3>${r.name} <span class="status-badge status-badge--pending">Pending</span></h3>
                     <div class="approval-card-owner">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
                         Submitted by: <strong>${r.owner_username || '\u2014'}</strong>
                     </div>
                     <p>${r.description || 'No description provided.'}</p>
@@ -4542,7 +4575,7 @@ async function vendorLoadRestaurants() {
         const list = await res.json();
 
         if (!list.length) {
-            container.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg><p>You don\'t have any restaurants yet.<br>Submit one below to get started!</p></div>';
+            container.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg><p>You don\'t have any restaurants yet.<br>Submit one below to get started!</p></div>';
             return;
         }
 
@@ -4557,12 +4590,12 @@ async function vendorLoadRestaurants() {
                 actions = '<button class="btn btn-sm btn-manage" onclick="vendorManageMenu(' + r.id + ', \'' + r.name.replace(/'/g, "\\'") + '\')">Manage Menu \u2192</button>';
             } else if (r.status === 'pending') {
                 pendingOverlay = '<div class="vendor-pending-overlay">' +
-                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>' +
                     '<span>Verification pending \u2014 an admin must approve this restaurant before you can manage its menu.</span>' +
                     '</div>';
             } else if (r.status === 'rejected') {
                 pendingOverlay = '<div class="vendor-pending-overlay" style="background:linear-gradient(135deg,#FFF5F5,#FEE2E2);border-color:#FECACA;color:#991B1B;">' +
-                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#DC2626"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' +
+                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#DC2626"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' +
                     '<span>This restaurant was rejected. Please contact support for details.</span>' +
                     '</div>';
             }
