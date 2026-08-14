@@ -3137,6 +3137,7 @@ async function initProfile() {
 
 function initMyOrders() {
     if (!getToken()) return window.location.href = 'login.html';
+    initCancelOrderPopup();
     fetchMyOrders();
     // auto refresh orders every 5 seconds
     setInterval(fetchMyOrders, 5000);
@@ -3176,7 +3177,7 @@ async function fetchMyOrders() {
             if (cancelBtn) {
                 if (['pending', 'confirmed'].includes(order.status)) {
                     cancelBtn.classList.remove('hidden');
-                    cancelBtn.addEventListener('click', () => cancelCustomerOrder(order.id));
+                    cancelBtn.addEventListener('click', () => openCancelOrderPopup(order.id));
                 }
             }
 
@@ -3196,23 +3197,53 @@ async function fetchMyOrders() {
     }
 }
 
-async function cancelCustomerOrder(orderId) {
-    if (!confirm('Are you sure you want to cancel this order?')) return;
-    try {
-        const res = await fetch(`${API}/orders/${orderId}/cancel`, {
-            method: 'PATCH',
-            headers: authHeaders()
-        });
-        const data = await res.json();
-        if (res.ok) {
-            showMsg('Order cancelled successfully.', 'success');
-            fetchMyOrders();
-        } else {
-            showMsg(data.error || 'Failed to cancel order.', 'error');
+let orderToCancelId = null;
+
+function initCancelOrderPopup() {
+    const overlay = $('#cancel-order-overlay');
+    const panel = $('#cancel-order-popup');
+    const closeBtn = $('#cancel-order-close');
+    const btnNo = $('#cancel-order-no');
+    const btnYes = $('#cancel-order-yes');
+
+    if (!overlay || !panel) return;
+
+    const closePopup = () => {
+        orderToCancelId = null;
+        PandaPopup.close(panel, overlay);
+    };
+
+    closeBtn.addEventListener('click', closePopup);
+    btnNo.addEventListener('click', closePopup);
+    overlay.addEventListener('click', closePopup);
+
+    btnYes.addEventListener('click', async () => {
+        if (!orderToCancelId) return;
+        const orderId = orderToCancelId;
+        closePopup();
+        try {
+            const res = await fetch(`${API}/orders/${orderId}/cancel`, {
+                method: 'PATCH',
+                headers: authHeaders()
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showMsg('Order cancelled successfully.', 'success');
+                fetchMyOrders();
+            } else {
+                showMsg(data.error || 'Failed to cancel order.', 'error');
+            }
+        } catch (err) {
+            showMsg('Network error. Try again.', 'error');
         }
-    } catch (err) {
-        showMsg('Network error. Try again.', 'error');
-    }
+    });
+}
+
+function openCancelOrderPopup(orderId) {
+    orderToCancelId = orderId;
+    const overlay = $('#cancel-order-overlay');
+    const panel = $('#cancel-order-popup');
+    if (overlay && panel) PandaPopup.open(panel, overlay);
 }
 
 // delivery page logic (delivery.html)
