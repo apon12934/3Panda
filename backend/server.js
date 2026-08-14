@@ -1389,7 +1389,7 @@ app.get('/api/delivery/pending', verifyToken, async (req, res) => {
                                         c.profile_image AS customer_profile_image
              FROM Orders o
                          LEFT JOIN Users c ON o.${compat.ordersUserColumn} = c.${customerJoinKey}
-             WHERE o.status IN ('pending', 'confirmed', 'preparing')
+             WHERE o.status IN ('pending', 'confirmed', 'preparing', 'out_for_delivery')
                              AND (o.${compat.ordersDeliveryColumn} IS NULL OR o.${compat.ordersDeliveryColumn} = ?)
              ORDER BY o.id DESC`,
                         [deliveryAssigneeValue]
@@ -1483,6 +1483,15 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
         }
         if (req.user.role === 'delivery' && order[compat.ordersDeliveryColumn] && order[compat.ordersDeliveryColumn] !== deliveryAssigneeValue) {
             return res.status(403).json({ error: 'You can only update orders assigned to you.' });
+        }
+
+        // Prevent downgrading the status (except for cancelling to release the order)
+        if (req.user.role === 'delivery' && status !== 'cancelled') {
+            const currentIndex = validStatuses.indexOf(order.status);
+            const nextIndex = validStatuses.indexOf(status);
+            if (nextIndex <= currentIndex && currentIndex !== 0) {
+                return res.status(400).json({ error: 'Cannot downgrade to a previous status.' });
+            }
         }
 
         // OTP verification: delivery riders must provide the correct OTP to mark as delivered
