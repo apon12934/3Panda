@@ -1535,6 +1535,46 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
     }
 });
 
+// customer cancel order
+app.patch('/api/orders/:id/cancel', verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const orderId = parsePositiveInteger(id);
+        if (!orderId) {
+            return res.status(400).json({ error: 'Invalid order id.' });
+        }
+
+        if (req.user.role !== 'customer') {
+            return res.status(403).json({ error: 'Only customers can cancel their own orders.' });
+        }
+
+        const compat = await ensureSchemaCompat();
+        const order = await dbGet('SELECT * FROM Orders WHERE id = ?', [orderId]);
+        if (!order) return res.status(404).json({ error: 'Order not found.' });
+
+        const orderUserValue = await resolveOrderUserValue(req.user.username);
+        if (order[compat.ordersUserColumn] !== orderUserValue) {
+            return res.status(403).json({ error: 'Not authorized to cancel this order.' });
+        }
+
+        if (!['pending', 'confirmed'].includes(order.status)) {
+            return res.status(400).json({ error: 'Order cannot be cancelled at this stage.' });
+        }
+
+        await dbRun(
+            `UPDATE Orders SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+            [orderId]
+        );
+
+        logActivity(req, { action: 'order.cancelled_by_customer', targetType: 'order', targetId: orderId, details: { old_status: order.status } });
+
+        return res.json({ message: 'Order cancelled successfully.' });
+    } catch (err) {
+        console.error('Cancel order error:', err.message);
+        return res.status(500).json({ error: 'Server error.' });
+    }
+});
+
 // admin route to see all orders
 
 app.get('/api/orders', verifyToken, requireAdmin, async (_req, res) => {

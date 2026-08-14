@@ -3172,6 +3172,14 @@ async function fetchMyOrders() {
                 otpBox.classList.remove('hidden');
             }
 
+            const cancelBtn = clone.querySelector('.cancel-order-btn');
+            if (cancelBtn) {
+                if (['pending', 'confirmed'].includes(order.status)) {
+                    cancelBtn.classList.remove('hidden');
+                    cancelBtn.addEventListener('click', () => cancelCustomerOrder(order.id));
+                }
+            }
+
             const tbody = clone.querySelector('.order-items');
             let total = 0;
             order.items.forEach(item => {
@@ -3185,6 +3193,25 @@ async function fetchMyOrders() {
         });
     } catch (err) {
         console.error(err);
+    }
+}
+
+async function cancelCustomerOrder(orderId) {
+    if (!confirm('Are you sure you want to cancel this order?')) return;
+    try {
+        const res = await fetch(`${API}/orders/${orderId}/cancel`, {
+            method: 'PATCH',
+            headers: authHeaders()
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showMsg('Order cancelled successfully.', 'success');
+            fetchMyOrders();
+        } else {
+            showMsg(data.error || 'Failed to cancel order.', 'error');
+        }
+    } catch (err) {
+        showMsg('Network error. Try again.', 'error');
     }
 }
 
