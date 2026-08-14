@@ -3908,14 +3908,19 @@ async function updateOrderStatus(orderId, status) {
             body: JSON.stringify({ status })
         });
         const data = await res.json();
-        if (!res.ok) return showMsg(data.error);
+        if (!res.ok) {
+            showMsg(data.error || 'Update failed', 'error');
+            loadPendingOrders(); // Revert UI dropdown to actual state
+            return;
+        }
 
         showMsg('Order #' + orderId + ' → ' + formatStatus(status), 'success');
         loadPendingOrders();
         loadDeliveryHistory();
     } catch (err) {
         console.error(err);
-        showMsg('Update failed.');
+        showMsg('Update failed.', 'error');
+        loadPendingOrders();
     }
 }
 
