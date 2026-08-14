@@ -3168,7 +3168,7 @@ async function fetchMyOrders() {
             // show OTP box when the order is out for delivery
             const otpBox = clone.querySelector('.otp-box');
             const otpEl = clone.querySelector('.order-otp');
-            if (otpBox && otpEl && order.delivery_otp && !['delivered', 'cancelled'].includes(order.status)) {
+            if (otpBox && otpEl && order.delivery_otp && order.status === 'out_for_delivery') {
                 otpEl.textContent = order.delivery_otp;
                 otpBox.classList.remove('hidden');
             }
