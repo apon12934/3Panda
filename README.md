@@ -283,13 +283,11 @@ All done without changing product features or visual design.
 - Single-service monolithic architecture (intentional for lab scope)
 - Some admin/vendor paths are optimized for demonstration workflow
 
-## Team
+## Author
 
-Built by:
+**Al Amin Islam Apon**
 
-- Apon
-- Monayem
-- Anwar
+*(Note: The "3 Panda" logo and its three mascots were named in tribute to the initial project group: Apon, Monayem, and Anwar. However, the platform's architecture and codebase were solely engineered by Al Amin Islam Apon.)*
 
 ## License
 
