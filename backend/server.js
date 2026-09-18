@@ -476,7 +476,10 @@ app.post('/api/otp/request', async (req, res) => {
             if (existing) return res.status(400).json({ error: 'Email already registered.' });
         } else if (purpose === 'reset_password') {
             const existing = await dbGet('SELECT username FROM Users WHERE lower(email) = ?', [trimmedEmail]);
-            if (!existing) return res.status(400).json({ error: 'Email not found.' });
+            if (!existing) {
+                // Prevent email enumeration: return success even if not found
+                return res.json({ message: 'If an account exists, a verification code was sent.' });
+            }
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit OTP

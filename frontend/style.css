@@ -2891,7 +2891,7 @@ body.profile-view-open {
     position: fixed;
     bottom: 1.5rem;
     left: 1.5rem;
-    z-index: 9999;
+    z-index: 99999;
     display: flex;
     flex-direction: column-reverse;
     gap: .6rem;
