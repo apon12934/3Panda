@@ -24,6 +24,7 @@ const mysql = require('mysql2/promise');
 const memLogs = [];
 const origLog = console.log;
 const origErr = console.error;
+const origWarn = console.warn;
 console.log = function(...args) {
     memLogs.push(`[LOG] ${args.join(' ')}`);
     if(memLogs.length > 100) memLogs.shift();
@@ -33,6 +34,11 @@ console.error = function(...args) {
     memLogs.push(`[ERR] ${args.join(' ')}`);
     if(memLogs.length > 100) memLogs.shift();
     origErr.apply(console, args);
+};
+console.warn = function(...args) {
+    memLogs.push(`[WARN] ${args.join(' ')}`);
+    if(memLogs.length > 100) memLogs.shift();
+    origWarn.apply(console, args);
 };
 const cloudinary = require('cloudinary').v2;
 const nodemailer = require('nodemailer');
@@ -57,13 +63,14 @@ async function sendEmail(to, subject, text, html) {
         return;
     }
     try {
-        await emailTransporter.sendMail({
+        const info = await emailTransporter.sendMail({
             from: `"3 Panda" <${process.env.EMAIL_USER}>`,
             to,
             subject,
             text,
             html
         });
+        console.log('Email successfully sent to', to, 'Response:', info.response);
     } catch (err) {
         console.error('Email sending failed:', err);
     }
