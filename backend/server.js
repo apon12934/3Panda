@@ -487,7 +487,7 @@ app.post('/api/otp/request', async (req, res) => {
             [trimmedEmail, otp, purpose, expiresAt, otp, purpose, expiresAt]
         );
 
-        await sendEmail(trimmedEmail, 'Your 3 Panda Verification Code', \`Your OTP is: \${otp}\nIt expires in 15 minutes.\`);
+        await sendEmail(trimmedEmail, 'Your 3 Panda Verification Code', `Your OTP is: ${otp}\nIt expires in 15 minutes.`);
         res.json({ message: 'OTP sent successfully' });
     } catch (err) {
         console.error(err);
@@ -1433,8 +1433,8 @@ app.get('/api/orders/mine', verifyToken, async (req, res) => {
         const deliveryJoinKey = getUserJoinKeyForOrderColumn(compat.ordersDeliveryColumn);
         const otpSelect = ''; // No longer exposing OTP to frontend, sending via email instead
         const orders = await dbAll(
-            \`SELECT o.id, o.status, o.delivery_address, o.total_amount, o.payment_method, o.notes,
-                    o.created_at\${otpSelect},\
+            `SELECT o.id, o.status, o.delivery_address, o.total_amount, o.payment_method, o.notes,
+                    o.created_at${otpSelect},
                     COALESCE(u.full_name, u.username, CAST(o.${compat.ordersDeliveryColumn} AS CHAR)) AS delivery_person
              FROM Orders o
              LEFT JOIN Users u ON o.${compat.ordersDeliveryColumn} = u.${deliveryJoinKey}
@@ -1621,11 +1621,11 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
         if (nextStatus !== order.status) {
             const customer = await dbGet('SELECT email FROM Users WHERE username = ?', [order.user_username]);
             if (customer && customer.email) {
-                let subject = \`Order #\${orderId} Status Update\`;
-                let text = \`Your order #\${orderId} is now: \${nextStatus.replace(/_/g, ' ').toUpperCase()}.\`;
+                let subject = `Order #${orderId} Status Update`;
+                let text = `Your order #${orderId} is now: ${nextStatus.replace(/_/g, ' ').toUpperCase()}.`;
                 
                 if (nextStatus === 'out_for_delivery' && order.delivery_otp) {
-                    text += \`\n\nYour delivery confirmation code (OTP) is: \${order.delivery_otp}\nPlease provide this code to the rider when they arrive.\`;
+                    text += `\n\nYour delivery confirmation code (OTP) is: ${order.delivery_otp}\nPlease provide this code to the rider when they arrive.`;
                 }
                 
                 // Fire and forget
