@@ -649,14 +649,6 @@ function initCommonButtonLogic() {
         });
     }
 
-    const forgotResetLink = document.getElementById('forgot-reset-link');
-    if (forgotResetLink) {
-        forgotResetLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            showMsg('Password reset is not available yet. Please contact support.');
-        });
-    }
-
     // Fallback: avoid dead hash-links jumping to top without feedback.
     document.querySelectorAll('a[href="#"]').forEach((link) => {
         if (link.id === 'show-login' || link.id === 'view-all-partners' || link.id === 'favorites-link' || link.id === 'payment-methods-link' || link.id === 'forgot-reset-link') {
