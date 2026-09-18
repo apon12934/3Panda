@@ -3178,9 +3178,11 @@ function initProfilePictureModal() {
 async function initProfile() {
     if (!getToken()) return window.location.href = 'login.html';
 
+    let currentUserData = {};
     try {
         const res = await fetch(API + '/users/profile', { headers: authHeaders() });
         const user = await res.json();
+        currentUserData = user;
         if (!res.ok) return showMsg(user.error);
 
         $('#profile-name').value = user.username || '';
@@ -3205,7 +3207,7 @@ async function initProfile() {
             const newUsername = $('#profile-name').value.trim();
             const newEmail = $('#profile-email').value.trim();
 
-            if (newEmail !== user.email) {
+            if (newEmail !== currentUserData.email) {
                 const btn = e.target.querySelector('button[type="submit"]');
                 const origText = btn.textContent;
                 btn.textContent = 'Sending Code...';
@@ -3257,6 +3259,11 @@ async function initProfile() {
             const data = await res.json();
             if (!res.ok) return showMsg(data.error);
             showMsg('Profile updated!', 'success');
+            
+            // Update local user data so it doesn't prompt for OTP again
+            currentUserData.email = newEmail;
+            currentUserData.username = newUsername;
+            
             if ($('#profile-password')) $('#profile-password').value = '';
             if ($('#profile-password-confirm')) $('#profile-password-confirm').value = '';
             // reload profile image preview
