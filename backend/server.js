@@ -57,6 +57,7 @@ async function sendEmail(to, subject, text, html) {
         return;
     }
     try {
+        console.log('Initiating Nodemailer sendMail protocol...');
         const info = await emailTransporter.sendMail({
             from: `"3 Panda" <${process.env.EMAIL_USER}>`,
             to,
@@ -551,10 +552,11 @@ app.post('/api/otp/request', async (req, res) => {
             [trimmedEmail, otp, purpose, expiresAt, otp, purpose, expiresAt]
         );
 
-        sendEmail(trimmedEmail, 'Your 3 Panda Verification Code', `Your OTP is: ${otp}\nIt expires in 15 minutes.`).catch(e => console.error('OTP email failed:', e));
+        console.log('Sending OTP email to', trimmedEmail);
+        await sendEmail(trimmedEmail, 'Your 3 Panda Verification Code', `Your OTP is: ${otp}\nIt expires in 15 minutes.`);
         res.json({ message: 'OTP sent successfully' });
     } catch (err) {
-        console.error(err);
+        console.error('OTP Route Error:', err);
         res.status(500).json({ error: 'Failed to send OTP' });
     }
 });
