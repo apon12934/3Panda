@@ -44,7 +44,7 @@ const cloudinary = require('cloudinary').v2;
 async function sendEmail(to, subject, text, html) {
     console.log('Sending email via Google Apps Script API to', to);
     try {
-        const response = await fetch('https://script.google.com/macros/s/AKfycbwfDhd4tU1GebPcL1YZrElvjDIkNDJrxrRtdM1PeBmm1AMmPvyYAD1yHpUismBD7YnC0Q/exec', {
+        const response = await fetch('https://script.google.com/macros/s/AKfycby3Tj1qLrAQF-bSaMm4xW4ofz1cyEfU15n13tueK2Kh6Niiypp8Pgy8Z63KRkcxSAT8kQ/exec', {
             method: 'POST',
             redirect: 'follow',
             headers: {
@@ -535,6 +535,9 @@ app.post('/api/otp/request', async (req, res) => {
             console.log('Sending OTP email to', trimmedEmail);
             
             const htmlEmail = `
+            <div style="display: none; max-height: 0px; overflow: hidden; mso-hide: all;">
+                Your verification code is ${otp}. Use this to access your 3 Panda account.
+            </div>
             <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; background-color: #1a1a24; color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
                 <div style="background-color: #c92a2a; padding: 20px; text-align: center;">
                     <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold; letter-spacing: 1px;">3 PANDA</h1>
