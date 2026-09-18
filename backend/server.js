@@ -45,15 +45,11 @@ const nodemailer = require('nodemailer');
 
 const emailTransporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false, // STARTTLS
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    },
-    // The ultimate fix for Render IPv6 blackholes: intercept the DNS lookup and force family 4
-    lookup: (hostname, options, callback) => {
-        dns.lookup(hostname, { family: 4 }, callback);
     }
 });
 
