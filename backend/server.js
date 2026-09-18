@@ -511,14 +511,14 @@ app.post('/api/otp/request', async (req, res) => {
         if (!isValidEmail(trimmedEmail)) return res.status(400).json({ error: 'Valid email required' });
         if (purpose !== 'register' && purpose !== 'reset_password') return res.status(400).json({ error: 'Invalid purpose' });
 
+        let shouldSendEmail = true;
         if (purpose === 'register') {
             const existing = await dbGet('SELECT username FROM Users WHERE lower(email) = ?', [trimmedEmail]);
             if (existing) return res.status(400).json({ error: 'Email already registered.' });
         } else if (purpose === 'reset_password') {
             const existing = await dbGet('SELECT username FROM Users WHERE lower(email) = ?', [trimmedEmail]);
             if (!existing) {
-                // Prevent email enumeration: return success even if not found
-                return res.json({ message: 'If an account exists, a verification code was sent.' });
+                shouldSendEmail = false;
             }
         }
 
@@ -530,9 +530,15 @@ app.post('/api/otp/request', async (req, res) => {
             [trimmedEmail, otp, purpose, expiresAt, otp, purpose, expiresAt]
         );
 
-        console.log('Sending OTP email to', trimmedEmail);
-        await sendEmail(trimmedEmail, 'Your 3 Panda Verification Code', `Your OTP is: ${otp}\nIt expires in 15 minutes.`);
-        res.json({ message: 'OTP sent successfully' });
+        if (shouldSendEmail) {
+            console.log('Sending OTP email to', trimmedEmail);
+            await sendEmail(trimmedEmail, 'Your 3 Panda Verification Code', `Your OTP is: ${otp}\nIt expires in 15 minutes.`);
+        } else {
+            // Fake delay to simulate email sending time (prevents timing attacks)
+            await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 400));
+        }
+        
+        res.json({ message: 'If the email is valid, an OTP has been sent successfully.' });
     } catch (err) {
         console.error('OTP Route Error:', err);
         res.status(500).json({ error: 'Failed to send OTP' });
