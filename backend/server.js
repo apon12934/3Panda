@@ -44,10 +44,7 @@ const cloudinary = require('cloudinary').v2;
 const nodemailer = require('nodemailer');
 
 const emailTransporter = nodemailer.createTransport({
-    host: '142.251.10.108',
-    port: 465,
-    secure: true,
-    tls: { servername: 'smtp.gmail.com' }, // SNI to verify certificate
+    service: 'gmail',
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
@@ -69,7 +66,29 @@ async function sendEmail(to, subject, text, html) {
         });
         console.log('Email successfully sent to', to, 'Response:', info.response);
     } catch (err) {
-        console.error('Email sending failed:', err);
+        if (err.message.includes('ENETUNREACH') || err.message.includes('ETIMEDOUT')) {
+            console.warn('IPv6 or standard connection failed, retrying with raw IPv4 direct connection...');
+            try {
+                const dns = require('dns').promises;
+                const ips = await dns.resolve4('smtp.gmail.com');
+                const fallbackTransporter = require('nodemailer').createTransport({
+                    host: ips[0],
+                    port: 465,
+                    secure: true,
+                    tls: { servername: 'smtp.gmail.com' },
+                    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+                });
+                const info = await fallbackTransporter.sendMail({
+                    from: `"3 Panda" <${process.env.EMAIL_USER}>`,
+                    to, subject, text, html
+                });
+                console.log('Fallback email successfully sent to', to, 'Response:', info.response);
+            } catch (fallbackErr) {
+                console.error('Fallback email sending failed:', fallbackErr);
+            }
+        } else {
+            console.error('Email sending failed:', err);
+        }
     }
 }
 const app = express();
@@ -494,6 +513,16 @@ const logActivity = (req, { action, targetType = null, targetId = null, details 
 
 app.get('/api/logs', (req, res) => {
     res.send(memLogs.join('\n'));
+});
+
+app.get('/api/dns-test', async (req, res) => {
+    try {
+        const dns = require('dns').promises;
+        const result = await dns.resolve4('smtp.gmail.com');
+        res.json({ ipv4: result });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.post('/api/otp/request', async (req, res) => {
