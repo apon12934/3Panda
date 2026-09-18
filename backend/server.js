@@ -486,8 +486,8 @@ app.post('/api/otp/request', async (req, res) => {
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
 
         await dbRun(
-            `INSERT INTO OtpVerifications (email, otp, purpose, expires_at) VALUES (?, ?, ?, ?) ON CONFLICT(email) DO UPDATE SET otp = excluded.otp, purpose = excluded.purpose, expires_at = excluded.expires_at`,
-            [trimmedEmail, otp, purpose, expiresAt]
+            `INSERT INTO OtpVerifications (email, otp, purpose, expires_at) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE otp = ?, purpose = ?, expires_at = ?`,
+            [trimmedEmail, otp, purpose, expiresAt, otp, purpose, expiresAt]
         );
 
         await sendEmail(trimmedEmail, 'Your 3 Panda Verification Code', `Your OTP is: ${otp}\nIt expires in 15 minutes.`);
