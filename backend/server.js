@@ -41,63 +41,33 @@ console.warn = function(...args) {
     origWarn.apply(console, args);
 };
 const cloudinary = require('cloudinary').v2;
-const nodemailer = require('nodemailer');
-
-const emailTransporter = nodemailer.createTransport({
-    service: 'gmail',
-    connectionTimeout: 10000, // 10 seconds
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
-
 async function sendEmail(to, subject, text, html) {
-    if (!process.env.EMAIL_USER) {
-        console.warn('EMAIL_USER not set, skipping email to ' + to);
-        return;
-    }
+    console.log('Sending email via Google Apps Script API to', to);
     try {
-        console.log('Initiating Nodemailer sendMail protocol...');
-        const info = await emailTransporter.sendMail({
-            from: `"3 Panda" <${process.env.EMAIL_USER}>`,
-            to,
-            subject,
-            text,
-            html
+        const response = await fetch('https://script.google.com/macros/s/AKfycbz56Tugn7FtDfNp-SLa5cSFL4ZiUC0pf0DSACQ-nw4xtU6TGV7dJ_tQQ9gdg8joCiZ6YQ/exec', {
+            method: 'POST',
+            redirect: 'follow',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                apiKey: 'apon_super_secret_key_123',
+                to: to,
+                subject: subject,
+                htmlBody: html || text.replace(/\n/g, '<br>')
+            })
         });
-        console.log('Email successfully sent to', to, 'Response:', info.response);
-    } catch (err) {
-        if (err.message.includes('ENETUNREACH') || err.message.includes('ETIMEDOUT')) {
-            console.warn('IPv6 or standard connection failed, retrying with raw IPv4 direct connection...');
-            try {
-                const dns = require('dns').promises;
-                const ips = await dns.resolve4('smtp.gmail.com');
-                const fallbackTransporter = require('nodemailer').createTransport({
-                    host: ips[0],
-                    port: 465,
-                    secure: true,
-                    tls: { servername: 'smtp.gmail.com' },
-                    connectionTimeout: 10000,
-                    greetingTimeout: 10000,
-                    socketTimeout: 10000,
-                    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-                });
-                const info = await fallbackTransporter.sendMail({
-                    from: `"3 Panda" <${process.env.EMAIL_USER}>`,
-                    to, subject, text, html
-                });
-                console.log('Fallback email successfully sent to', to, 'Response:', info.response);
-            } catch (fallbackErr) {
-                console.error('Fallback email sending failed:', fallbackErr);
-                throw fallbackErr; // Bubble up so the UI stops loading
-            }
+
+        const result = await response.json();
+        if (result.success) {
+            console.log('Email successfully sent via Google Apps Script to', to);
         } else {
-            console.error('Email sending failed:', err);
-            throw err; // Bubble up so the UI stops loading
+            console.error('Google Apps Script failed:', result.error);
+            throw new Error(result.error);
         }
+    } catch (err) {
+        console.error('Email sending completely failed:', err);
+        throw err;
     }
 }
 const app = express();
