@@ -169,3 +169,12 @@ CREATE INDEX idx_restaurants_status ON Restaurants(status);
 CREATE INDEX idx_actlog_actor ON ActivityLog(actor);
 CREATE INDEX idx_actlog_action ON ActivityLog(action);
 CREATE INDEX idx_actlog_created ON ActivityLog(created_at);
+
+ - -   - - - - - - - - - - - - - - - -   o t p   v e r i f i c a t i o n s   t a b l e   - - - - - - - - - - - - - - - - 
+ C R E A T E   T A B L E   I F   N O T   E X I S T S   O t p V e r i f i c a t i o n s   ( 
+         e m a i l                 V A R C H A R ( 2 5 5 )           P R I M A R Y   K E Y , 
+         o t p                     C H A R ( 6 )                     N O T   N U L L , 
+         p u r p o s e             V A R C H A R ( 2 0 )             N O T   N U L L , 
+         e x p i r e s _ a t       T I M E S T A M P                 N O T   N U L L 
+ ) ;  
+ 

@@ -17,7 +17,33 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const mysql = require('mysql2/promise');
 const cloudinary = require('cloudinary').v2;
+const nodemailer = require('nodemailer');
 
+const emailTransporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
+
+async function sendEmail(to, subject, text, html) {
+    if (!process.env.EMAIL_USER) {
+        console.warn('EMAIL_USER not set, skipping email to ' + to);
+        return;
+    }
+    try {
+        await emailTransporter.sendMail({
+            from: `"3 Panda" <${process.env.EMAIL_USER}>`,
+            to,
+            subject,
+            text,
+            html
+        });
+    } catch (err) {
+        console.error('Email sending failed:', err);
+    }
+}
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : crypto.randomBytes(64).toString('hex'));
@@ -438,11 +464,66 @@ const logActivity = (req, { action, targetType = null, targetId = null, details 
 
 // auth routes
 
+app.post('/api/otp/request', async (req, res) => {
+    try {
+        const { email, purpose } = req.body;
+        const trimmedEmail = normalizeText(email, 254).toLowerCase();
+        if (!isValidEmail(trimmedEmail)) return res.status(400).json({ error: 'Valid email required' });
+        if (purpose !== 'register' && purpose !== 'reset_password') return res.status(400).json({ error: 'Invalid purpose' });
+
+        if (purpose === 'register') {
+            const existing = await dbGet('SELECT username FROM Users WHERE lower(email) = ?', [trimmedEmail]);
+            if (existing) return res.status(400).json({ error: 'Email already registered.' });
+        } else if (purpose === 'reset_password') {
+            const existing = await dbGet('SELECT username FROM Users WHERE lower(email) = ?', [trimmedEmail]);
+            if (!existing) return res.status(400).json({ error: 'Email not found.' });
+        }
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit OTP
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+        await dbRun(
+            `INSERT INTO OtpVerifications (email, otp, purpose, expires_at) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE otp = ?, purpose = ?, expires_at = ?`,
+            [trimmedEmail, otp, purpose, expiresAt, otp, purpose, expiresAt]
+        );
+
+        await sendEmail(trimmedEmail, 'Your 3 Panda Verification Code', \`Your OTP is: \${otp}\nIt expires in 15 minutes.\`);
+        res.json({ message: 'OTP sent successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to send OTP' });
+    }
+});
+
+app.post('/api/users/reset-password', async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+        const trimmedEmail = normalizeText(email, 254).toLowerCase();
+        const normalizedPassword = normalizePassword(newPassword);
+
+        if (!isValidEmail(trimmedEmail) || !otp || normalizedPassword.length < 8) {
+            return res.status(400).json({ error: 'Invalid input.' });
+        }
+
+        const record = await dbGet('SELECT * FROM OtpVerifications WHERE email = ? AND purpose = ?', [trimmedEmail, 'reset_password']);
+        if (!record || record.otp !== String(otp)) return res.status(400).json({ error: 'Invalid OTP.' });
+        if (new Date(record.expires_at) < new Date()) return res.status(400).json({ error: 'OTP expired.' });
+
+        const hash = await bcrypt.hash(normalizedPassword, SALT_ROUNDS);
+        await dbRun('UPDATE Users SET password = ? WHERE lower(email) = ?', [hash, trimmedEmail]);
+        await dbRun('DELETE FROM OtpVerifications WHERE email = ?', [trimmedEmail]);
+
+        res.json({ message: 'Password reset successful.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
 
 // register user
 app.post('/api/register', async (req, res) => {
     try {
-        const { username, email, password, role, full_name, phone, address } = req.body;
+        const { username, email, password, role, full_name, phone, address, otp } = req.body;
         const trimmedUsername = normalizeText(username, 32);
         const trimmedEmail = normalizeText(email, 254).toLowerCase();
         const normalizedPassword = normalizePassword(password);
@@ -451,8 +532,8 @@ app.post('/api/register', async (req, res) => {
         const normalizedAddress = normalizeOptionalText(address, 300);
         const normalizedRole = normalizeRole(role, false);
 
-        if (!trimmedUsername || !trimmedEmail || !normalizedPassword) {
-            return res.status(400).json({ error: 'Username, email, and password are required.' });
+        if (!trimmedUsername || !trimmedEmail || !normalizedPassword || !otp) {
+            return res.status(400).json({ error: 'Username, email, password, and OTP are required.' });
         }
 
         if (!isValidUsername(trimmedUsername)) {
@@ -467,6 +548,10 @@ app.post('/api/register', async (req, res) => {
 
         const userRole = normalizedRole || 'customer';
 
+        const record = await dbGet('SELECT * FROM OtpVerifications WHERE email = ? AND purpose = ?', [trimmedEmail, 'register']);
+        if (!record || record.otp !== String(otp)) return res.status(400).json({ error: 'Invalid OTP.' });
+        if (new Date(record.expires_at) < new Date()) return res.status(400).json({ error: 'OTP expired.' });
+
         const existing = await dbGet(
             'SELECT username FROM Users WHERE lower(email) = lower(?) OR lower(username) = lower(?)',
             [trimmedEmail, trimmedUsername]
@@ -477,13 +562,15 @@ app.post('/api/register', async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(normalizedPassword, SALT_ROUNDS);
 
-        const result = await dbRun(
+        await dbRun(
             'INSERT INTO Users (username, email, password, role, full_name, phone, address) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [trimmedUsername, trimmedEmail, hashedPassword, userRole, normalizedFullName, normalizedPhone, normalizedAddress]
         );
+        
+        await dbRun('DELETE FROM OtpVerifications WHERE email = ?', [trimmedEmail]);
 
         const token = jwt.sign(
-            { username: userRole === undefined ? user.username : trimmedUsername, role: userRole === undefined ? user.role : userRole },
+            { username: trimmedUsername, role: userRole },
             JWT_SECRET,
             { expiresIn: '15d' }
         );
@@ -1344,10 +1431,10 @@ app.get('/api/orders/mine', verifyToken, async (req, res) => {
         }
 
         const deliveryJoinKey = getUserJoinKeyForOrderColumn(compat.ordersDeliveryColumn);
-        const otpSelect = compat.ordersHasOtp ? ', o.delivery_otp' : '';
+        const otpSelect = ''; // No longer exposing OTP to frontend, sending via email instead
         const orders = await dbAll(
-            `SELECT o.id, o.status, o.delivery_address, o.total_amount, o.payment_method, o.notes,
-                    o.created_at${otpSelect},
+            \`SELECT o.id, o.status, o.delivery_address, o.total_amount, o.payment_method, o.notes,
+                    o.created_at\${otpSelect},\
                     COALESCE(u.full_name, u.username, CAST(o.${compat.ordersDeliveryColumn} AS CHAR)) AS delivery_person
              FROM Orders o
              LEFT JOIN Users u ON o.${compat.ordersDeliveryColumn} = u.${deliveryJoinKey}
@@ -1530,6 +1617,21 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
             `UPDATE Orders SET status = ?, ${compat.ordersDeliveryColumn} = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
             [nextStatus, deliveryPersonValue, orderId]
         );
+
+        if (nextStatus !== order.status) {
+            const customer = await dbGet('SELECT email FROM Users WHERE username = ?', [order.user_username]);
+            if (customer && customer.email) {
+                let subject = \`Order #\${orderId} Status Update\`;
+                let text = \`Your order #\${orderId} is now: \${nextStatus.replace(/_/g, ' ').toUpperCase()}.\`;
+                
+                if (nextStatus === 'out_for_delivery' && order.delivery_otp) {
+                    text += \`\n\nYour delivery confirmation code (OTP) is: \${order.delivery_otp}\nPlease provide this code to the rider when they arrive.\`;
+                }
+                
+                // Fire and forget
+                sendEmail(customer.email, subject, text).catch(e => console.error('Failed to notify customer:', e));
+            }
+        }
 
         logActivity(req, { action: 'order.status_changed', targetType: 'order', targetId: orderId, details: { old_status: order.status, new_status: nextStatus, changed_by_role: req.user.role } });
 

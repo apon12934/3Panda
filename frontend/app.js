@@ -2617,41 +2617,135 @@ function initLogin() {
         }
     });
 
+    let pendingRegistrationData = null;
+
     const regForm = $('#register-form');
     if (regForm) regForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const email = $('#reg-email').value.trim();
         try {
-            const res = await fetch(API + '/register', {
+            const res = await fetch(API + '/otp/request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: $('#reg-name').value.trim(),
-                    email: $('#reg-email').value.trim(),
-                    password: $('#reg-password').value,
-                    role: $('#reg-role').value
-                })
+                body: JSON.stringify({ email, purpose: 'register' })
             });
             const data = await res.json();
             if (!res.ok) return showMsg(data.error);
 
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('role', data.role);
-            localStorage.setItem('userId', data.userId);
-            localStorage.setItem('userName', data.username);
+            pendingRegistrationData = {
+                username: $('#reg-name').value.trim(),
+                email: email,
+                password: $('#reg-password').value,
+                role: $('#reg-role').value
+            };
 
-            showMsg('Account created. Welcome, ' + data.username + '!', 'success');
-
-            setTimeout(() => {
-                if (data.role === 'admin') window.location.href = 'admin.html';
-                else if (data.role === 'delivery') window.location.href = 'delivery.html';
-                else if (data.role === 'vendor') window.location.href = 'vendor.html';
-                else window.location.href = 'index.html';
-            }, 600);
+            $('#otp-purpose').value = 'register';
+            $('#otp-email').value = email;
+            $('#otp-new-password-group').classList.add('hidden');
+            $('#otp-code').value = '';
+            $('#otp-modal-title').textContent = 'Verify Registration';
+            $('#otp-modal').style.display = 'flex';
         } catch (err) {
             console.error(err);
-            showMsg('Registration failed.');
+            showMsg('Failed to request verification code.');
         }
     });
+
+    const otpForm = $('#otp-form');
+    if (otpForm) otpForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const purpose = $('#otp-purpose').value;
+        const email = $('#otp-email').value;
+        const otp = $('#otp-code').value.trim();
+
+        if (purpose === 'register') {
+            try {
+                const res = await fetch(API + '/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...pendingRegistrationData, otp })
+                });
+                const data = await res.json();
+                if (!res.ok) return showMsg(data.error);
+
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('role', data.role);
+                localStorage.setItem('userId', data.userId);
+                localStorage.setItem('userName', data.username);
+
+                showMsg('Account created. Welcome, ' + data.username + '!', 'success');
+                $('#otp-modal').style.display = 'none';
+
+                setTimeout(() => {
+                    if (data.role === 'admin') window.location.href = 'admin.html';
+                    else if (data.role === 'delivery') window.location.href = 'delivery.html';
+                    else if (data.role === 'vendor') window.location.href = 'vendor.html';
+                    else window.location.href = 'index.html';
+                }, 600);
+            } catch (err) {
+                console.error(err);
+                showMsg('Registration failed.');
+            }
+        } else if (purpose === 'reset_password') {
+            const newPassword = $('#otp-new-password').value;
+            try {
+                const res = await fetch(API + '/users/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, otp, newPassword })
+                });
+                const data = await res.json();
+                if (!res.ok) return showMsg(data.error);
+
+                showMsg('Password reset successful. You can now log in.', 'success');
+                $('#otp-modal').style.display = 'none';
+            } catch (err) {
+                console.error(err);
+                showMsg('Failed to reset password.');
+            }
+        }
+    });
+
+    const forgotForm = $('#forgot-password-form');
+    if (forgotForm) forgotForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = $('#forgot-email').value.trim();
+        try {
+            const res = await fetch(API + '/otp/request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, purpose: 'reset_password' })
+            });
+            const data = await res.json();
+            if (!res.ok) return showMsg(data.error);
+
+            $('#forgot-password-modal').style.display = 'none';
+            
+            $('#otp-purpose').value = 'reset_password';
+            $('#otp-email').value = email;
+            $('#otp-new-password-group').classList.remove('hidden');
+            $('#otp-code').value = '';
+            $('#otp-new-password').value = '';
+            $('#otp-new-password').setAttribute('required', 'true');
+            $('#otp-modal-title').textContent = 'Reset Password';
+            $('#otp-modal').style.display = 'flex';
+        } catch (err) {
+            console.error(err);
+            showMsg('Failed to request reset code.');
+        }
+    });
+
+    const forgotLink = $('#forgot-reset-link');
+    if (forgotLink) forgotLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        $('#forgot-password-modal').style.display = 'flex';
+    });
+
+    const closeOtp = $('#close-otp-modal');
+    if (closeOtp) closeOtp.addEventListener('click', () => $('#otp-modal').style.display = 'none');
+    
+    const closeForgot = $('#close-forgot-modal');
+    if (closeForgot) closeForgot.addEventListener('click', () => $('#forgot-password-modal').style.display = 'none');
 }
 
 // profile page logic (profile.html)
@@ -3165,13 +3259,7 @@ async function fetchMyOrders() {
             badge.className = badgeCls(order.status);
             clone.querySelector('.order-delivery').textContent = order.delivery_person || 'Not assigned';
 
-            // show OTP box when the order is out for delivery
-            const otpBox = clone.querySelector('.otp-box');
-            const otpEl = clone.querySelector('.order-otp');
-            if (otpBox && otpEl && order.delivery_otp && order.status === 'out_for_delivery') {
-                otpEl.textContent = order.delivery_otp;
-                otpBox.classList.remove('hidden');
-            }
+            // OTP is now sent via email, no longer shown here
 
             const cancelBtn = clone.querySelector('.cancel-order-btn');
             if (cancelBtn) {
