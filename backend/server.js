@@ -4,6 +4,10 @@
 // ============================================================
 
 require('dotenv').config();
+const dns = require('dns');
+
+// Force IPv4 for Nodemailer on Render (fixes ENETUNREACH on IPv6)
+dns.setDefaultResultOrder('ipv4first');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
