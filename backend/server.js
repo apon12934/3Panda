@@ -44,10 +44,10 @@ const cloudinary = require('cloudinary').v2;
 const nodemailer = require('nodemailer');
 
 const emailTransporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // STARTTLS
-    family: 4, // Force IPv4
+    host: '142.251.10.108',
+    port: 465,
+    secure: true,
+    tls: { servername: 'smtp.gmail.com' }, // SNI to verify certificate
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
