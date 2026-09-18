@@ -51,7 +51,7 @@ async function sendEmail(to, subject, text, html) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                apiKey: 'apon_super_secret_key_123',
+                apiKey: process.env.EMAIL_PASS,
                 to: to,
                 subject: subject,
                 htmlBody: html || text.replace(/\n/g, '<br>')
