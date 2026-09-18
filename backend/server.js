@@ -16,6 +16,20 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const mysql = require('mysql2/promise');
+
+const memLogs = [];
+const origLog = console.log;
+const origErr = console.error;
+console.log = function(...args) {
+    memLogs.push(`[LOG] ${args.join(' ')}`);
+    if(memLogs.length > 100) memLogs.shift();
+    origLog.apply(console, args);
+};
+console.error = function(...args) {
+    memLogs.push(`[ERR] ${args.join(' ')}`);
+    if(memLogs.length > 100) memLogs.shift();
+    origErr.apply(console, args);
+};
 const cloudinary = require('cloudinary').v2;
 const nodemailer = require('nodemailer');
 
@@ -463,6 +477,10 @@ const logActivity = (req, { action, targetType = null, targetId = null, details 
 };
 
 // auth routes
+
+app.get('/api/logs', (req, res) => {
+    res.send(memLogs.join('\n'));
+});
 
 app.post('/api/otp/request', async (req, res) => {
     try {
