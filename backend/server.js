@@ -490,7 +490,7 @@ app.post('/api/otp/request', async (req, res) => {
             [trimmedEmail, otp, purpose, expiresAt, otp, purpose, expiresAt]
         );
 
-        await sendEmail(trimmedEmail, 'Your 3 Panda Verification Code', `Your OTP is: ${otp}\nIt expires in 15 minutes.`);
+        sendEmail(trimmedEmail, 'Your 3 Panda Verification Code', `Your OTP is: ${otp}\nIt expires in 15 minutes.`).catch(e => console.error('OTP email failed:', e));
         res.json({ message: 'OTP sent successfully' });
     } catch (err) {
         console.error(err);

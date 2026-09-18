@@ -2616,12 +2616,21 @@ function initLogin() {
         e.preventDefault();
         const email = $('#reg-email').value.trim();
         try {
+            const btn = regForm.querySelector('button[type="submit"]');
+            const originalText = btn.textContent;
+            btn.textContent = 'Sending Code...';
+            btn.disabled = true;
+
             const res = await fetch(API + '/otp/request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, purpose: 'register' })
             });
             const data = await res.json();
+            
+            btn.textContent = originalText;
+            btn.disabled = false;
+
             if (!res.ok) return showMsg(data.error);
 
             pendingRegistrationData = {
@@ -2703,12 +2712,21 @@ function initLogin() {
         e.preventDefault();
         const email = $('#forgot-email').value.trim();
         try {
+            const btn = forgotForm.querySelector('button[type="submit"]');
+            const originalText = btn.textContent;
+            btn.textContent = 'Sending...';
+            btn.disabled = true;
+
             const res = await fetch(API + '/otp/request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, purpose: 'reset_password' })
             });
             const data = await res.json();
+            
+            btn.textContent = originalText;
+            btn.disabled = false;
+
             if (!res.ok) return showMsg(data.error);
 
             PandaPopup.close($('#forgot-popup'), $('#forgot-overlay'));
