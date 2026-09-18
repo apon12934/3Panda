@@ -7,6 +7,9 @@ if (window.location.protocol === 'file:' || (window.location.hostname.match(/loc
     API = window.location.origin + '/api';
 }
 
+let pendingRegistrationData = null;
+let pendingProfileFormData = null;
+
 let BARIKOI_API_KEY = '';
 const NOMINATIM_SEARCH_URL = 'https://nominatim.openstreetmap.org/search';
 const OSRM_ROUTE_URL = 'https://router.project-osrm.org/route/v1/driving';
@@ -2609,8 +2612,6 @@ function initLogin() {
         }
     });
 
-    let pendingRegistrationData = null;
-
     const regForm = $('#register-form');
     if (regForm) regForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -2710,6 +2711,32 @@ function initLogin() {
             } catch (err) {
                 console.error(err);
                 showMsg('Failed to reset password.');
+            }
+        } else if (purpose === 'update_email' && pendingProfileFormData) {
+            try {
+                pendingProfileFormData.append('otp', otp);
+                
+                const res = await fetch(API + '/users/profile', {
+                    method: 'PUT',
+                    headers: authHeaders(),
+                    body: pendingProfileFormData
+                });
+                const data = await res.json();
+                if (!res.ok) return showMsg(data.error);
+                
+                showMsg('Profile updated successfully!', 'success');
+                PandaPopup.close($('#otp-popup'), $('#otp-overlay'));
+                
+                // Keep local data in sync
+                const newEmail = pendingProfileFormData.get('email');
+                const newUsername = pendingProfileFormData.get('username');
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } catch (err) {
+                console.error(err);
+                showMsg('Profile update failed.');
             }
         }
     });
@@ -3206,6 +3233,26 @@ async function initProfile() {
             const fd = new FormData();
             const newUsername = $('#profile-name').value.trim();
             const newEmail = $('#profile-email').value.trim();
+            const pw = $('#profile-password').value;
+            const confirmPw = $('#profile-password-confirm') ? $('#profile-password-confirm').value : '';
+
+            if (pw || confirmPw) {
+                if (!pw || !confirmPw) {
+                    return showMsg('Please fill both password fields.');
+                }
+                if (pw !== confirmPw) {
+                    return showMsg('New password and confirm password do not match.');
+                }
+            }
+
+            fd.append('username', newUsername);
+            fd.append('email', newEmail);
+            if (pw) fd.append('password', pw);
+            if ($('#profile-fullname')) fd.append('full_name', $('#profile-fullname').value.trim());
+            if ($('#profile-phone')) fd.append('phone', $('#profile-phone').value.trim());
+            if ($('#profile-address')) fd.append('address', $('#profile-address').value.trim());
+            const fileInput = $('#profile-pic-input');
+            if (fileInput.files[0]) fd.append('profile_picture', fileInput.files[0]);
 
             if (newEmail !== currentUserData.email) {
                 const btn = e.target.querySelector('button[type="submit"]');
@@ -3225,32 +3272,17 @@ async function initProfile() {
                 const data = await res.json();
                 if (!res.ok) return showMsg(data.error || 'Failed to request OTP');
 
-                const otp = prompt('A verification code has been sent to your new email. Please enter it below to confirm:');
-                if (!otp) return showMsg('Email change cancelled.');
-                fd.append('otp', otp.trim());
+                pendingProfileFormData = fd;
+                $('#otp-purpose').value = 'update_email';
+                $('#otp-email').value = newEmail;
+                $('#otp-new-password-group').classList.add('hidden');
+                $('#otp-code').value = '';
+                $('#otp-modal-title').textContent = 'Verify New Email';
+                PandaPopup.open($('#otp-popup'), $('#otp-overlay'));
+                return; // Stop here, OTP submit will handle the rest
             }
 
-            fd.append('username', newUsername);
-            fd.append('email', newEmail);
-            const pw = $('#profile-password').value;
-            const confirmPw = $('#profile-password-confirm') ? $('#profile-password-confirm').value : '';
-
-            if (pw || confirmPw) {
-                if (!pw || !confirmPw) {
-                    return showMsg('Please fill both password fields.');
-                }
-                if (pw !== confirmPw) {
-                    return showMsg('New password and confirm password do not match.');
-                }
-            }
-
-            if (pw) fd.append('password', pw);
-            if ($('#profile-fullname')) fd.append('full_name', $('#profile-fullname').value.trim());
-            if ($('#profile-phone')) fd.append('phone', $('#profile-phone').value.trim());
-            if ($('#profile-address')) fd.append('address', $('#profile-address').value.trim());
-            const fileInput = $('#profile-pic-input');
-            if (fileInput.files[0]) fd.append('profile_picture', fileInput.files[0]);
-
+            // Normal save without email change
             const res = await fetch(API + '/users/profile', {
                 method: 'PUT',
                 headers: authHeaders(),
@@ -3260,12 +3292,13 @@ async function initProfile() {
             if (!res.ok) return showMsg(data.error);
             showMsg('Profile updated!', 'success');
             
-            // Update local user data so it doesn't prompt for OTP again
+            // Update local user data
             currentUserData.email = newEmail;
             currentUserData.username = newUsername;
             
             if ($('#profile-password')) $('#profile-password').value = '';
             if ($('#profile-password-confirm')) $('#profile-password-confirm').value = '';
+            
             // reload profile image preview
             const res2 = await fetch(API + '/users/profile', { headers: authHeaders() });
             const u2 = await res2.json();
@@ -3275,6 +3308,54 @@ async function initProfile() {
             showMsg('Update failed.');
         }
     });
+
+    // Profile OTP Modal Logic
+    const otpForm = $('#otp-form');
+    if (otpForm) otpForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const purpose = $('#otp-purpose').value;
+        const otp = $('#otp-code').value.trim();
+        
+        if (purpose === 'update_email' && pendingProfileFormData) {
+            try {
+                const btn = otpForm.querySelector('button[type="submit"]');
+                const origText = btn.textContent;
+                btn.textContent = 'Verifying...';
+                btn.disabled = true;
+
+                pendingProfileFormData.append('otp', otp);
+                
+                const res = await fetch(API + '/users/profile', {
+                    method: 'PUT',
+                    headers: authHeaders(),
+                    body: pendingProfileFormData
+                });
+                const data = await res.json();
+                
+                btn.textContent = origText;
+                btn.disabled = false;
+
+                if (!res.ok) {
+                    pendingProfileFormData.delete('otp'); // allow retry
+                    return showMsg(data.error);
+                }
+                
+                showMsg('Profile updated successfully!', 'success');
+                PandaPopup.close($('#otp-popup'), $('#otp-overlay'));
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } catch (err) {
+                console.error(err);
+                showMsg('Profile update failed.');
+                pendingProfileFormData.delete('otp');
+            }
+        }
+    });
+
+    const closeOtp = $('#close-otp-modal');
+    if (closeOtp) closeOtp.addEventListener('click', () => PandaPopup.close($('#otp-popup'), $('#otp-overlay')));
 }
 
 // my orders page logic (my-orders.html)
