@@ -45,6 +45,9 @@ const nodemailer = require('nodemailer');
 
 const emailTransporter = nodemailer.createTransport({
     service: 'gmail',
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
@@ -77,6 +80,9 @@ async function sendEmail(to, subject, text, html) {
                     port: 465,
                     secure: true,
                     tls: { servername: 'smtp.gmail.com' },
+                    connectionTimeout: 10000,
+                    greetingTimeout: 10000,
+                    socketTimeout: 10000,
                     auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
                 });
                 const info = await fallbackTransporter.sendMail({
@@ -86,9 +92,11 @@ async function sendEmail(to, subject, text, html) {
                 console.log('Fallback email successfully sent to', to, 'Response:', info.response);
             } catch (fallbackErr) {
                 console.error('Fallback email sending failed:', fallbackErr);
+                throw fallbackErr; // Bubble up so the UI stops loading
             }
         } else {
             console.error('Email sending failed:', err);
+            throw err; // Bubble up so the UI stops loading
         }
     }
 }
