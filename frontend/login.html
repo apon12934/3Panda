@@ -151,12 +151,16 @@
         </p>
     </div>
 
-    <!-- Modals for OTP and Forgot Password -->
-    <div id="otp-modal" class="modal-overlay" style="display: none;">
-        <div class="modal" style="background: var(--surface); padding: 2rem; border-radius: var(--radius); max-width: 400px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+    <!-- OTP Popup -->
+    <div class="popup-overlay hidden" id="otp-overlay"></div>
+    <div class="popup-panel hidden restaurant-owner-popup" id="otp-popup" style="max-width: 400px;">
+        <div class="popup-header">
             <h3 id="otp-modal-title">Verify Email</h3>
-            <p id="otp-modal-desc">Enter the 6-digit code sent to your email.</p>
-            <form id="otp-form" style="margin-top: 1rem;">
+            <button type="button" class="popup-close" id="close-otp-modal">&times;</button>
+        </div>
+        <div class="popup-body">
+            <p id="otp-modal-desc" style="margin-bottom:1rem;color:var(--text-muted)">Enter the 6-digit code sent to your email.</p>
+            <form id="otp-form">
                 <input type="hidden" id="otp-purpose">
                 <input type="hidden" id="otp-email">
                 <div class="form-group floating-group">
@@ -167,27 +171,26 @@
                     <input type="password" id="otp-new-password" class="form-control" placeholder=" ">
                     <label for="otp-new-password">New Password</label>
                 </div>
-                <div style="display:flex; gap:1rem; margin-top:1.5rem;">
-                    <button type="button" class="btn btn-outline" id="close-otp-modal" style="flex:1;">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="flex:1;">Verify & Proceed</button>
-                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;margin-top:.5rem;">Verify & Proceed</button>
             </form>
         </div>
     </div>
 
-    <div id="forgot-password-modal" class="modal-overlay" style="display: none;">
-        <div class="modal" style="background: var(--surface); padding: 2rem; border-radius: var(--radius); max-width: 400px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+    <!-- Forgot Password Popup -->
+    <div class="popup-overlay hidden" id="forgot-overlay"></div>
+    <div class="popup-panel hidden restaurant-owner-popup" id="forgot-popup" style="max-width: 400px;">
+        <div class="popup-header">
             <h3>Reset Password</h3>
-            <p>Enter your email address to receive a reset code.</p>
-            <form id="forgot-password-form" style="margin-top: 1rem;">
+            <button type="button" class="popup-close" id="close-forgot-modal">&times;</button>
+        </div>
+        <div class="popup-body">
+            <p style="margin-bottom:1rem;color:var(--text-muted)">Enter your email address to receive a reset code.</p>
+            <form id="forgot-password-form">
                 <div class="form-group floating-group">
                     <input type="email" id="forgot-email" class="form-control" placeholder=" " required>
                     <label for="forgot-email">Account Email</label>
                 </div>
-                <div style="display:flex; gap:1rem; margin-top:1.5rem;">
-                    <button type="button" class="btn btn-outline" id="close-forgot-modal" style="flex:1;">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="flex:1;">Send Code</button>
-                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;margin-top:.5rem;">Send Code</button>
             </form>
         </div>
     </div>

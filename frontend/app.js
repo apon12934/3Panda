@@ -2636,7 +2636,7 @@ function initLogin() {
             $('#otp-new-password-group').classList.add('hidden');
             $('#otp-code').value = '';
             $('#otp-modal-title').textContent = 'Verify Registration';
-            $('#otp-modal').style.display = 'flex';
+            PandaPopup.open($('#otp-popup'), $('#otp-overlay'));
         } catch (err) {
             console.error(err);
             showMsg('Failed to request verification code.');
@@ -2666,7 +2666,7 @@ function initLogin() {
                 localStorage.setItem('userName', data.username);
 
                 showMsg('Account created. Welcome, ' + data.username + '!', 'success');
-                $('#otp-modal').style.display = 'none';
+                PandaPopup.close($('#otp-popup'), $('#otp-overlay'));
 
                 setTimeout(() => {
                     if (data.role === 'admin') window.location.href = 'admin.html';
@@ -2690,7 +2690,7 @@ function initLogin() {
                 if (!res.ok) return showMsg(data.error);
 
                 showMsg('Password reset successful. You can now log in.', 'success');
-                $('#otp-modal').style.display = 'none';
+                PandaPopup.close($('#otp-popup'), $('#otp-overlay'));
             } catch (err) {
                 console.error(err);
                 showMsg('Failed to reset password.');
@@ -2711,7 +2711,7 @@ function initLogin() {
             const data = await res.json();
             if (!res.ok) return showMsg(data.error);
 
-            $('#forgot-password-modal').style.display = 'none';
+            PandaPopup.close($('#forgot-popup'), $('#forgot-overlay'));
             
             $('#otp-purpose').value = 'reset_password';
             $('#otp-email').value = email;
@@ -2720,7 +2720,7 @@ function initLogin() {
             $('#otp-new-password').value = '';
             $('#otp-new-password').setAttribute('required', 'true');
             $('#otp-modal-title').textContent = 'Reset Password';
-            $('#otp-modal').style.display = 'flex';
+            PandaPopup.open($('#otp-popup'), $('#otp-overlay'));
         } catch (err) {
             console.error(err);
             showMsg('Failed to request reset code.');
@@ -2730,14 +2730,14 @@ function initLogin() {
     const forgotLink = $('#forgot-reset-link');
     if (forgotLink) forgotLink.addEventListener('click', (e) => {
         e.preventDefault();
-        $('#forgot-password-modal').style.display = 'flex';
+        PandaPopup.open($('#forgot-popup'), $('#forgot-overlay'));
     });
 
     const closeOtp = $('#close-otp-modal');
-    if (closeOtp) closeOtp.addEventListener('click', () => $('#otp-modal').style.display = 'none');
+    if (closeOtp) closeOtp.addEventListener('click', () => PandaPopup.close($('#otp-popup'), $('#otp-overlay')));
     
     const closeForgot = $('#close-forgot-modal');
-    if (closeForgot) closeForgot.addEventListener('click', () => $('#forgot-password-modal').style.display = 'none');
+    if (closeForgot) closeForgot.addEventListener('click', () => PandaPopup.close($('#forgot-popup'), $('#forgot-overlay')));
 }
 
 // profile page logic (profile.html)
