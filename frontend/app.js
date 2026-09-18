@@ -2615,6 +2615,13 @@ function initLogin() {
     if (regForm) regForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = $('#reg-email').value.trim();
+        const password = $('#reg-password').value;
+        const confirmPassword = $('#reg-confirm-password').value;
+
+        if (password !== confirmPassword) {
+            return showMsg('Passwords do not match.', 'error');
+        }
+
         try {
             const btn = regForm.querySelector('button[type="submit"]');
             const originalText = btn.textContent;
@@ -3195,8 +3202,34 @@ async function initProfile() {
         e.preventDefault();
         try {
             const fd = new FormData();
-            fd.append('username', $('#profile-name').value.trim());
-            fd.append('email', $('#profile-email').value.trim());
+            const newUsername = $('#profile-name').value.trim();
+            const newEmail = $('#profile-email').value.trim();
+
+            if (newEmail !== user.email) {
+                const btn = e.target.querySelector('button[type="submit"]');
+                const origText = btn.textContent;
+                btn.textContent = 'Sending Code...';
+                btn.disabled = true;
+
+                const res = await fetch(API + '/otp/request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: newEmail, purpose: 'update_email' })
+                });
+                
+                btn.textContent = origText;
+                btn.disabled = false;
+
+                const data = await res.json();
+                if (!res.ok) return showMsg(data.error || 'Failed to request OTP');
+
+                const otp = prompt('A verification code has been sent to your new email. Please enter it below to confirm:');
+                if (!otp) return showMsg('Email change cancelled.');
+                fd.append('otp', otp.trim());
+            }
+
+            fd.append('username', newUsername);
+            fd.append('email', newEmail);
             const pw = $('#profile-password').value;
             const confirmPw = $('#profile-password-confirm') ? $('#profile-password-confirm').value : '';
 

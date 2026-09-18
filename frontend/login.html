@@ -92,10 +92,6 @@
 
         <form id="register-form">
             <div class="form-group floating-group">
-                <input type="text" id="reg-name" class="form-control" placeholder=" " required>
-                <label for="reg-name">Username</label>
-            </div>
-            <div class="form-group floating-group">
                 <input type="email" id="reg-email" class="form-control" placeholder=" " required>
                 <label for="reg-email">Email</label>
             </div>
@@ -124,6 +120,36 @@
                     </span>
                 </button>
                 <label for="reg-password">Password</label>
+            </div>
+            <div class="form-group floating-group has-password-toggle">
+                <input type="password" id="reg-confirm-password" class="form-control" placeholder=" " required>
+                <button
+                    type="button"
+                    class="password-toggle"
+                    data-password-target="reg-confirm-password"
+                    aria-label="Show password"
+                    aria-pressed="false"
+                >
+                    <span class="password-toggle-icon icon-show" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M1.5 12s3.9-6 10.5-6 10.5 6 10.5 6-3.9 6-10.5 6S1.5 12 1.5 12z"/>
+                            <circle cx="12" cy="12" r="3.1"/>
+                        </svg>
+                    </span>
+                    <span class="password-toggle-icon icon-hide" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M3 4.5l18 15"/>
+                            <path d="M10.7 6.2A11.5 11.5 0 0 1 12 6c6.6 0 10.5 6 10.5 6a18.2 18.2 0 0 1-3.5 3.9"/>
+                            <path d="M6.2 7.2A18 18 0 0 0 1.5 12s3.9 6 10.5 6a11 11 0 0 0 3.1-.4"/>
+                            <path d="M14.1 14.1a3.1 3.1 0 0 1-4.2-4.2"/>
+                        </svg>
+                    </span>
+                </button>
+                <label for="reg-confirm-password">Confirm Password</label>
+            </div>
+            <div class="form-group floating-group">
+                <input type="text" id="reg-name" class="form-control" placeholder=" ">
+                <label for="reg-name">Username (Optional)</label>
             </div>
             <div class="form-group custom-dropdown-group">
                 <label for="reg-role">Account Type</label>

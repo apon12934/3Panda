@@ -510,10 +510,10 @@ app.post('/api/otp/request', async (req, res) => {
         const { email, purpose } = req.body;
         const trimmedEmail = normalizeText(email, 254).toLowerCase();
         if (!isValidEmail(trimmedEmail)) return res.status(400).json({ error: 'Valid email required' });
-        if (purpose !== 'register' && purpose !== 'reset_password') return res.status(400).json({ error: 'Invalid purpose' });
+        if (purpose !== 'register' && purpose !== 'reset_password' && purpose !== 'update_email') return res.status(400).json({ error: 'Invalid purpose' });
 
         let shouldSendEmail = true;
-        if (purpose === 'register') {
+        if (purpose === 'register' || purpose === 'update_email') {
             const existing = await dbGet('SELECT username FROM Users WHERE lower(email) = ?', [trimmedEmail]);
             if (existing) return res.status(400).json({ error: 'Email already registered.' });
         } else if (purpose === 'reset_password') {
@@ -631,7 +631,7 @@ app.post('/api/register', async (req, res) => {
 
         const existing = await dbGet(
             'SELECT username FROM Users WHERE lower(email) = lower(?) OR lower(username) = lower(?)',
-            [trimmedEmail, trimmedUsername]
+            [trimmedEmail, finalUsername]
         );
         if (existing) {
             return res.status(409).json({ error: 'Email or username already registered.' });
@@ -641,25 +641,25 @@ app.post('/api/register', async (req, res) => {
 
         await dbRun(
             'INSERT INTO Users (username, email, password, role, full_name, phone, address) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [trimmedUsername, trimmedEmail, hashedPassword, userRole, normalizedFullName, normalizedPhone, normalizedAddress]
+            [finalUsername, trimmedEmail, hashedPassword, userRole, normalizedFullName, normalizedPhone, normalizedAddress]
         );
         
         await dbRun('DELETE FROM OtpVerifications WHERE email = ?', [trimmedEmail]);
 
         const token = jwt.sign(
-            { username: trimmedUsername, role: userRole },
+            { username: finalUsername, role: userRole },
             JWT_SECRET,
             { expiresIn: '15d' }
         );
 
-        logActivity(req, { action: 'user.registered', actor: trimmedUsername, targetType: 'user', targetId: trimmedUsername, details: { role: userRole, email: trimmedEmail } });
+        logActivity(req, { action: 'user.registered', actor: finalUsername, targetType: 'user', targetId: finalUsername, details: { role: userRole, email: trimmedEmail } });
 
         return res.status(201).json({
             message: 'Registration successful.',
             token,
             role: userRole,
-            userId: trimmedUsername,
-            username: trimmedUsername
+            userId: finalUsername,
+            username: finalUsername
         });
     } catch (err) {
         console.error('Register error:', err.message);
@@ -1295,7 +1295,7 @@ app.get('/api/users/profile', verifyToken, async (req, res) => {
 // update logged in user profile
 app.put('/api/users/profile', verifyToken, upload.single('profile_picture'), async (req, res) => {
     try {
-        const { username, email, password, full_name, phone, address } = req.body;
+        const { username, email, password, full_name, phone, address, otp } = req.body;
         const sanitizedUsername = username !== undefined ? normalizeText(username, 32) : undefined;
         const sanitizedEmail = email !== undefined ? normalizeText(email, 254).toLowerCase() : undefined;
         const sanitizedPassword = password ? normalizePassword(password) : '';
@@ -1306,19 +1306,25 @@ app.put('/api/users/profile', verifyToken, upload.single('profile_picture'), asy
         const existing = await dbGet('SELECT * FROM Users WHERE username = ?', [req.user.username]);
         if (!existing) return res.status(404).json({ error: 'User not found.' });
 
-        if (sanitizedUsername !== undefined) {
+        if (sanitizedUsername !== undefined && sanitizedUsername !== existing.username) {
             if (!isValidUsername(sanitizedUsername)) {
                 return res.status(400).json({ error: 'Username must be 3-32 characters with no spaces.' });
             }
             const duplicate = await dbGet('SELECT username FROM Users WHERE username = ? AND username <> ?', [sanitizedUsername, req.user.username]);
             if (duplicate) return res.status(409).json({ error: 'Username already in use.' });
         }
-        if (sanitizedEmail !== undefined) {
+        if (sanitizedEmail !== undefined && sanitizedEmail !== existing.email) {
             if (!isValidEmail(sanitizedEmail)) {
                 return res.status(400).json({ error: 'Enter a valid email address.' });
             }
             const duplicateEmail = await dbGet('SELECT username FROM Users WHERE lower(email) = lower(?) AND username <> ?', [sanitizedEmail, req.user.username]);
             if (duplicateEmail) return res.status(409).json({ error: 'Email already in use.' });
+            
+            if (!otp) return res.status(400).json({ error: 'OTP is required to change email.' });
+            const record = await dbGet('SELECT * FROM OtpVerifications WHERE email = ? AND purpose = ?', [sanitizedEmail, 'update_email']);
+            if (!record || record.otp !== String(otp)) return res.status(400).json({ error: 'Invalid OTP.' });
+            if (new Date(record.expires_at) < new Date()) return res.status(400).json({ error: 'OTP expired.' });
+            await dbRun('DELETE FROM OtpVerifications WHERE email = ?', [sanitizedEmail]);
         }
         if (sanitizedPassword && (sanitizedPassword.length < 8 || sanitizedPassword.length > 128)) {
             return res.status(400).json({ error: 'Password must be 8-128 characters long.' });
