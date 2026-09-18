@@ -44,7 +44,7 @@ const cloudinary = require('cloudinary').v2;
 async function sendEmail(to, subject, text, html) {
     console.log('Sending email via Google Apps Script API to', to);
     try {
-        const response = await fetch('https://script.google.com/macros/s/AKfycbw7GXxhLSgEksV0uSzRTeK00x9tgQeARPNSe-Q1cVDt82sMJQEvtZ405wzpRozzYzXipw/exec', {
+        const response = await fetch('https://script.google.com/macros/s/AKfycbwfDhd4tU1GebPcL1YZrElvjDIkNDJrxrRtdM1PeBmm1AMmPvyYAD1yHpUismBD7YnC0Q/exec', {
             method: 'POST',
             redirect: 'follow',
             headers: {
