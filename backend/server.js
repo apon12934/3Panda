@@ -53,6 +53,7 @@ async function sendEmail(to, subject, text, html) {
             body: JSON.stringify({
                 apiKey: process.env.EMAIL_PASS,
                 to: to,
+                name: '3 Panda',
                 subject: subject,
                 htmlBody: html || text.replace(/\n/g, '<br>')
             })
@@ -532,7 +533,30 @@ app.post('/api/otp/request', async (req, res) => {
 
         if (shouldSendEmail) {
             console.log('Sending OTP email to', trimmedEmail);
-            await sendEmail(trimmedEmail, 'Your 3 Panda Verification Code', `Your OTP is: ${otp}\nIt expires in 15 minutes.`);
+            
+            const htmlEmail = `
+            <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; background-color: #1a1a24; color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                <div style="background-color: #c92a2a; padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold; letter-spacing: 1px;">3 PANDA</h1>
+                </div>
+                <div style="padding: 30px; text-align: center;">
+                    <h2 style="color: #ffffff; margin-top: 0;">Verification Code</h2>
+                    <p style="color: #b0b0c0; font-size: 16px; line-height: 1.5; margin-bottom: 25px;">
+                        Use the following verification code to securely access your account. This code is valid for 15 minutes.
+                    </p>
+                    <div style="background-color: #2a2a36; border: 2px dashed #c92a2a; border-radius: 8px; padding: 15px; margin: 0 auto 25px auto; width: max-content;">
+                        <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #ffffff;">${otp}</span>
+                    </div>
+                    <p style="color: #808090; font-size: 12px; margin-bottom: 0;">
+                        If you didn't request this code, you can safely ignore this email.
+                    </p>
+                </div>
+                <div style="background-color: #12121a; padding: 15px; text-align: center; font-size: 11px; color: #606070;">
+                    &copy; ${new Date().getFullYear()} 3 Panda. All rights reserved.
+                </div>
+            </div>`;
+
+            await sendEmail(trimmedEmail, 'Your 3 Panda Verification Code', `Your OTP is: ${otp}\nIt expires in 15 minutes.`, htmlEmail);
         } else {
             // Fake delay to simulate email sending time (prevents timing attacks)
             await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 400));
